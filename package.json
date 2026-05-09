@@ -1,0 +1,22 @@
+{
+  "name": "wordpress-site-automation-hub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard and automation blueprint for managing multilingual WordPress sites, landing pages, and publishing workflows.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "db:schema": "psql \"$DATABASE_URL\" -f database/schema.sql"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "vite": "^7.2.7",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "lucide-react": "^0.561.0",
+    "punycode": "^2.3.1"
+  },
+  "devDependencies": {}
+}
