@@ -17,6 +17,18 @@ Direct fields:
 - `b_code` -> `sites.b_code`
 - `contact_email` -> `sites.contact_email`
 - `status` -> `sites.status`
+- Spreadsheet-derived classification -> `sites.portfolio_status`
+- Spreadsheet-derived recovery decision -> `sites.recovery_status`
+- Spreadsheet-derived risk level -> `sites.risk_level`
+
+Classification rule:
+
+- `wordfriends.co.kr` -> `customer_portal`
+- `09car.co.kr` or infra-only domains -> `infra_internal`
+- `setup_status=DONE` and `approval=합격` -> `operating_ready`
+- `setup_status=PROCESSING` or `PENDING` -> `setup_pipeline`
+- skipped domains requiring manual review -> `recovery_review`
+- domains with gambling, pharma, malware, link-farm, or black-hat contamination -> `high_risk_hold`
 
 WordPress fields:
 

@@ -19,6 +19,7 @@
 - 정식 설계 문서: [docs/BOSS_SiteOps_Platform_v1_Design.md](docs/BOSS_SiteOps_Platform_v1_Design.md)
 - 구글시트 이전 매핑: [database/GOOGLE_SHEETS_IMPORT_MAPPING.md](database/GOOGLE_SHEETS_IMPORT_MAPPING.md)
 - PostgreSQL 스키마: [database/schema.sql](database/schema.sql)
+- 도메인 포트폴리오 기준: [docs/Domain_Portfolio_v1.md](docs/Domain_Portfolio_v1.md)
 
 민감정보는 DB에 평문 저장하지 않습니다. WordPress App Password, API 키, OAuth secret은 N8N Credentials, 서버 환경변수, 또는 별도 Secret Manager에 보관하고 DB에는 `credential_ref` 또는 `secret_ref`만 저장합니다.
 
