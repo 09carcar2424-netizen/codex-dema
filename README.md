@@ -22,6 +22,7 @@
 - 도메인 포트폴리오 기준: [docs/Domain_Portfolio_v1.md](docs/Domain_Portfolio_v1.md)
 - 고객 포털/추천 보상 설계: [docs/Customer_Portal_v1.md](docs/Customer_Portal_v1.md)
 - 보안 운영 기준: [docs/Security_Operations_v1.md](docs/Security_Operations_v1.md)
+- 세액/원천징수 예상 안내: [docs/Tax_Withholding_v1.md](docs/Tax_Withholding_v1.md)
 
 민감정보는 DB에 평문 저장하지 않습니다. WordPress App Password, API 키, OAuth secret은 N8N Credentials, 서버 환경변수, 또는 별도 Secret Manager에 보관하고 DB에는 `credential_ref` 또는 `secret_ref`만 저장합니다.
 
@@ -38,6 +39,16 @@ npm.cmd run dev
 `npm.cmd run dev`는 API 서버(`http://127.0.0.1:8787`)와 Vite 화면(`http://127.0.0.1:5173`)을 함께 실행합니다.
 
 브라우저에서 표시되는 주소를 열면 관리자 화면을 볼 수 있습니다.
+
+## Ubuntu PostgreSQL 준비
+
+Ubuntu 서버에서 실행할 때는 실제 비밀번호를 환경변수로 지정한 뒤 스크립트를 실행합니다.
+
+```bash
+APP_DB_PASSWORD='강력한-새-비밀번호' bash scripts/ubuntu-postgres-setup.sh
+```
+
+실제 운영 `.env`에는 `DATABASE_URL`을 저장하고, 파일 권한은 `chmod 600 .env`로 제한하세요.
 
 ## PostgreSQL 실행
 

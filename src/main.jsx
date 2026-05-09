@@ -28,6 +28,7 @@ import {
   runLogRows,
   settlementRows,
   siteRows,
+  taxEstimateRows,
   workflowRows,
   wpSetupRows,
 } from './sampleData.js';
@@ -43,6 +44,7 @@ const fallbackDashboard = {
   runLogs: runLogRows,
   settlements: settlementRows,
   referrals: referralRows,
+  taxEstimates: taxEstimateRows,
 };
 
 function StatusPill({ value }) {
@@ -76,6 +78,7 @@ function App() {
           runLogs: data.runLogs?.length ? data.runLogs : runLogRows,
           settlements: data.settlements?.length ? data.settlements : settlementRows,
           referrals: data.referrals?.length ? data.referrals : referralRows,
+          taxEstimates: data.taxEstimates?.length ? data.taxEstimates : taxEstimateRows,
         });
         setApiState({ status: 'connected', message: 'PostgreSQL 연결됨' });
       })
@@ -125,6 +128,7 @@ function App() {
           <a href="#setup"><ServerCog size={18} />WP 세팅</a>
           <a href="#portal"><UserPlus size={18} />고객 포털</a>
           <a href="#settlements"><WalletCards size={18} />정산/추천</a>
+          <a href="#tax"><ClipboardCheck size={18} />세액 안내</a>
           <a href="#n8n"><Play size={18} />N8N 실행</a>
           <a href="#logs"><Database size={18} />작업 로그</a>
           <a href="#security"><ShieldCheck size={18} />보안 기준</a>
@@ -366,6 +370,43 @@ function App() {
                   </div>
                 ))}
               </div>
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="tax">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">tax estimate</p>
+                <h2>세액 및 원천징수 예상 안내</h2>
+              </div>
+              <span className="status-pill planned">참고용</span>
+            </div>
+            <div className="tax-notice">
+              <AlertTriangle size={20} />
+              <p>
+                이 화면의 세액은 예상 참고용입니다. 실제 세무 처리는 고객의 사업자 여부, 소득 종류,
+                지급 방식, 세무사 검토 결과에 따라 달라질 수 있습니다.
+              </p>
+            </div>
+            <div className="ops-table tax-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>항목</span>
+                <span>총액</span>
+                <span>분류</span>
+                <span>예상 원천징수</span>
+                <span>예상 실지급</span>
+                <span>상태</span>
+              </div>
+              {dashboard.taxEstimates.map((row) => (
+                <div className="ops-row" role="row" key={row.label}>
+                  <strong>{row.label}</strong>
+                  <span>{row.grossAmount}</span>
+                  <span>{row.category}</span>
+                  <span>{row.withholding}</span>
+                  <span>{row.netPayable}</span>
+                  <StatusPill value={row.status} />
+                </div>
+              ))}
             </div>
           </article>
 

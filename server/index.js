@@ -187,6 +187,24 @@ async function getDashboardData() {
       active: row.active,
       status: row.status?.toUpperCase(),
     })),
+    taxEstimates: [
+      {
+        label: '소개 보상 예시',
+        grossAmount: '100,000원',
+        category: '사업소득 3.3% 참고',
+        withholding: '3,300원',
+        netPayable: '96,700원',
+        status: 'REFERENCE',
+      },
+      {
+        label: '기타소득 참고 예시',
+        grossAmount: '100,000원',
+        category: '기타소득 8.8% 참고',
+        withholding: '8,800원',
+        netPayable: '91,200원',
+        status: 'REFERENCE',
+      },
+    ],
   };
 }
 

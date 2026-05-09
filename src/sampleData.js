@@ -290,3 +290,30 @@ export const referralRows = [
     status: 'DISABLED',
   },
 ];
+
+export const taxEstimateRows = [
+  {
+    label: '소개 보상 예시',
+    grossAmount: '100,000원',
+    category: '사업소득 3.3% 참고',
+    withholding: '3,300원',
+    netPayable: '96,700원',
+    status: 'REFERENCE',
+  },
+  {
+    label: '기타소득 참고 예시',
+    grossAmount: '100,000원',
+    category: '기타소득 8.8% 참고',
+    withholding: '8,800원',
+    netPayable: '91,200원',
+    status: 'REFERENCE',
+  },
+  {
+    label: '사업자 정산',
+    grossAmount: '세금계산서 기준',
+    category: '세무 검토 필요',
+    withholding: '별도 판단',
+    netPayable: '별도 판단',
+    status: 'REVIEW',
+  },
+];

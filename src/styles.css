@@ -313,6 +313,10 @@ h2 {
   grid-template-columns: minmax(220px, 1.3fr) 110px 90px 130px 110px;
 }
 
+.tax-table .ops-row {
+  grid-template-columns: minmax(160px, 1fr) 120px minmax(160px, 1fr) 140px 130px 100px;
+}
+
 .ops-head {
   min-height: 34px;
   background: transparent;
@@ -407,6 +411,24 @@ h2 {
 
 .policy-box svg {
   color: var(--accent);
+}
+
+.tax-notice {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  align-items: start;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #fff1d6;
+  color: #6c4300;
+}
+
+.tax-notice p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .setup-card {
@@ -528,7 +550,9 @@ h2 {
 }
 
 .status-pill.none,
-.status-pill.not_started {
+.status-pill.not_started,
+.status-pill.reference,
+.status-pill.review {
   background: #edf1f3;
   color: #5b6970;
 }
@@ -636,7 +660,8 @@ h2 {
 
   .sites-table .ops-row,
   .queue-table .ops-row,
-  .customer-table .ops-row {
+  .customer-table .ops-row,
+  .tax-table .ops-row {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -656,7 +681,8 @@ h2 {
   .table-row,
   .sites-table .ops-row,
   .queue-table .ops-row,
-  .customer-table .ops-row {
+  .customer-table .ops-row,
+  .tax-table .ops-row {
     grid-template-columns: 1fr;
     padding: 12px;
   }

@@ -412,6 +412,38 @@ CREATE TABLE IF NOT EXISTS revenue_settlements (
   CHECK (status IN ('draft', 'confirmed', 'invoiced', 'paid', 'void'))
 );
 
+CREATE TABLE IF NOT EXISTS tax_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  profile_type TEXT NOT NULL DEFAULT 'individual',
+  resident_type TEXT NOT NULL DEFAULT 'resident',
+  business_registration_status TEXT NOT NULL DEFAULT 'unknown',
+  withholding_category TEXT NOT NULL DEFAULT 'needs_review',
+  memo TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (profile_type IN ('individual', 'sole_proprietor', 'corporation')),
+  CHECK (resident_type IN ('resident', 'non_resident', 'unknown')),
+  CHECK (business_registration_status IN ('registered', 'not_registered', 'unknown')),
+  CHECK (withholding_category IN ('business_income_3_3', 'other_income_8_8_reference', 'invoice_required', 'needs_review'))
+);
+
+CREATE TABLE IF NOT EXISTS withholding_estimates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  settlement_id UUID REFERENCES revenue_settlements(id) ON DELETE CASCADE,
+  customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  estimate_type TEXT NOT NULL,
+  gross_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  income_tax_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  local_income_tax_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  total_withholding_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  net_payable_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'KRW',
+  disclaimer TEXT NOT NULL DEFAULT 'Estimated only. Final tax treatment must be confirmed by a tax professional.',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (estimate_type IN ('business_income_3_3', 'other_income_8_8_reference', 'manual_review'))
+);
+
 ALTER TABLE referral_rewards
   DROP CONSTRAINT IF EXISTS referral_rewards_settlement_id_fkey;
 
@@ -436,6 +468,7 @@ CREATE INDEX IF NOT EXISTS idx_sites_site_key ON sites(site_key);
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
 CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);
 CREATE INDEX IF NOT EXISTS idx_referral_rewards_status ON referral_rewards(status);
+CREATE INDEX IF NOT EXISTS idx_withholding_estimates_customer ON withholding_estimates(customer_id);
 CREATE INDEX IF NOT EXISTS idx_content_queue_status ON content_queue(status);
 CREATE INDEX IF NOT EXISTS idx_content_queue_site_key ON content_queue(site_key);
 CREATE INDEX IF NOT EXISTS idx_run_logs_site_key ON run_logs(site_key);
