@@ -12,6 +12,16 @@
 - 글 발행 관리를 위한 PostgreSQL 스키마
 - 관리자 대시보드 UI
 
+## BOSS SiteOps Platform v1
+
+현재 프로젝트 방향은 고객 소유 도메인/고객 소유 AdSense 계정을 전제로 한 운영대행 플랫폼입니다.
+
+- 정식 설계 문서: [docs/BOSS_SiteOps_Platform_v1_Design.md](docs/BOSS_SiteOps_Platform_v1_Design.md)
+- 구글시트 이전 매핑: [database/GOOGLE_SHEETS_IMPORT_MAPPING.md](database/GOOGLE_SHEETS_IMPORT_MAPPING.md)
+- PostgreSQL 스키마: [database/schema.sql](database/schema.sql)
+
+민감정보는 DB에 평문 저장하지 않습니다. WordPress App Password, API 키, OAuth secret은 N8N Credentials, 서버 환경변수, 또는 별도 Secret Manager에 보관하고 DB에는 `credential_ref` 또는 `secret_ref`만 저장합니다.
+
 ## 실행 준비
 
 Node.js는 설치되어 있습니다. PowerShell에서 `npm`이 막히면 `npm.cmd`를 사용하세요.
