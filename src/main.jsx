@@ -2,27 +2,36 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Activity,
-  Brush,
+  AlertTriangle,
   CheckCircle2,
+  ClipboardCheck,
   Database,
   FileText,
   Globe2,
-  LayoutTemplate,
+  KeyRound,
   Moon,
   Play,
+  RefreshCw,
+  ServerCog,
   ShieldCheck,
-  Sparkles,
   Sun,
+  Users,
 } from 'lucide-react';
-import { sampleDomains, sampleJobs, templateCatalog } from './sampleData.js';
-import { buildAutomationPlan, detectDomainProfile } from './wordpressPlan.js';
+import {
+  contentQueueRows,
+  runLogRows,
+  siteRows,
+  workflowRows,
+  wpSetupRows,
+} from './sampleData.js';
 import './styles.css';
+
+function StatusPill({ value }) {
+  return <span className={`status-pill ${String(value).toLowerCase()}`}>{value}</span>;
+}
 
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wp-auto-theme') || 'light');
-  const selectedDomain = sampleDomains[0];
-  const profile = detectDomainProfile(selectedDomain.domain);
-  const plan = buildAutomationPlan(selectedDomain);
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -31,20 +40,20 @@ function App() {
   }, [theme]);
 
   const metrics = [
-    { label: '등록 도메인', value: sampleDomains.length, icon: Globe2 },
-    { label: '자동화 작업', value: sampleJobs.length, icon: Activity },
-    { label: '랜딩 템플릿', value: templateCatalog.length, icon: LayoutTemplate },
-    { label: '필수 정책 페이지', value: '3종', icon: ShieldCheck },
+    { label: '운영 사이트', value: siteRows.length, icon: Globe2 },
+    { label: '검수 필요', value: siteRows.filter((site) => site.reviewRequired).length, icon: ClipboardCheck },
+    { label: '콘텐츠 큐', value: contentQueueRows.length, icon: FileText },
+    { label: 'N8N 워크플로우', value: workflowRows.length, icon: Activity },
   ];
 
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">W</div>
+          <div className="brand-mark">B</div>
           <div>
-            <strong>WP Auto Hub</strong>
-            <span>Multi-site operations</span>
+            <strong>BOSS SiteOps</strong>
+            <span>Customer-owned site operations</span>
           </div>
         </div>
 
@@ -59,23 +68,25 @@ function App() {
         </button>
 
         <nav className="nav-list" aria-label="Primary">
-          <a className="active" href="#dashboard"><Globe2 size={18} />대시보드</a>
-          <a href="#automation"><Play size={18} />자동 세팅</a>
-          <a href="#landing"><Brush size={18} />랜딩페이지</a>
-          <a href="#publishing"><FileText size={18} />글 발행</a>
-          <a href="#database"><Database size={18} />PostgreSQL</a>
+          <a className="active" href="#overview"><Globe2 size={18} />운영 현황</a>
+          <a href="#sites"><Users size={18} />사이트 관리</a>
+          <a href="#queue"><FileText size={18} />콘텐츠 큐</a>
+          <a href="#setup"><ServerCog size={18} />WP 세팅</a>
+          <a href="#n8n"><Play size={18} />N8N 실행</a>
+          <a href="#logs"><Database size={18} />작업 로그</a>
+          <a href="#security"><ShieldCheck size={18} />보안 기준</a>
         </nav>
       </aside>
 
       <section className="workspace">
-        <header className="topbar">
+        <header className="topbar" id="overview">
           <div>
-            <p className="eyebrow">WordPress Automation Hub</p>
-            <h1>도메인별 워드프레스 자동 세팅 관리자</h1>
+            <p className="eyebrow">BOSS SiteOps Platform v1</p>
+            <h1>고객 소유 사이트 운영대행 콘솔</h1>
           </div>
           <button className="primary-action" type="button">
-            <Sparkles size={18} />
-            새 작업 만들기
+            <RefreshCw size={18} />
+            구글시트 동기화
           </button>
         </header>
 
@@ -93,102 +104,154 @@ function App() {
         </section>
 
         <section className="content-grid">
-          <article className="panel wide" id="dashboard">
+          <article className="panel wide-panel" id="sites">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Domain Intelligence</p>
-                <h2>도메인 자동 판정</h2>
+                <p className="eyebrow">site_master</p>
+                <h2>사이트 관리</h2>
               </div>
-              <span className="status-pill success">Ready</span>
+              <span className="status-pill active">민감정보 숨김</span>
             </div>
-            <div className="domain-table" role="table">
-              <div className="table-row table-head" role="row">
-                <span>도메인</span>
-                <span>언어</span>
-                <span>목적</span>
+            <div className="ops-table sites-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>사이트</span>
+                <span>소유</span>
+                <span>가드레일</span>
+                <span>워크플로우</span>
+                <span>Credential</span>
                 <span>상태</span>
               </div>
-              {sampleDomains.map((domain) => (
-                <div className="table-row" role="row" key={domain.domain}>
-                  <strong>{domain.domain}</strong>
-                  <span>{detectDomainProfile(domain.domain).languageLabel}</span>
-                  <span>{domain.topic}</span>
-                  <span className={`status-pill ${domain.status}`}>{domain.statusLabel}</span>
+              {siteRows.map((site) => (
+                <div className="ops-row" role="row" key={site.siteKey}>
+                  <div>
+                    <strong>{site.domain}</strong>
+                    <small>{site.siteKey} · {site.topic} · {site.gLevel}</small>
+                  </div>
+                  <span>{site.owner}</span>
+                  <span>{site.guardrail}</span>
+                  <span>{site.workflow}</span>
+                  <code>{site.credentialRef}</code>
+                  <StatusPill value={site.status} />
                 </div>
               ))}
             </div>
           </article>
 
-          <article className="panel" id="automation">
+          <article className="panel" id="security">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Automation Plan</p>
-                <h2>{selectedDomain.domain}</h2>
+                <p className="eyebrow">Security Model</p>
+                <h2>운영 보안 기준</h2>
               </div>
-              <span className="language-badge">{profile.languageLabel}</span>
+              <KeyRound size={20} />
             </div>
-            <ol className="step-list">
-              {plan.steps.map((step) => (
-                <li key={step.title}>
-                  <CheckCircle2 size={18} />
-                  <div>
-                    <strong>{step.title}</strong>
-                    <span>{step.detail}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            <ul className="check-list">
+              <li><CheckCircle2 size={18} />DB에는 앱 비밀번호를 저장하지 않음</li>
+              <li><CheckCircle2 size={18} />N8N Credentials 또는 서버 환경변수 사용</li>
+              <li><CheckCircle2 size={18} />고객 애드센스와 도메인 소유권 분리 기록</li>
+              <li><AlertTriangle size={18} />YMYL 콘텐츠는 항상 검수 후 발행</li>
+            </ul>
           </article>
 
-          <article className="panel" id="landing">
+          <article className="panel wide-panel" id="queue">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Landing Templates</p>
-                <h2>상세 페이지 디자인</h2>
+                <p className="eyebrow">content_queue</p>
+                <h2>콘텐츠 큐</h2>
               </div>
+              <button className="secondary-action" type="button">
+                <Play size={16} />
+                선택 항목 실행
+              </button>
             </div>
-            <div className="template-list">
-              {templateCatalog.map((template) => (
-                <div className="template-item" key={template.key}>
-                  <span style={{ background: template.color }} />
+            <div className="ops-table queue-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>제목</span>
+                <span>사이트</span>
+                <span>카테고리</span>
+                <span>검증</span>
+                <span>발행</span>
+                <span>상태</span>
+              </div>
+              {contentQueueRows.map((item) => (
+                <div className="ops-row" role="row" key={`${item.siteKey}-${item.id}`}>
                   <div>
-                    <strong>{template.name}</strong>
-                    <small>{template.useCase}</small>
+                    <strong>{item.title}</strong>
+                    <small>{item.keyword}</small>
                   </div>
+                  <span>{item.siteKey}</span>
+                  <span>{item.category}</span>
+                  <span>{item.contentLength || '-'}자 · H2 {item.h2Count}</span>
+                  <span>{item.publishMode}</span>
+                  <StatusPill value={item.status} />
                 </div>
               ))}
             </div>
           </article>
 
-          <article className="panel wide" id="publishing">
+          <article className="panel" id="n8n">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Publishing Queue</p>
-                <h2>글 발행 작업</h2>
+                <p className="eyebrow">N8N Webhooks</p>
+                <h2>실행 엔진</h2>
               </div>
             </div>
-            <div className="job-list">
-              {sampleJobs.map((job) => (
-                <div className="job-item" key={job.title}>
+            <div className="stack-list">
+              {workflowRows.map((workflow) => (
+                <div className="stack-item" key={workflow.key}>
                   <div>
-                    <strong>{job.title}</strong>
-                    <span>{job.domain} · {job.schedule}</span>
+                    <strong>{workflow.name}</strong>
+                    <small>{workflow.key} · {workflow.target}</small>
                   </div>
-                  <span className={`status-pill ${job.status}`}>{job.statusLabel}</span>
+                  <StatusPill value={workflow.status} />
                 </div>
               ))}
             </div>
           </article>
 
-          <article className="panel database-panel" id="database">
-            <div>
-              <p className="eyebrow">PostgreSQL</p>
-              <h2>관리 DB 구조</h2>
-              <p>
-                도메인, 사이트 설정, 랜딩페이지, 글 발행 큐, 자동화 로그를 PostgreSQL에 저장하도록 설계했습니다.
-              </p>
+          <article className="panel wide-panel" id="setup">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">wp_setup_queue</p>
+                <h2>워드프레스 세팅 큐</h2>
+              </div>
             </div>
-            <code>database/schema.sql</code>
+            <div className="setup-grid">
+              {wpSetupRows.map((row) => (
+                <article className="setup-card" key={row.domain}>
+                  <div>
+                    <strong>{row.domain}</strong>
+                    <small>{row.siteName} · {row.language} · {row.theme}</small>
+                  </div>
+                  <p>{row.concept}</p>
+                  <div className="card-footer">
+                    <span>{row.monetize}</span>
+                    <StatusPill value={row.status} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel" id="logs">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">run_logs</p>
+                <h2>최근 작업 로그</h2>
+              </div>
+            </div>
+            <div className="stack-list">
+              {runLogRows.map((log) => (
+                <div className="stack-item" key={`${log.siteKey}-${log.time}`}>
+                  <div>
+                    <strong>{log.siteKey}</strong>
+                    <small>{log.workflow} · {log.time}</small>
+                    <small>{log.result}</small>
+                  </div>
+                  <StatusPill value={log.status} />
+                </div>
+              ))}
+            </div>
           </article>
         </section>
       </section>
