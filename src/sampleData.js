@@ -219,3 +219,74 @@ export const runLogRows = [
     result: 'Ready for N8N webhook',
   },
 ];
+
+export const portalSummary = {
+  domain: 'wordfriends.co.kr',
+  role: 'CUSTOMER_PORTAL',
+  status: 'PLANNED',
+  publicPurpose: '고객 모집, 고객 로그인, 정산 확인, 소개 보상 관리',
+  safetyDefault: '수익/승인 보장 금지, 고객 소유 계정 원칙',
+};
+
+export const customerRows = [
+  {
+    code: 'CUST-001',
+    name: '파일럿 고객 A',
+    contractStatus: 'ACTIVE',
+    sites: 2,
+    adsenseStatus: 'APPROVED',
+    settlementStatus: 'CONFIRMED',
+  },
+  {
+    code: 'CUST-002',
+    name: '베타 고객 B',
+    contractStatus: 'LEAD',
+    sites: 0,
+    adsenseStatus: 'NOT_STARTED',
+    settlementStatus: 'NONE',
+  },
+  {
+    code: 'CUST-003',
+    name: '소개 대기 고객 C',
+    contractStatus: 'PENDING',
+    sites: 1,
+    adsenseStatus: 'SUBMITTED',
+    settlementStatus: 'DRAFT',
+  },
+];
+
+export const settlementRows = [
+  {
+    month: '2026-05',
+    customer: 'CUST-001',
+    grossRevenue: '고객 직접 수령',
+    agencyFee: '운영대행료 산정',
+    status: 'CONFIRMED',
+  },
+  {
+    month: '2026-05',
+    customer: 'CUST-003',
+    grossRevenue: '승인 대기',
+    agencyFee: '미확정',
+    status: 'DRAFT',
+  },
+];
+
+export const referralRows = [
+  {
+    referrer: 'CUST-001',
+    referred: 'CUST-003',
+    depth: 1,
+    rule: '1단계 소개 보상',
+    active: true,
+    status: 'PENDING',
+  },
+  {
+    referrer: 'CUST-001',
+    referred: 'CUST-004',
+    depth: 2,
+    rule: '2단계 확장 후보',
+    active: false,
+    status: 'DISABLED',
+  },
+];

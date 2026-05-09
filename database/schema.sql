@@ -17,6 +17,77 @@ CREATE TABLE IF NOT EXISTS customers (
   CHECK (adsense_owner_type IN ('customer', 'boss_internal_test'))
 );
 
+CREATE TABLE IF NOT EXISTS customer_portal_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  email TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'customer',
+  status TEXT NOT NULL DEFAULT 'invited',
+  last_login_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (role IN ('customer', 'referrer', 'admin', 'support')),
+  CHECK (status IN ('invited', 'active', 'paused', 'locked', 'closed'))
+);
+
+CREATE TABLE IF NOT EXISTS referral_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  code TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (status IN ('active', 'paused', 'closed'))
+);
+
+CREATE TABLE IF NOT EXISTS referral_relationships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referrer_customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+  referred_customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  referral_code_id UUID REFERENCES referral_codes(id) ON DELETE SET NULL,
+  depth INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  approved_at TIMESTAMPTZ,
+  CHECK (depth BETWEEN 1 AND 3),
+  CHECK (status IN ('pending', 'approved', 'rejected', 'canceled')),
+  UNIQUE(referred_customer_id)
+);
+
+CREATE TABLE IF NOT EXISTS referral_reward_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rule_name TEXT NOT NULL UNIQUE,
+  depth INTEGER NOT NULL DEFAULT 1,
+  reward_type TEXT NOT NULL,
+  reward_basis TEXT NOT NULL,
+  reward_rate NUMERIC(6, 3),
+  fixed_amount NUMERIC(14, 2),
+  currency TEXT NOT NULL DEFAULT 'KRW',
+  active BOOLEAN NOT NULL DEFAULT false,
+  legal_review_required BOOLEAN NOT NULL DEFAULT true,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (depth BETWEEN 1 AND 3),
+  CHECK (reward_type IN ('fixed', 'percentage')),
+  CHECK (reward_basis IN ('setup_fee', 'monthly_agency_fee', 'boss_margin'))
+);
+
+CREATE TABLE IF NOT EXISTS referral_rewards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referral_relationship_id UUID NOT NULL REFERENCES referral_relationships(id) ON DELETE CASCADE,
+  reward_rule_id UUID REFERENCES referral_reward_rules(id) ON DELETE SET NULL,
+  settlement_id UUID,
+  reward_month DATE,
+  base_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  reward_amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'KRW',
+  status TEXT NOT NULL DEFAULT 'draft',
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (status IN ('draft', 'confirmed', 'payable', 'paid', 'void', 'held'))
+);
+
 CREATE TABLE IF NOT EXISTS sites (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
@@ -341,6 +412,13 @@ CREATE TABLE IF NOT EXISTS revenue_settlements (
   CHECK (status IN ('draft', 'confirmed', 'invoiced', 'paid', 'void'))
 );
 
+ALTER TABLE referral_rewards
+  DROP CONSTRAINT IF EXISTS referral_rewards_settlement_id_fkey;
+
+ALTER TABLE referral_rewards
+  ADD CONSTRAINT referral_rewards_settlement_id_fkey
+  FOREIGN KEY (settlement_id) REFERENCES revenue_settlements(id) ON DELETE SET NULL;
+
 CREATE TABLE IF NOT EXISTS policy_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
@@ -356,6 +434,8 @@ CREATE TABLE IF NOT EXISTS policy_reviews (
 
 CREATE INDEX IF NOT EXISTS idx_sites_site_key ON sites(site_key);
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
+CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);
+CREATE INDEX IF NOT EXISTS idx_referral_rewards_status ON referral_rewards(status);
 CREATE INDEX IF NOT EXISTS idx_content_queue_status ON content_queue(status);
 CREATE INDEX IF NOT EXISTS idx_content_queue_site_key ON content_queue(site_key);
 CREATE INDEX IF NOT EXISTS idx_run_logs_site_key ON run_logs(site_key);

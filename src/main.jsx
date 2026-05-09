@@ -16,10 +16,16 @@ import {
   ShieldCheck,
   Sun,
   Users,
+  UserPlus,
+  WalletCards,
 } from 'lucide-react';
 import {
   contentQueueRows,
+  customerRows,
+  portalSummary,
+  referralRows,
   runLogRows,
+  settlementRows,
   siteRows,
   workflowRows,
   wpSetupRows,
@@ -44,6 +50,7 @@ function App() {
     { label: '검수 필요', value: siteRows.filter((site) => site.reviewRequired).length, icon: ClipboardCheck },
     { label: '콘텐츠 큐', value: contentQueueRows.length, icon: FileText },
     { label: 'N8N 워크플로우', value: workflowRows.length, icon: Activity },
+    { label: '포털 고객', value: customerRows.length, icon: Users },
   ];
 
   return (
@@ -72,6 +79,8 @@ function App() {
           <a href="#sites"><Users size={18} />사이트 관리</a>
           <a href="#queue"><FileText size={18} />콘텐츠 큐</a>
           <a href="#setup"><ServerCog size={18} />WP 세팅</a>
+          <a href="#portal"><UserPlus size={18} />고객 포털</a>
+          <a href="#settlements"><WalletCards size={18} />정산/추천</a>
           <a href="#n8n"><Play size={18} />N8N 실행</a>
           <a href="#logs"><Database size={18} />작업 로그</a>
           <a href="#security"><ShieldCheck size={18} />보안 기준</a>
@@ -132,6 +141,48 @@ function App() {
                   <span>{site.workflow}</span>
                   <code>{site.credentialRef}</code>
                   <StatusPill value={site.status} />
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel wide-panel portal-panel" id="portal">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">wordfriends.co.kr</p>
+                <h2>고객 포털 계획</h2>
+              </div>
+              <StatusPill value={portalSummary.status} />
+            </div>
+            <div className="portal-grid">
+              <div>
+                <strong>{portalSummary.domain}</strong>
+                <span>{portalSummary.role}</span>
+                <p>{portalSummary.publicPurpose}</p>
+              </div>
+              <div className="policy-box">
+                <ShieldCheck size={20} />
+                <span>{portalSummary.safetyDefault}</span>
+              </div>
+            </div>
+            <div className="ops-table customer-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>고객</span>
+                <span>계약</span>
+                <span>사이트</span>
+                <span>애드센스</span>
+                <span>정산</span>
+              </div>
+              {customerRows.map((customer) => (
+                <div className="ops-row" role="row" key={customer.code}>
+                  <div>
+                    <strong>{customer.name}</strong>
+                    <small>{customer.code}</small>
+                  </div>
+                  <StatusPill value={customer.contractStatus} />
+                  <span>{customer.sites}개</span>
+                  <StatusPill value={customer.adsenseStatus} />
+                  <StatusPill value={customer.settlementStatus} />
                 </div>
               ))}
             </div>
@@ -230,6 +281,42 @@ function App() {
                   </div>
                 </article>
               ))}
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="settlements">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">settlements / referrals</p>
+                <h2>정산 및 추천 보상</h2>
+              </div>
+              <span className="status-pill active">1단계만 활성</span>
+            </div>
+            <div className="split-grid">
+              <div className="stack-list">
+                {settlementRows.map((row) => (
+                  <div className="stack-item" key={`${row.customer}-${row.month}`}>
+                    <div>
+                      <strong>{row.customer}</strong>
+                      <small>{row.month} · {row.grossRevenue}</small>
+                      <small>{row.agencyFee}</small>
+                    </div>
+                    <StatusPill value={row.status} />
+                  </div>
+                ))}
+              </div>
+              <div className="stack-list">
+                {referralRows.map((row) => (
+                  <div className="stack-item" key={`${row.referrer}-${row.referred}-${row.depth}`}>
+                    <div>
+                      <strong>{row.referrer} → {row.referred}</strong>
+                      <small>{row.rule} · depth {row.depth}</small>
+                      <small>{row.active ? '지급 가능 규칙' : '법무/세무 검토 전 비활성'}</small>
+                    </div>
+                    <StatusPill value={row.status} />
+                  </div>
+                ))}
+              </div>
             </div>
           </article>
 

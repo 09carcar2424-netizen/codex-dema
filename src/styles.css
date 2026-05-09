@@ -202,7 +202,7 @@ h2 {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -287,6 +287,10 @@ h2 {
   grid-template-columns: minmax(260px, 1.5fr) 160px 160px 120px 80px 100px;
 }
 
+.customer-table .ops-row {
+  grid-template-columns: minmax(220px, 1.3fr) 110px 90px 130px 110px;
+}
+
 .ops-head {
   min-height: 34px;
   background: transparent;
@@ -341,6 +345,46 @@ h2 {
 
 .setup-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.portal-grid,
+.split-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.7fr);
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.portal-grid > div,
+.policy-box {
+  min-height: 118px;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.portal-grid strong,
+.portal-grid span,
+.portal-grid p {
+  display: block;
+}
+
+.portal-grid span,
+.portal-grid p {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.policy-box {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+.policy-box svg {
+  color: var(--accent);
 }
 
 .setup-card {
@@ -445,14 +489,26 @@ h2 {
 .status-pill.queued,
 .status-pill.ready,
 .status-pill.processing,
-.status-pill.review_only {
+.status-pill.review_only,
+.status-pill.planned,
+.status-pill.pending,
+.status-pill.submitted,
+.status-pill.draft {
   background: #e8eefc;
   color: #3656a8;
 }
 
-.status-pill.failed {
+.status-pill.failed,
+.status-pill.disabled,
+.status-pill.locked {
   background: #ffe4e0;
   color: #a13220;
+}
+
+.status-pill.none,
+.status-pill.not_started {
+  background: #edf1f3;
+  color: #5b6970;
 }
 
 .language-badge {
@@ -550,12 +606,15 @@ h2 {
 
   .metric-grid,
   .content-grid,
-  .setup-grid {
+  .setup-grid,
+  .portal-grid,
+  .split-grid {
     grid-template-columns: 1fr;
   }
 
   .sites-table .ops-row,
-  .queue-table .ops-row {
+  .queue-table .ops-row,
+  .customer-table .ops-row {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -574,7 +633,8 @@ h2 {
 
   .table-row,
   .sites-table .ops-row,
-  .queue-table .ops-row {
+  .queue-table .ops-row,
+  .customer-table .ops-row {
     grid-template-columns: 1fr;
     padding: 12px;
   }
