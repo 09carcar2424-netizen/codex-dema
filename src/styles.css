@@ -149,6 +149,28 @@ textarea {
   margin-bottom: 24px;
 }
 
+.connection-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin-bottom: 18px;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.connection-banner.connected {
+  background: #dff5ed;
+  color: #126246;
+}
+
+.connection-banner.sample {
+  background: #fff1d6;
+  color: #915a04;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--text-muted);

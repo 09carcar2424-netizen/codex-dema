@@ -19,6 +19,7 @@ import {
   UserPlus,
   WalletCards,
 } from 'lucide-react';
+import { fetchDashboardData } from './api.js';
 import {
   contentQueueRows,
   customerRows,
@@ -32,12 +33,26 @@ import {
 } from './sampleData.js';
 import './styles.css';
 
+const fallbackDashboard = {
+  source: 'sample',
+  sites: siteRows,
+  customers: customerRows,
+  contentQueue: contentQueueRows,
+  wpSetup: wpSetupRows,
+  workflows: workflowRows,
+  runLogs: runLogRows,
+  settlements: settlementRows,
+  referrals: referralRows,
+};
+
 function StatusPill({ value }) {
   return <span className={`status-pill ${String(value).toLowerCase()}`}>{value}</span>;
 }
 
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wp-auto-theme') || 'light');
+  const [dashboard, setDashboard] = useState(fallbackDashboard);
+  const [apiState, setApiState] = useState({ status: 'sample', message: '샘플 데이터 사용 중' });
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -45,12 +60,41 @@ function App() {
     localStorage.setItem('wp-auto-theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    let active = true;
+
+    fetchDashboardData()
+      .then((data) => {
+        if (!active) return;
+        setDashboard({
+          source: data.source || 'postgres',
+          sites: data.sites?.length ? data.sites : siteRows,
+          customers: data.customers?.length ? data.customers : customerRows,
+          contentQueue: data.contentQueue?.length ? data.contentQueue : contentQueueRows,
+          wpSetup: data.wpSetup?.length ? data.wpSetup : wpSetupRows,
+          workflows: data.workflows?.length ? data.workflows : workflowRows,
+          runLogs: data.runLogs?.length ? data.runLogs : runLogRows,
+          settlements: data.settlements?.length ? data.settlements : settlementRows,
+          referrals: data.referrals?.length ? data.referrals : referralRows,
+        });
+        setApiState({ status: 'connected', message: 'PostgreSQL 연결됨' });
+      })
+      .catch((error) => {
+        if (!active) return;
+        setApiState({ status: 'sample', message: `샘플 데이터 사용 중 · ${error.message}` });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const metrics = [
-    { label: '운영 사이트', value: siteRows.length, icon: Globe2 },
-    { label: '검수 필요', value: siteRows.filter((site) => site.reviewRequired).length, icon: ClipboardCheck },
-    { label: '콘텐츠 큐', value: contentQueueRows.length, icon: FileText },
-    { label: 'N8N 워크플로우', value: workflowRows.length, icon: Activity },
-    { label: '포털 고객', value: customerRows.length, icon: Users },
+    { label: '운영 사이트', value: dashboard.sites.length, icon: Globe2 },
+    { label: '검수 필요', value: dashboard.sites.filter((site) => site.reviewRequired).length, icon: ClipboardCheck },
+    { label: '콘텐츠 큐', value: dashboard.contentQueue.length, icon: FileText },
+    { label: 'N8N 워크플로우', value: dashboard.workflows.length, icon: Activity },
+    { label: '포털 고객', value: dashboard.customers.length, icon: Users },
   ];
 
   return (
@@ -99,6 +143,11 @@ function App() {
           </button>
         </header>
 
+        <div className={`connection-banner ${apiState.status}`}>
+          <Database size={18} />
+          <span>{apiState.message}</span>
+        </div>
+
         <section className="metric-grid" aria-label="Summary">
           {metrics.map((metric) => {
             const Icon = metric.icon;
@@ -130,7 +179,7 @@ function App() {
                 <span>Credential</span>
                 <span>상태</span>
               </div>
-              {siteRows.map((site) => (
+              {dashboard.sites.map((site) => (
                 <div className="ops-row" role="row" key={site.siteKey}>
                   <div>
                     <strong>{site.domain}</strong>
@@ -173,7 +222,7 @@ function App() {
                 <span>애드센스</span>
                 <span>정산</span>
               </div>
-              {customerRows.map((customer) => (
+              {dashboard.customers.map((customer) => (
                 <div className="ops-row" role="row" key={customer.code}>
                   <div>
                     <strong>{customer.name}</strong>
@@ -224,7 +273,7 @@ function App() {
                 <span>발행</span>
                 <span>상태</span>
               </div>
-              {contentQueueRows.map((item) => (
+              {dashboard.contentQueue.map((item) => (
                 <div className="ops-row" role="row" key={`${item.siteKey}-${item.id}`}>
                   <div>
                     <strong>{item.title}</strong>
@@ -248,7 +297,7 @@ function App() {
               </div>
             </div>
             <div className="stack-list">
-              {workflowRows.map((workflow) => (
+              {dashboard.workflows.map((workflow) => (
                 <div className="stack-item" key={workflow.key}>
                   <div>
                     <strong>{workflow.name}</strong>
@@ -268,7 +317,7 @@ function App() {
               </div>
             </div>
             <div className="setup-grid">
-              {wpSetupRows.map((row) => (
+              {dashboard.wpSetup.map((row) => (
                 <article className="setup-card" key={row.domain}>
                   <div>
                     <strong>{row.domain}</strong>
@@ -294,7 +343,7 @@ function App() {
             </div>
             <div className="split-grid">
               <div className="stack-list">
-                {settlementRows.map((row) => (
+                {dashboard.settlements.map((row) => (
                   <div className="stack-item" key={`${row.customer}-${row.month}`}>
                     <div>
                       <strong>{row.customer}</strong>
@@ -306,7 +355,7 @@ function App() {
                 ))}
               </div>
               <div className="stack-list">
-                {referralRows.map((row) => (
+                {dashboard.referrals.map((row) => (
                   <div className="stack-item" key={`${row.referrer}-${row.referred}-${row.depth}`}>
                     <div>
                       <strong>{row.referrer} → {row.referred}</strong>
@@ -328,7 +377,7 @@ function App() {
               </div>
             </div>
             <div className="stack-list">
-              {runLogRows.map((log) => (
+              {dashboard.runLogs.map((log) => (
                 <div className="stack-item" key={`${log.siteKey}-${log.time}`}>
                   <div>
                     <strong>{log.siteKey}</strong>
