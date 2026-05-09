@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Activity,
@@ -8,18 +8,27 @@ import {
   FileText,
   Globe2,
   LayoutTemplate,
+  Moon,
   Play,
   ShieldCheck,
   Sparkles,
+  Sun,
 } from 'lucide-react';
 import { sampleDomains, sampleJobs, templateCatalog } from './sampleData.js';
 import { buildAutomationPlan, detectDomainProfile } from './wordpressPlan.js';
 import './styles.css';
 
 function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('wp-auto-theme') || 'light');
   const selectedDomain = sampleDomains[0];
   const profile = detectDomainProfile(selectedDomain.domain);
   const plan = buildAutomationPlan(selectedDomain);
+  const isDark = theme === 'dark';
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('wp-auto-theme', theme);
+  }, [theme]);
 
   const metrics = [
     { label: '등록 도메인', value: sampleDomains.length, icon: Globe2 },
@@ -38,6 +47,17 @@ function App() {
             <span>Multi-site operations</span>
           </div>
         </div>
+
+        <button
+          className="theme-toggle"
+          type="button"
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+          aria-label={isDark ? '밝은 배경으로 변경' : '검정 배경으로 변경'}
+        >
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          {isDark ? '밝은 배경' : '검정 배경'}
+        </button>
+
         <nav className="nav-list" aria-label="Primary">
           <a className="active" href="#dashboard"><Globe2 size={18} />대시보드</a>
           <a href="#automation"><Play size={18} />자동 세팅</a>
