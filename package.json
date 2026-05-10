@@ -8,6 +8,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:client": "vite --host 127.0.0.1",
     "dev:api": "node server/index.js",
+    "start": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "db:schema": "psql \"$DATABASE_URL\" -f database/schema.sql"

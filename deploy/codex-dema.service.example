@@ -1,0 +1,16 @@
+[Unit]
+Description=Codex Dema BOSS SiteOps
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/codex-dema
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/codex-dema/.env
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

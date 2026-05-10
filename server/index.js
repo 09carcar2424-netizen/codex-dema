@@ -1,10 +1,26 @@
 import 'dotenv/config';
+import fs from 'node:fs/promises';
 import http from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { URL } from 'node:url';
 import { checkDatabase, query } from './db.js';
 
 const host = process.env.API_HOST || '127.0.0.1';
 const port = Number(process.env.API_PORT || 8787);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const staticDir = path.resolve(__dirname, '..', 'dist');
+
+const contentTypes = {
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.ico': 'image/x-icon',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+};
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
@@ -14,6 +30,43 @@ function sendJson(res, statusCode, payload) {
     'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   });
   res.end(statusCode === 204 ? '' : JSON.stringify(payload));
+}
+
+async function sendStatic(req, res, url) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
+  }
+
+  const requestedPath = decodeURIComponent(url.pathname);
+  const safePath = path.normalize(requestedPath).replace(/^(\.\.[/\\])+/, '');
+  const filePath = path.join(staticDir, safePath === '/' ? 'index.html' : safePath);
+  const resolvedPath = path.resolve(filePath);
+
+  if (!resolvedPath.startsWith(staticDir)) {
+    return sendJson(res, 403, { ok: false, error: 'Forbidden' });
+  }
+
+  try {
+    const file = await fs.readFile(resolvedPath);
+    res.writeHead(200, {
+      'Content-Type': contentTypes[path.extname(resolvedPath)] || 'application/octet-stream',
+      'Cache-Control': resolvedPath.endsWith('index.html')
+        ? 'no-cache'
+        : 'public, max-age=31536000, immutable',
+    });
+    return res.end(req.method === 'HEAD' ? undefined : file);
+  } catch (error) {
+    if (error.code !== 'ENOENT' && error.code !== 'EISDIR') {
+      throw error;
+    }
+
+    const indexFile = await fs.readFile(path.join(staticDir, 'index.html'));
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    });
+    return res.end(req.method === 'HEAD' ? undefined : indexFile);
+  }
 }
 
 function mapSite(row) {
@@ -225,7 +278,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, await getDashboardData());
     }
 
-    return sendJson(res, 404, { ok: false, error: 'Not found' });
+    return sendStatic(req, res, url);
   } catch (error) {
     return sendJson(res, 503, {
       ok: false,

@@ -50,6 +50,18 @@ APP_DB_PASSWORD='강력한-새-비밀번호' bash scripts/ubuntu-postgres-setup.
 
 실제 운영 `.env`에는 `DATABASE_URL`을 저장하고, 파일 권한은 `chmod 600 .env`로 제한하세요.
 
+전체 Ubuntu 배포 절차는 [docs/UBUNTU_DEPLOYMENT.md](docs/UBUNTU_DEPLOYMENT.md)를 참고하세요.
+
+프로덕션 실행은 다음 순서입니다.
+
+```bash
+npm ci
+npm run build
+npm start
+```
+
+`npm start`는 API 서버와 빌드된 관리자 화면을 같은 포트에서 제공합니다. 외부 접속 서버에서는 `.env`의 `API_HOST`를 `0.0.0.0`으로 설정하세요.
+
 ## PostgreSQL 실행
 
 Docker Desktop이 설치되어 있다면:
