@@ -11,7 +11,8 @@
     "start": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "db:schema": "psql \"$DATABASE_URL\" -f database/schema.sql"
+    "db:schema": "psql \"$DATABASE_URL\" -f database/schema.sql",
+    "import:domains": "node scripts/import-domain-portfolio.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",
