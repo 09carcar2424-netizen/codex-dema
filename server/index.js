@@ -658,6 +658,19 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    if (url.pathname === '/api/google/search-console/start') {
+      const authUrl = buildGoogleSearchConsoleAuthUrl(req);
+      if (!authUrl) {
+        return sendJson(req, res, 400, {
+          ok: false,
+          error: 'GOOGLE_CLIENT_ID is not configured.',
+        });
+      }
+
+      res.writeHead(302, { Location: authUrl });
+      return res.end();
+    }
+
     if (url.pathname === '/api/google/search-console/callback') {
       const code = url.searchParams.get('code');
       if (!code) {
