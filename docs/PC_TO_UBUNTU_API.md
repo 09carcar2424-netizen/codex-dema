@@ -35,16 +35,18 @@ Use this later if the admin UI or API needs a stable HTTPS address.
 Recommended pattern:
 
 ```text
-admin-api.example.com -> http://127.0.0.1:8787
+siteops.09car.co.kr -> http://127.0.0.1:8787
 ```
 
 Then set the admin screen API address to:
 
 ```text
-https://admin-api.example.com
+https://siteops.09car.co.kr
 ```
 
 Add access control before sharing this URL with staff or customers.
+
+See `docs/SITEOPS_09CAR_TUNNEL.md` for the concrete 09car setup.
 
 ### Option C. Direct IP and port
 
