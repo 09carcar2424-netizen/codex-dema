@@ -21,7 +21,7 @@ import {
   UserPlus,
   WalletCards,
 } from 'lucide-react';
-import { fetchDashboardData, getApiBaseUrl, saveApiBaseUrl } from './api.js';
+import { createNotificationDraft, fetchDashboardData, getApiBaseUrl, saveApiBaseUrl } from './api.js';
 import {
   contentQueueRows,
   customerRows,
@@ -51,6 +51,16 @@ const fallbackDashboard = {
   taxEstimates: taxEstimateRows,
   notifications: notificationRows,
   domainInventory: domainInventoryRows,
+};
+
+const emptyNotificationForm = {
+  audienceType: 'customer',
+  category: 'settlement',
+  severity: 'info',
+  channel: 'portal',
+  title: '',
+  message: '',
+  marketingMessage: false,
 };
 
 const siteStatusFilters = [
@@ -100,6 +110,8 @@ function App() {
   const [apiReloadToken, setApiReloadToken] = useState(0);
   const [dashboard, setDashboard] = useState(fallbackDashboard);
   const [apiState, setApiState] = useState({ status: 'sample', message: '샘플 데이터 사용 중' });
+  const [notificationForm, setNotificationForm] = useState(emptyNotificationForm);
+  const [notificationSaveState, setNotificationSaveState] = useState({ status: 'idle', message: '' });
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -110,6 +122,27 @@ function App() {
   const reloadDashboard = useCallback(() => {
     setApiReloadToken((value) => value + 1);
   }, []);
+
+  const updateNotificationForm = (field, value) => {
+    setNotificationForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const submitNotificationDraft = async (event) => {
+    event.preventDefault();
+    setNotificationSaveState({ status: 'saving', message: '알림 초안을 저장하는 중입니다.' });
+
+    try {
+      await createNotificationDraft({
+        ...notificationForm,
+        visibility: notificationForm.audienceType === 'customer' ? 'public_to_customer' : 'internal_only',
+      });
+      setNotificationForm(emptyNotificationForm);
+      setNotificationSaveState({ status: 'saved', message: '알림 초안을 저장했습니다. 실제 발송은 아직 하지 않습니다.' });
+      reloadDashboard();
+    } catch (error) {
+      setNotificationSaveState({ status: 'error', message: `저장 실패: ${error.message}` });
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -812,6 +845,99 @@ function App() {
                 서버 오류, WordPress 연결 문제는 고객에게 노출하지 않고 BOSS 내부 알림으로만 관리합니다.
               </p>
             </div>
+            <form className="notification-compose" onSubmit={submitNotificationDraft}>
+              <div className="compose-row">
+                <label>
+                  <span>대상</span>
+                  <select
+                    value={notificationForm.audienceType}
+                    onChange={(event) => updateNotificationForm('audienceType', event.target.value)}
+                  >
+                    <option value="customer">고객</option>
+                    <option value="admin">관리자</option>
+                    <option value="staff">직원</option>
+                  </select>
+                </label>
+                <label>
+                  <span>분류</span>
+                  <select
+                    value={notificationForm.category}
+                    onChange={(event) => updateNotificationForm('category', event.target.value)}
+                  >
+                    <option value="settlement">정산</option>
+                    <option value="payment">입금</option>
+                    <option value="account_action">계정 확인</option>
+                    <option value="contract">계약</option>
+                    <option value="domain">도메인</option>
+                    <option value="security">보안</option>
+                    <option value="general">일반</option>
+                  </select>
+                </label>
+                <label>
+                  <span>채널</span>
+                  <select
+                    value={notificationForm.channel}
+                    onChange={(event) => updateNotificationForm('channel', event.target.value)}
+                  >
+                    <option value="portal">홈페이지</option>
+                    <option value="telegram">텔레그램</option>
+                    <option value="portal_telegram">홈페이지+텔레그램</option>
+                    <option value="sms">문자</option>
+                    <option value="kakao">카카오</option>
+                  </select>
+                </label>
+                <label>
+                  <span>중요도</span>
+                  <select
+                    value={notificationForm.severity}
+                    onChange={(event) => updateNotificationForm('severity', event.target.value)}
+                  >
+                    <option value="info">안내</option>
+                    <option value="action_required">확인 필요</option>
+                    <option value="warning">주의</option>
+                    <option value="critical">긴급</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                <span>제목</span>
+                <input
+                  type="text"
+                  value={notificationForm.title}
+                  onChange={(event) => updateNotificationForm('title', event.target.value)}
+                  placeholder="예: 5월 정산 안내"
+                  maxLength={120}
+                  required
+                />
+              </label>
+              <label>
+                <span>내용</span>
+                <textarea
+                  value={notificationForm.message}
+                  onChange={(event) => updateNotificationForm('message', event.target.value)}
+                  placeholder="고객에게 보여도 되는 사실 중심의 안내만 작성합니다."
+                  rows={4}
+                  required
+                />
+              </label>
+              <div className="compose-footer">
+                <label className="inline-check">
+                  <input
+                    type="checkbox"
+                    checked={notificationForm.marketingMessage}
+                    onChange={(event) => updateNotificationForm('marketingMessage', event.target.checked)}
+                  />
+                  광고성 문구 포함
+                </label>
+                <button className="primary-action" type="submit" disabled={notificationSaveState.status === 'saving'}>
+                  <Bell size={16} />
+                  초안 저장
+                </button>
+              </div>
+              {notificationSaveState.message ? (
+                <p className={`form-status ${notificationSaveState.status}`}>{notificationSaveState.message}</p>
+              ) : null}
+            </form>
             <div className="split-grid notification-grid">
               <div>
                 <h3>고객 알림</h3>

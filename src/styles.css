@@ -759,6 +759,86 @@ h2 {
   line-height: 1.55;
 }
 
+.notification-compose {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.compose-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.notification-compose label {
+  display: grid;
+  gap: 6px;
+}
+
+.notification-compose label span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.notification-compose input[type='text'],
+.notification-compose select,
+.notification-compose textarea {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px 11px;
+  background: var(--panel-bg);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.notification-compose textarea {
+  min-height: 108px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.compose-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inline-check {
+  display: inline-flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 8px !important;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.form-status {
+  margin: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--panel-bg);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.form-status.saved {
+  color: #0e6849;
+}
+
+.form-status.error {
+  color: #b12c20;
+}
+
 .notification-grid h3 {
   margin: 0;
   font-size: 15px;
@@ -1080,6 +1160,7 @@ h2 {
   .setup-filter-grid,
   .inventory-controls,
   .inventory-grid,
+  .compose-row,
   .portal-grid,
   .site-filter-grid,
   .split-grid {

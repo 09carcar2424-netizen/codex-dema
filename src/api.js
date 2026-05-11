@@ -32,3 +32,23 @@ export async function fetchDashboardData(apiBaseUrl = getApiBaseUrl()) {
 
   return response.json();
 }
+
+export async function createNotificationDraft(payload, apiBaseUrl = getApiBaseUrl()) {
+  const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
+  const notificationUrl = normalizedBaseUrl ? `${normalizedBaseUrl}/api/notifications` : '/api/notifications';
+  const response = await fetch(notificationUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || error.error || 'Notification request failed');
+  }
+
+  return response.json();
+}

@@ -96,6 +96,86 @@ function requireAdminAuth(req, res) {
   return false;
 }
 
+async function readJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+
+  if (chunks.length === 0) return {};
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+function normalizeChoice(value, allowed, fallback) {
+  return allowed.includes(value) ? value : fallback;
+}
+
+function mapNotification(row) {
+  return {
+    id: row.id,
+    audience: row.audience_type,
+    visibility: row.visibility,
+    title: row.title,
+    message: row.message,
+    channel: row.channel,
+    category: row.category,
+    severity: row.severity,
+    status: row.send_status,
+    marketing: row.marketing_message,
+  };
+}
+
+async function createNotification(req, res) {
+  const body = await readJsonBody(req);
+  const title = String(body.title || '').trim();
+  const message = String(body.message || '').trim();
+
+  if (title.length < 2 || message.length < 5) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'Title and message are required.',
+    });
+  }
+
+  const audienceType = normalizeChoice(body.audienceType, ['customer', 'admin', 'staff'], 'customer');
+  const visibility =
+    audienceType === 'customer'
+      ? normalizeChoice(body.visibility, ['public_to_customer', 'internal_only'], 'public_to_customer')
+      : 'internal_only';
+  const category = normalizeChoice(
+    body.category,
+    ['settlement', 'payment', 'account_action', 'contract', 'domain', 'automation', 'security', 'general'],
+    'general',
+  );
+  const severity = normalizeChoice(body.severity, ['info', 'action_required', 'warning', 'critical'], 'info');
+  const channel = normalizeChoice(body.channel, ['portal', 'sms', 'kakao', 'telegram', 'portal_sms', 'portal_telegram'], 'portal');
+
+  const result = await query(
+    `
+      insert into notifications (
+        audience_type, visibility, category, severity, title, message, channel,
+        marketing_message, opt_in_required, send_status
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'draft')
+      returning id::text, audience_type, visibility, title, message, channel,
+        category, severity, send_status, marketing_message
+    `,
+    [
+      audienceType,
+      visibility,
+      category,
+      severity,
+      title,
+      message,
+      channel,
+      Boolean(body.marketingMessage),
+      Boolean(body.marketingMessage),
+    ],
+  );
+
+  return sendJson(req, res, 201, { ok: true, notification: mapNotification(result.rows[0]) });
+}
+
 async function sendStatic(req, res, url) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     return sendJson(req, res, 405, { ok: false, error: 'Method not allowed' });
@@ -451,6 +531,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/dashboard') {
       return sendJson(req, res, 200, await getDashboardData());
+    }
+
+    if (url.pathname === '/api/notifications' && req.method === 'POST') {
+      return createNotification(req, res);
     }
 
     return sendStatic(req, res, url);
