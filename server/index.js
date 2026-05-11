@@ -2,6 +2,7 @@ import 'dotenv/config';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { URL } from 'node:url';
 import { checkDatabase, query } from './db.js';
@@ -10,6 +11,8 @@ const host = process.env.API_HOST || '127.0.0.1';
 const port = Number(process.env.API_PORT || 8787);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const staticDir = path.resolve(__dirname, '..', 'dist');
+const adminUser = process.env.SITEOPS_ADMIN_USER || 'boss';
+const adminPassword = process.env.SITEOPS_ADMIN_PASSWORD || '';
 
 const contentTypes = {
   '.css': 'text/css; charset=utf-8',
@@ -48,6 +51,49 @@ function sendJson(req, res, statusCode, payload) {
     'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   });
   res.end(statusCode === 204 ? '' : JSON.stringify(payload));
+}
+
+function safeEquals(a, b) {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+}
+
+function hasValidAdminAuth(req) {
+  if (!adminPassword) return true;
+
+  const header = req.headers.authorization || '';
+  if (!header.startsWith('Basic ')) return false;
+
+  try {
+    const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+    const separatorIndex = decoded.indexOf(':');
+    if (separatorIndex === -1) return false;
+
+    const username = decoded.slice(0, separatorIndex);
+    const password = decoded.slice(separatorIndex + 1);
+
+    return safeEquals(username, adminUser) && safeEquals(password, adminPassword);
+  } catch {
+    return false;
+  }
+}
+
+function requireAdminAuth(req, res) {
+  if (hasValidAdminAuth(req)) return true;
+
+  res.writeHead(401, {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'WWW-Authenticate': 'Basic realm="BOSS SiteOps", charset="UTF-8"',
+    'Access-Control-Allow-Origin': getCorsOrigin(req),
+    'Vary': 'Origin',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+  });
+  res.end('Authentication required');
+  return false;
 }
 
 async function sendStatic(req, res, url) {
@@ -395,6 +441,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   const url = new URL(req.url, `http://${req.headers.host}`);
+  if (!requireAdminAuth(req, res)) return;
 
   try {
     if (url.pathname === '/api/health') {

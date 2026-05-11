@@ -45,6 +45,7 @@ https://siteops.09car.co.kr
 ```
 
 Add access control before sharing this URL with staff or customers.
+At minimum, set `SITEOPS_ADMIN_PASSWORD` in the Ubuntu `.env` so the browser requires an admin login.
 
 See `docs/SITEOPS_09CAR_TUNNEL.md` for the concrete 09car setup.
 

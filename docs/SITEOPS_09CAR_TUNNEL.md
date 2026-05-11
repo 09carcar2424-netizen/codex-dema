@@ -5,7 +5,7 @@ Purpose: expose the BOSS SiteOps admin app safely without opening the Ubuntu API
 ## Target
 
 ```text
-https://siteops.09car.co.kr -> http://127.0.0.1:8787
+https://siteops.09car.co.kr -> http://172.17.0.1:8787
 ```
 
 The Node server on `8787` serves both:
@@ -19,6 +19,7 @@ So a separate API subdomain is not required for the first internal MVP.
 
 - Do not open port `8787` directly to the public internet.
 - Use Cloudflare Tunnel.
+- Set `SITEOPS_ADMIN_PASSWORD` before exposing the admin app.
 - Add Cloudflare Access before relying on this for real operations.
 - Allow only BOSS/admin emails first.
 - Do not commit tunnel tokens, cert files, Cloudflare API tokens, or `.env`.
@@ -37,6 +38,7 @@ Check whether the SiteOps API is listening:
 
 ```bash
 curl http://127.0.0.1:8787/api/health
+curl http://172.17.0.1:8787/api/health
 ```
 
 Expected:
@@ -51,7 +53,7 @@ In Cloudflare Zero Trust or existing cloudflared config, add this public hostnam
 
 ```text
 Hostname: siteops.09car.co.kr
-Service:  http://127.0.0.1:8787
+Service:  http://172.17.0.1:8787
 ```
 
 If using a Docker compose tunnel config, route format is typically:
@@ -59,7 +61,7 @@ If using a Docker compose tunnel config, route format is typically:
 ```yaml
 ingress:
   - hostname: siteops.09car.co.kr
-    service: http://127.0.0.1:8787
+    service: http://172.17.0.1:8787
   - service: http_status:404
 ```
 
@@ -70,13 +72,17 @@ Keep existing N8N routes intact.
 On Ubuntu, `/home/boss/codex-dema/.env` should include:
 
 ```text
-API_HOST=127.0.0.1
+API_HOST=0.0.0.0
 API_PORT=8787
 CORS_ALLOW_ORIGINS=https://siteops.09car.co.kr,http://127.0.0.1:5173,http://localhost:5173
 VITE_API_BASE_URL=
+SITEOPS_ADMIN_USER=boss
+SITEOPS_ADMIN_PASSWORD=<STRONG_ADMIN_PASSWORD>
 ```
 
-`API_HOST=127.0.0.1` is preferred when Cloudflare Tunnel is on the same host. It keeps the app private to the server.
+`API_HOST=0.0.0.0` is required when the Cloudflare Tunnel runs inside a Docker container and reaches the host through `172.17.0.1`.
+Keep port `8787` closed at the firewall/public network level and expose it only through Cloudflare Tunnel.
+The admin password must be stored only in `.env`.
 
 After editing `.env`, restart the API:
 
@@ -116,6 +122,8 @@ Expected:
 ```json
 {"ok":true,"database":"connected"}
 ```
+
+If `SITEOPS_ADMIN_PASSWORD` is set, the browser asks for the admin username and password first.
 
 Then open:
 
