@@ -205,7 +205,6 @@ function buildGoogleSearchConsoleAuthUrl(req) {
   authUrl.searchParams.set('scope', googleSearchConsoleScope);
   authUrl.searchParams.set('access_type', 'offline');
   authUrl.searchParams.set('prompt', 'consent');
-  authUrl.searchParams.set('include_granted_scopes', 'true');
   return authUrl.toString();
 }
 
