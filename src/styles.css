@@ -509,6 +509,66 @@ h2 {
   margin: 0;
 }
 
+.inventory-controls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.4fr) repeat(3, minmax(150px, 0.7fr)) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 16px;
+}
+
+.inventory-controls label {
+  display: grid;
+  gap: 6px;
+}
+
+.inventory-controls label span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.inventory-controls input,
+.inventory-controls select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--panel-bg);
+  color: var(--text-main);
+}
+
+.inventory-search {
+  position: relative;
+}
+
+.inventory-search svg {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  color: var(--text-muted);
+}
+
+.inventory-search input {
+  padding-left: 38px;
+}
+
+.inventory-result-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.inventory-result-line strong {
+  color: var(--text-main);
+  font-size: 20px;
+}
+
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -578,6 +638,17 @@ h2 {
   background: var(--panel-bg);
   color: var(--text-muted);
   font-size: 12px;
+  font-weight: 800;
+}
+
+.empty-state {
+  margin-top: 16px;
+  border: 1px dashed var(--panel-border);
+  border-radius: 8px;
+  padding: 18px;
+  background: var(--panel-soft);
+  color: var(--text-muted);
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -969,6 +1040,7 @@ h2 {
   .content-grid,
   .setup-grid,
   .setup-filter-grid,
+  .inventory-controls,
   .inventory-grid,
   .portal-grid,
   .site-filter-grid,

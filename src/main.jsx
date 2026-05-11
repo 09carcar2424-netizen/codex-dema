@@ -13,6 +13,7 @@ import {
   Moon,
   Play,
   RefreshCw,
+  Search,
   ServerCog,
   ShieldCheck,
   Sun,
@@ -91,6 +92,10 @@ function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wp-auto-theme') || 'light');
   const [siteFilter, setSiteFilter] = useState('all');
   const [setupFilter, setSetupFilter] = useState('all');
+  const [inventoryQuery, setInventoryQuery] = useState('');
+  const [inventoryGradeFilter, setInventoryGradeFilter] = useState('all');
+  const [inventoryStatusFilter, setInventoryStatusFilter] = useState('all');
+  const [inventorySort, setInventorySort] = useState('score_desc');
   const [dashboard, setDashboard] = useState(fallbackDashboard);
   const [apiState, setApiState] = useState({ status: 'sample', message: '샘플 데이터 사용 중' });
   const isDark = theme === 'dark';
@@ -177,6 +182,41 @@ function App() {
   const heldDomains = dashboard.domainInventory.filter((row) =>
     ['hold', 'rejected'].includes(row.inventoryStatus),
   );
+  const inventoryGradeOptions = ['all', ...new Set(dashboard.domainInventory.map((row) => row.finalGrade || 'unrated'))];
+  const inventoryStatusOptions = [
+    'all',
+    ...new Set(dashboard.domainInventory.map((row) => row.inventoryStatus || 'internal_review')),
+  ];
+  const filteredInventory = dashboard.domainInventory
+    .filter((row) => {
+      const haystack = [
+        row.domain,
+        row.ownershipType,
+        row.acquisitionType,
+        row.languagePriority,
+        row.categoryFit,
+        row.inventoryStatus,
+        row.offerStatus,
+        row.finalGrade,
+        row.memo,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      const queryMatch = haystack.includes(inventoryQuery.trim().toLowerCase());
+      const gradeMatch = inventoryGradeFilter === 'all' || row.finalGrade === inventoryGradeFilter;
+      const statusMatch = inventoryStatusFilter === 'all' || row.inventoryStatus === inventoryStatusFilter;
+      return queryMatch && gradeMatch && statusMatch;
+    })
+    .sort((a, b) => {
+      if (inventorySort === 'score_asc') return (a.overallScore ?? -1) - (b.overallScore ?? -1);
+      if (inventorySort === 'domain_asc') return a.domain.localeCompare(b.domain);
+      if (inventorySort === 'risk_first') {
+        const riskOrder = { reject: 0, hold: 1, watch: 2, unrated: 3, safe_candidate: 4 };
+        return (riskOrder[a.finalGrade] ?? 9) - (riskOrder[b.finalGrade] ?? 9);
+      }
+      return (b.overallScore ?? -1) - (a.overallScore ?? -1);
+    });
 
   return (
     <main className="app-shell">
@@ -537,8 +577,66 @@ function App() {
                 보장 표현 없이 내부 리스크 판단용으로만 관리합니다.
               </p>
             </div>
+            <div className="inventory-controls" aria-label="도메인 검수 필터">
+              <label className="inventory-search">
+                <Search size={18} />
+                <input
+                  type="search"
+                  value={inventoryQuery}
+                  onChange={(event) => setInventoryQuery(event.target.value)}
+                  placeholder="도메인, 상태, 메모 검색"
+                />
+              </label>
+              <label>
+                <span>등급</span>
+                <select
+                  value={inventoryGradeFilter}
+                  onChange={(event) => setInventoryGradeFilter(event.target.value)}
+                >
+                  {inventoryGradeOptions.map((grade) => (
+                    <option key={grade} value={grade}>{grade === 'all' ? '전체' : grade}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>상태</span>
+                <select
+                  value={inventoryStatusFilter}
+                  onChange={(event) => setInventoryStatusFilter(event.target.value)}
+                >
+                  {inventoryStatusOptions.map((status) => (
+                    <option key={status} value={status}>{status === 'all' ? '전체' : status}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>정렬</span>
+                <select value={inventorySort} onChange={(event) => setInventorySort(event.target.value)}>
+                  <option value="score_desc">점수 높은순</option>
+                  <option value="score_asc">점수 낮은순</option>
+                  <option value="risk_first">위험 우선</option>
+                  <option value="domain_asc">도메인 가나다순</option>
+                </select>
+              </label>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => {
+                  setInventoryQuery('');
+                  setInventoryGradeFilter('all');
+                  setInventoryStatusFilter('all');
+                  setInventorySort('score_desc');
+                }}
+              >
+                초기화
+              </button>
+            </div>
+            <div className="inventory-result-line">
+              <strong>{filteredInventory.length}</strong>
+              <span>개 도메인 표시 중</span>
+            </div>
             <div className="inventory-grid">
-              {dashboard.domainInventory.map((row) => (
+              {filteredInventory.map((row) => (
                 <article className={`inventory-card grade-${row.finalGrade}`} key={row.domain}>
                   <div className="inventory-card-head">
                     <div>
@@ -572,6 +670,11 @@ function App() {
                 </article>
               ))}
             </div>
+            {filteredInventory.length === 0 ? (
+              <div className="empty-state">
+                조건에 맞는 도메인이 없습니다. 필터를 초기화하거나 검색어를 줄여보세요.
+              </div>
+            ) : null}
           </article>
 
           <article className="panel wide-panel" id="settlements">
