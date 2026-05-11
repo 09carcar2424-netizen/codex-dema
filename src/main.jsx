@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Activity,
@@ -21,7 +21,7 @@ import {
   UserPlus,
   WalletCards,
 } from 'lucide-react';
-import { fetchDashboardData } from './api.js';
+import { fetchDashboardData, getApiBaseUrl, saveApiBaseUrl } from './api.js';
 import {
   contentQueueRows,
   customerRows,
@@ -96,6 +96,8 @@ function App() {
   const [inventoryGradeFilter, setInventoryGradeFilter] = useState('all');
   const [inventoryStatusFilter, setInventoryStatusFilter] = useState('all');
   const [inventorySort, setInventorySort] = useState('score_desc');
+  const [apiEndpointInput, setApiEndpointInput] = useState(() => getApiBaseUrl());
+  const [apiReloadToken, setApiReloadToken] = useState(0);
   const [dashboard, setDashboard] = useState(fallbackDashboard);
   const [apiState, setApiState] = useState({ status: 'sample', message: '샘플 데이터 사용 중' });
   const isDark = theme === 'dark';
@@ -105,10 +107,16 @@ function App() {
     localStorage.setItem('wp-auto-theme', theme);
   }, [theme]);
 
+  const reloadDashboard = useCallback(() => {
+    setApiReloadToken((value) => value + 1);
+  }, []);
+
   useEffect(() => {
     let active = true;
+    const apiBaseUrl = getApiBaseUrl();
+    setApiState({ status: 'loading', message: `API 연결 확인 중: ${apiBaseUrl || 'same-origin /api'}` });
 
-    fetchDashboardData()
+    fetchDashboardData(apiBaseUrl)
       .then((data) => {
         if (!active) return;
         setDashboard({
@@ -125,17 +133,24 @@ function App() {
           notifications: data.notifications?.length ? data.notifications : notificationRows,
           domainInventory: data.domainInventory?.length ? data.domainInventory : domainInventoryRows,
         });
-        setApiState({ status: 'connected', message: 'PostgreSQL 연결됨' });
+        setApiState({
+          status: 'connected',
+          message: `PostgreSQL 연결됨 · ${apiBaseUrl || 'same-origin /api'}`,
+        });
       })
       .catch((error) => {
         if (!active) return;
-        setApiState({ status: 'sample', message: `샘플 데이터 사용 중 · ${error.message}` });
+        setDashboard(fallbackDashboard);
+        setApiState({
+          status: 'sample',
+          message: `샘플 데이터 표시 중 · API 연결 실패: ${apiBaseUrl || 'same-origin /api'} · ${error.message}`,
+        });
       });
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [apiReloadToken]);
 
   const metrics = [
     { label: '운영 사이트', value: dashboard.sites.length, icon: Globe2 },
@@ -261,9 +276,9 @@ function App() {
             <p className="eyebrow">BOSS SiteOps Platform v1</p>
             <h1>고객 소유 사이트 운영대행 콘솔</h1>
           </div>
-          <button className="primary-action" type="button">
+          <button className="primary-action" type="button" onClick={reloadDashboard}>
             <RefreshCw size={18} />
-            구글시트 동기화
+            데이터 새로고침
           </button>
         </header>
 
@@ -271,6 +286,38 @@ function App() {
           <Database size={18} />
           <span>{apiState.message}</span>
         </div>
+
+        <form
+          className="api-config-panel"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const savedUrl = saveApiBaseUrl(apiEndpointInput);
+            setApiEndpointInput(savedUrl);
+            reloadDashboard();
+          }}
+        >
+          <label>
+            <span>API 주소</span>
+            <input
+              type="url"
+              value={apiEndpointInput}
+              onChange={(event) => setApiEndpointInput(event.target.value)}
+              placeholder="http://127.0.0.1:8787"
+            />
+          </label>
+          <button className="secondary-action" type="submit">저장 후 연결</button>
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={() => {
+              const defaultUrl = saveApiBaseUrl('');
+              setApiEndpointInput(defaultUrl);
+              reloadDashboard();
+            }}
+          >
+            기본값
+          </button>
+        </form>
 
         <section className="metric-grid" aria-label="Summary">
           {metrics.map((metric) => {

@@ -166,9 +166,46 @@ textarea {
   color: #126246;
 }
 
+.connection-banner.loading {
+  background: #e8eefc;
+  color: #3656a8;
+}
+
 .connection-banner.sample {
   background: #fff1d6;
   color: #915a04;
+}
+
+.api-config-panel {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-bg);
+}
+
+.api-config-panel label {
+  display: grid;
+  gap: 6px;
+}
+
+.api-config-panel label span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.api-config-panel input {
+  min-height: 42px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--panel-soft);
+  color: var(--text-main);
 }
 
 .eyebrow {
@@ -1037,6 +1074,7 @@ h2 {
   }
 
   .metric-grid,
+  .api-config-panel,
   .content-grid,
   .setup-grid,
   .setup-filter-grid,
