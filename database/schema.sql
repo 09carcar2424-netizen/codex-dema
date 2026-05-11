@@ -537,6 +537,20 @@ CREATE TABLE IF NOT EXISTS sitemap_submissions (
   UNIQUE(domain, search_engine)
 );
 
+CREATE TABLE IF NOT EXISTS google_integrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  integration_key TEXT NOT NULL UNIQUE,
+  account_email TEXT,
+  scopes TEXT[] NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'not_connected',
+  connected_at TIMESTAMPTZ,
+  last_checked_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (status IN ('not_connected', 'connected', 'needs_reauth', 'error'))
+);
+
 CREATE TABLE IF NOT EXISTS domain_inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   site_id UUID REFERENCES sites(id) ON DELETE SET NULL,
@@ -610,6 +624,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(send_status
 CREATE INDEX IF NOT EXISTS idx_sitemap_submissions_domain ON sitemap_submissions(domain);
 CREATE INDEX IF NOT EXISTS idx_sitemap_submissions_engine ON sitemap_submissions(search_engine);
 CREATE INDEX IF NOT EXISTS idx_sitemap_submissions_status ON sitemap_submissions(submission_status);
+CREATE INDEX IF NOT EXISTS idx_google_integrations_key ON google_integrations(integration_key);
 CREATE INDEX IF NOT EXISTS idx_domain_inventory_status ON domain_inventory(inventory_status);
 CREATE INDEX IF NOT EXISTS idx_domain_inventory_offer ON domain_inventory(offer_status);
 CREATE INDEX IF NOT EXISTS idx_domain_audits_inventory ON domain_audits(inventory_id);

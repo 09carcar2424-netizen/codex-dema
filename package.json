@@ -14,7 +14,8 @@
     "db:schema": "psql \"$DATABASE_URL\" -f database/schema.sql",
     "import:domains": "node scripts/import-domain-portfolio.mjs",
     "sync:domain-inventory": "node scripts/sync-domain-inventory.mjs",
-    "sync:sitemaps": "node scripts/sync-sitemap-submissions.mjs"
+    "sync:sitemaps": "node scripts/sync-sitemap-submissions.mjs",
+    "submit:sitemaps:google": "node scripts/submit-google-sitemaps.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",

@@ -13,6 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const staticDir = path.resolve(__dirname, '..', 'dist');
 const adminUser = process.env.SITEOPS_ADMIN_USER || 'boss';
 const adminPassword = process.env.SITEOPS_ADMIN_PASSWORD || '';
+const googleSearchConsoleScope = 'https://www.googleapis.com/auth/webmasters';
 
 const contentTypes = {
   '.css': 'text/css; charset=utf-8',
@@ -174,6 +175,76 @@ async function createNotification(req, res) {
   );
 
   return sendJson(req, res, 201, { ok: true, notification: mapNotification(result.rows[0]) });
+}
+
+function getPublicBaseUrl(req) {
+  const configured = process.env.SITEOPS_PUBLIC_URL || '';
+  if (configured) return configured.replace(/\/+$/, '');
+
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const hostHeader = req.headers['x-forwarded-host'] || req.headers.host;
+  return `${protocol}://${hostHeader}`;
+}
+
+function getGoogleRedirectUri(req) {
+  return (
+    process.env.GOOGLE_REDIRECT_URI ||
+    `${getPublicBaseUrl(req)}/api/google/search-console/callback`
+  );
+}
+
+function buildGoogleSearchConsoleAuthUrl(req) {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return null;
+  }
+
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  authUrl.searchParams.set('client_id', process.env.GOOGLE_CLIENT_ID);
+  authUrl.searchParams.set('redirect_uri', getGoogleRedirectUri(req));
+  authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('scope', googleSearchConsoleScope);
+  authUrl.searchParams.set('access_type', 'offline');
+  authUrl.searchParams.set('prompt', 'consent');
+  authUrl.searchParams.set('include_granted_scopes', 'true');
+  return authUrl.toString();
+}
+
+async function exchangeGoogleCode(req, code) {
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID || '',
+      client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+      redirect_uri: getGoogleRedirectUri(req),
+      grant_type: 'authorization_code',
+    }),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error_description || payload.error || 'Google OAuth exchange failed');
+  }
+
+  await query(
+    `
+      insert into google_integrations (
+        integration_key, scopes, status, connected_at, last_checked_at, notes, updated_at
+      )
+      values ('search_console', $1, 'connected', now(), now(), $2, now())
+      on conflict (integration_key) do update set
+        scopes = excluded.scopes,
+        status = excluded.status,
+        connected_at = excluded.connected_at,
+        last_checked_at = excluded.last_checked_at,
+        notes = excluded.notes,
+        updated_at = now()
+    `,
+    [[googleSearchConsoleScope], 'Refresh token is stored only in .env, not in the database.'],
+  );
+
+  return payload;
 }
 
 async function sendStatic(req, res, url) {
@@ -570,6 +641,44 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/notifications' && req.method === 'POST') {
       return createNotification(req, res);
+    }
+
+    if (url.pathname === '/api/google/search-console/auth-url') {
+      const authUrl = buildGoogleSearchConsoleAuthUrl(req);
+      if (!authUrl) {
+        return sendJson(req, res, 400, {
+          ok: false,
+          error: 'GOOGLE_CLIENT_ID is not configured.',
+        });
+      }
+      return sendJson(req, res, 200, {
+        ok: true,
+        authUrl,
+        redirectUri: getGoogleRedirectUri(req),
+        scope: googleSearchConsoleScope,
+      });
+    }
+
+    if (url.pathname === '/api/google/search-console/callback') {
+      const code = url.searchParams.get('code');
+      if (!code) {
+        return sendJson(req, res, 400, { ok: false, error: 'Missing Google OAuth code.' });
+      }
+
+      const tokenPayload = await exchangeGoogleCode(req, code);
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(`
+        <!doctype html>
+        <html lang="ko">
+          <head><meta charset="utf-8"><title>Google Search Console 연결</title></head>
+          <body style="font-family: sans-serif; max-width: 760px; margin: 40px auto; line-height: 1.6;">
+            <h1>Google Search Console 인증 완료</h1>
+            <p>아래 refresh token을 Ubuntu 서버의 <code>/home/boss/codex-dema/.env</code>에만 저장하세요.</p>
+            <p>이 값은 비밀번호처럼 취급하고 GitHub나 문서에 넣으면 안 됩니다.</p>
+            <textarea readonly style="width:100%; min-height: 140px;">${tokenPayload.refresh_token || '이미 동의한 앱이라 refresh_token이 다시 내려오지 않았습니다. Google 동의 화면에서 앱 권한을 해제한 뒤 다시 인증하세요.'}</textarea>
+          </body>
+        </html>
+      `);
     }
 
     return sendStatic(req, res, url);
