@@ -74,9 +74,16 @@ function mapSite(row) {
     siteKey: row.site_key,
     domain: row.domain,
     owner: row.customer_name || (row.is_customer_portal ? 'Customer portal' : 'Customer owned'),
+    language: row.language_code,
     gLevel: row.g_level,
     guardrail: row.guardrail_level?.toUpperCase(),
     topic: row.b_code,
+    portfolioStatus: row.portfolio_status,
+    approvalStatus: row.approval_status || row.setup_approval || 'not_submitted',
+    riskLevel: row.risk_level,
+    monetizeMode: row.monetize_mode,
+    setupStatus: row.setup_status,
+    memo: row.memo,
     wpBaseUrl: row.wp_base_url,
     credentialRef: row.wp_credential_ref || 'NOT_SET',
     workflow: row.workflow_type || 'NOT_SET',
@@ -90,17 +97,31 @@ function mapSite(row) {
   };
 }
 
+async function queryOptional(sql) {
+  try {
+    return await query(sql);
+  } catch (error) {
+    if (error.code === '42P01') {
+      return { rows: [] };
+    }
+    throw error;
+  }
+}
+
 async function getDashboardData() {
   const [sites, customers, contentQueue, wpSetup, workflows, runLogs, settlements, referrals] =
     await Promise.all([
       query(`
-        select s.site_key, s.domain, s.g_level, s.guardrail_level, s.b_code, s.status,
-          s.is_customer_portal, c.display_name as customer_name, wc.wp_base_url,
+        select s.site_key, s.domain, s.language_code, s.g_level, s.guardrail_level, s.b_code,
+          s.portfolio_status, s.approval_status, s.risk_level, s.monetize_mode, s.memo, s.status,
+          s.is_customer_portal, c.display_name as customer_name, wps.setup_status,
+          wps.approval as setup_approval, wc.wp_base_url,
           wc.wp_credential_ref, ai.workflow_type, ai.prompt_profile, ai.llm_provider,
           ai.primary_model, ai.automation_mode, ai.monthly_target,
           vr.customer_review_required, ads.application_status
         from sites s
         left join customers c on c.id = s.customer_id
+        left join wp_setup_queue wps on wps.domain = s.domain
         left join wordpress_connections wc on wc.site_id = s.id
         left join site_ai_settings ai on ai.site_id = s.id
         left join site_validation_rules vr on vr.site_id = s.id
@@ -174,6 +195,21 @@ async function getDashboardData() {
       `),
     ]);
 
+  const notifications = await queryOptional(`
+    select id::text, audience_type, visibility, title, message, channel,
+      category, severity, send_status, marketing_message
+    from notifications
+    order by
+      case severity
+        when 'critical' then 1
+        when 'warning' then 2
+        when 'action_required' then 3
+        else 4
+      end,
+      created_at desc
+    limit 50
+  `);
+
   return {
     source: 'postgres',
     sites: sites.rows.map(mapSite),
@@ -239,6 +275,18 @@ async function getDashboardData() {
       rule: row.rule,
       active: row.active,
       status: row.status?.toUpperCase(),
+    })),
+    notifications: notifications.rows.map((row) => ({
+      id: row.id,
+      audience: row.audience_type,
+      visibility: row.visibility,
+      title: row.title,
+      message: row.message,
+      channel: row.channel,
+      category: row.category,
+      severity: row.severity,
+      status: row.send_status,
+      marketing: row.marketing_message,
     })),
     taxEstimates: [
       {

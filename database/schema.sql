@@ -464,6 +464,50 @@ CREATE TABLE IF NOT EXISTS policy_reviews (
   CHECK (status IN ('pending', 'pass', 'fail', 'not_applicable'))
 );
 
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+  portal_enabled BOOLEAN NOT NULL DEFAULT true,
+  sms_enabled BOOLEAN NOT NULL DEFAULT false,
+  kakao_enabled BOOLEAN NOT NULL DEFAULT false,
+  telegram_enabled BOOLEAN NOT NULL DEFAULT false,
+  marketing_opt_in BOOLEAN NOT NULL DEFAULT false,
+  group_chat_allowed BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(customer_id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  site_id UUID REFERENCES sites(id) ON DELETE SET NULL,
+  audience_type TEXT NOT NULL DEFAULT 'admin',
+  visibility TEXT NOT NULL DEFAULT 'internal_only',
+  category TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'info',
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'portal',
+  provider TEXT,
+  marketing_message BOOLEAN NOT NULL DEFAULT false,
+  opt_in_required BOOLEAN NOT NULL DEFAULT false,
+  send_status TEXT NOT NULL DEFAULT 'draft',
+  scheduled_at TIMESTAMPTZ,
+  sent_at TIMESTAMPTZ,
+  read_at TIMESTAMPTZ,
+  error_message TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (audience_type IN ('customer', 'admin', 'staff')),
+  CHECK (visibility IN ('public_to_customer', 'internal_only')),
+  CHECK (category IN ('settlement', 'payment', 'account_action', 'contract', 'domain', 'automation', 'security', 'general')),
+  CHECK (severity IN ('info', 'action_required', 'warning', 'critical')),
+  CHECK (channel IN ('portal', 'sms', 'kakao', 'telegram', 'portal_sms', 'portal_telegram')),
+  CHECK (send_status IN ('draft', 'ready', 'scheduled', 'sent', 'failed', 'canceled'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_sites_site_key ON sites(site_key);
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
 CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);
@@ -475,3 +519,6 @@ CREATE INDEX IF NOT EXISTS idx_run_logs_site_key ON run_logs(site_key);
 CREATE INDEX IF NOT EXISTS idx_run_logs_status ON run_logs(status);
 CREATE INDEX IF NOT EXISTS idx_wp_setup_queue_status ON wp_setup_queue(setup_status);
 CREATE INDEX IF NOT EXISTS idx_keyword_map_topic ON keyword_map(topic_group);
+CREATE INDEX IF NOT EXISTS idx_notifications_customer ON notifications(customer_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_audience ON notifications(audience_type);
+CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(send_status);

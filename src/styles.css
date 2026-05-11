@@ -224,7 +224,7 @@ h2 {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -273,6 +273,49 @@ h2 {
   grid-column: 1 / -1;
 }
 
+.legacy-sites-panel {
+  display: none;
+}
+
+.site-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.filter-card {
+  display: grid;
+  gap: 8px;
+  min-height: 76px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-soft);
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.filter-card.active {
+  border-color: var(--accent);
+  background: #e3f5ef;
+}
+
+:root[data-theme="dark"] .filter-card.active {
+  background: #183a34;
+}
+
+.filter-card span {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.filter-card strong {
+  font-size: 24px;
+}
+
 .domain-table,
 .job-list,
 .template-list,
@@ -303,6 +346,30 @@ h2 {
 
 .sites-table .ops-row {
   grid-template-columns: minmax(220px, 1.2fr) 150px 100px 130px 150px 90px;
+}
+
+.enhanced-sites-table .ops-row {
+  grid-template-columns: minmax(220px, 1.1fr) 150px 150px 150px minmax(180px, 0.9fr) minmax(180px, 1fr);
+}
+
+.pill-stack {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ops-row.risk-high,
+.ops-row.risk-critical {
+  border-left: 4px solid #c63d2f;
+}
+
+.ops-row.risk-medium {
+  border-left: 4px solid #d79a2b;
+}
+
+.ops-row.risk-low {
+  border-left: 4px solid var(--accent);
 }
 
 .queue-table .ops-row {
@@ -413,7 +480,8 @@ h2 {
   color: var(--accent);
 }
 
-.tax-notice {
+.tax-notice,
+.notification-note {
   display: grid;
   grid-template-columns: 24px 1fr;
   gap: 10px;
@@ -429,6 +497,26 @@ h2 {
   margin: 0;
   font-size: 14px;
   line-height: 1.55;
+}
+
+.notification-note {
+  background: #e8eefc;
+  color: #263f82;
+}
+
+.notification-note p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.notification-grid h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.notification-item {
+  align-items: flex-start;
 }
 
 .setup-card {
@@ -520,7 +608,11 @@ h2 {
 .status-pill.done,
 .status-pill.pass,
 .status-pill.approved,
-.status-pill.published {
+.status-pill.published,
+.status-pill.operating_ready,
+.status-pill.customer_portal,
+.status-pill.infra_internal,
+.status-pill.low {
   background: #dff5ed;
   color: #126246;
 }
@@ -537,22 +629,39 @@ h2 {
 .status-pill.planned,
 .status-pill.pending,
 .status-pill.submitted,
-.status-pill.draft {
+.status-pill.draft,
+.status-pill.setup_pipeline,
+.status-pill.medium {
   background: #e8eefc;
   color: #3656a8;
 }
 
 .status-pill.failed,
 .status-pill.disabled,
-.status-pill.locked {
+.status-pill.locked,
+.status-pill.recovery_review,
+.status-pill.high_risk_hold,
+.status-pill.high,
+.status-pill.critical,
+.status-pill.warning {
   background: #ffe4e0;
   color: #a13220;
+}
+
+.status-pill.info,
+.status-pill.action_required {
+  background: #e8eefc;
+  color: #3656a8;
 }
 
 .status-pill.none,
 .status-pill.not_started,
 .status-pill.reference,
-.status-pill.review {
+.status-pill.review,
+.status-pill.unclassified,
+.status-pill.not_submitted,
+.status-pill.unknown,
+.status-pill.skip {
   background: #edf1f3;
   color: #5b6970;
 }
@@ -654,11 +763,13 @@ h2 {
   .content-grid,
   .setup-grid,
   .portal-grid,
+  .site-filter-grid,
   .split-grid {
     grid-template-columns: 1fr;
   }
 
   .sites-table .ops-row,
+  .enhanced-sites-table .ops-row,
   .queue-table .ops-row,
   .customer-table .ops-row,
   .tax-table .ops-row {

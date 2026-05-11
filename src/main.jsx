@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import {
   Activity,
   AlertTriangle,
+  Bell,
   CheckCircle2,
   ClipboardCheck,
   Database,
@@ -23,6 +24,7 @@ import { fetchDashboardData } from './api.js';
 import {
   contentQueueRows,
   customerRows,
+  notificationRows,
   portalSummary,
   referralRows,
   runLogRows,
@@ -45,14 +47,38 @@ const fallbackDashboard = {
   settlements: settlementRows,
   referrals: referralRows,
   taxEstimates: taxEstimateRows,
+  notifications: notificationRows,
 };
 
+const siteStatusFilters = [
+  { key: 'all', label: '전체' },
+  { key: 'operating_ready', label: '운영 가능' },
+  { key: 'setup_pipeline', label: '세팅 진행' },
+  { key: 'recovery_review', label: '복구 검토' },
+  { key: 'high_risk_hold', label: '고위험 보류' },
+  { key: 'infra_internal', label: '내부용' },
+  { key: 'customer_portal', label: '고객포털' },
+  { key: 'unclassified', label: '미분류' },
+];
+
 function StatusPill({ value }) {
-  return <span className={`status-pill ${String(value).toLowerCase()}`}>{value}</span>;
+  const normalized = String(value || 'not_set').toLowerCase();
+  return <span className={`status-pill ${normalized}`}>{value || 'NOT_SET'}</span>;
+}
+
+function getSiteNextAction(site) {
+  if (site.portfolioStatus === 'customer_portal') return '고객 포털 기능 설계';
+  if (site.portfolioStatus === 'infra_internal') return '인프라 전용 유지';
+  if (site.portfolioStatus === 'high_risk_hold' || site.riskLevel === 'critical') return '운영 보류 및 원인 기록';
+  if (site.portfolioStatus === 'recovery_review') return '색인/스팸/백링크 재검토';
+  if (site.setupStatus === 'pending' || site.setupStatus === 'processing') return 'WordPress 세팅 큐 확인';
+  if (site.portfolioStatus === 'operating_ready') return '운영 유지 및 발행 품질 확인';
+  return '분류 기준 수동 검토';
 }
 
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wp-auto-theme') || 'light');
+  const [siteFilter, setSiteFilter] = useState('all');
   const [dashboard, setDashboard] = useState(fallbackDashboard);
   const [apiState, setApiState] = useState({ status: 'sample', message: '샘플 데이터 사용 중' });
   const isDark = theme === 'dark';
@@ -79,6 +105,7 @@ function App() {
           settlements: data.settlements?.length ? data.settlements : settlementRows,
           referrals: data.referrals?.length ? data.referrals : referralRows,
           taxEstimates: data.taxEstimates?.length ? data.taxEstimates : taxEstimateRows,
+          notifications: data.notifications?.length ? data.notifications : notificationRows,
         });
         setApiState({ status: 'connected', message: 'PostgreSQL 연결됨' });
       })
@@ -98,7 +125,22 @@ function App() {
     { label: '콘텐츠 큐', value: dashboard.contentQueue.length, icon: FileText },
     { label: 'N8N 워크플로우', value: dashboard.workflows.length, icon: Activity },
     { label: '포털 고객', value: dashboard.customers.length, icon: Users },
+    { label: '알림 준비', value: dashboard.notifications.length, icon: Bell },
   ];
+
+  const customerNotifications = dashboard.notifications.filter((row) => row.audience === 'customer');
+  const internalNotifications = dashboard.notifications.filter((row) => row.visibility === 'internal_only');
+  const siteCounts = siteStatusFilters.map((filter) => ({
+    ...filter,
+    count:
+      filter.key === 'all'
+        ? dashboard.sites.length
+        : dashboard.sites.filter((site) => site.portfolioStatus === filter.key).length,
+  }));
+  const filteredSites =
+    siteFilter === 'all'
+      ? dashboard.sites
+      : dashboard.sites.filter((site) => site.portfolioStatus === siteFilter);
 
   return (
     <main className="app-shell">
@@ -129,6 +171,7 @@ function App() {
           <a href="#portal"><UserPlus size={18} />고객 포털</a>
           <a href="#settlements"><WalletCards size={18} />정산/추천</a>
           <a href="#tax"><ClipboardCheck size={18} />세액 안내</a>
+          <a href="#notifications"><Bell size={18} />알림센터</a>
           <a href="#n8n"><Play size={18} />N8N 실행</a>
           <a href="#logs"><Database size={18} />작업 로그</a>
           <a href="#security"><ShieldCheck size={18} />보안 기준</a>
@@ -167,6 +210,61 @@ function App() {
 
         <section className="content-grid">
           <article className="panel wide-panel" id="sites">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">site_master</p>
+                <h2>도메인 운영관리</h2>
+              </div>
+              <span className="status-pill active">내부 운영 전용</span>
+            </div>
+            <div className="site-filter-grid" aria-label="도메인 운영상태 필터">
+              {siteCounts.map((filter) => (
+                <button
+                  className={`filter-card ${siteFilter === filter.key ? 'active' : ''}`}
+                  key={filter.key}
+                  type="button"
+                  onClick={() => setSiteFilter(filter.key)}
+                >
+                  <span>{filter.label}</span>
+                  <strong>{filter.count}</strong>
+                </button>
+              ))}
+            </div>
+            <div className="ops-table sites-table enhanced-sites-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>도메인</span>
+                <span>운영상태</span>
+                <span>승인/위험도</span>
+                <span>세팅/수익화</span>
+                <span>다음 액션</span>
+                <span>메모</span>
+              </div>
+              {filteredSites.map((site) => (
+                <div className={`ops-row risk-${site.riskLevel || 'unknown'}`} role="row" key={site.siteKey}>
+                  <div>
+                    <strong>{site.domain}</strong>
+                    <small>{site.siteKey} · {site.language || '-'} · {site.topic || '-'}</small>
+                  </div>
+                  <div className="pill-stack">
+                    <StatusPill value={site.portfolioStatus || site.status} />
+                    <small>{site.owner}</small>
+                  </div>
+                  <div className="pill-stack">
+                    <StatusPill value={site.approvalStatus} />
+                    <StatusPill value={site.riskLevel} />
+                  </div>
+                  <div className="pill-stack">
+                    <StatusPill value={site.setupStatus} />
+                    <small>{site.monetizeMode || 'monetize 미정'}</small>
+                  </div>
+                  <strong>{getSiteNextAction(site)}</strong>
+                  <small>{site.memo || '운영 메모 없음'}</small>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel wide-panel legacy-sites-panel" id="sites-legacy">
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">site_master</p>
@@ -407,6 +505,55 @@ function App() {
                   <StatusPill value={row.status} />
                 </div>
               ))}
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="notifications">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">notifications</p>
+                <h2>공지사항 및 알림센터</h2>
+              </div>
+              <span className="status-pill planned">발송 준비</span>
+            </div>
+            <div className="notification-note">
+              <Bell size={20} />
+              <p>
+                고객에게는 정산, 입금, 계정 확인처럼 꼭 필요한 내용만 전달합니다. 자동화 실패,
+                서버 오류, WordPress 연결 문제는 고객에게 노출하지 않고 BOSS 내부 알림으로만 관리합니다.
+              </p>
+            </div>
+            <div className="split-grid notification-grid">
+              <div>
+                <h3>고객 알림</h3>
+                <div className="stack-list">
+                  {customerNotifications.map((row) => (
+                    <div className="stack-item notification-item" key={row.id}>
+                      <div>
+                        <strong>{row.title}</strong>
+                        <small>{row.message}</small>
+                        <small>{row.channel} · {row.category} · 광고성 {row.marketing ? '동의 필요' : '아님'}</small>
+                      </div>
+                      <StatusPill value={row.status} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3>내부 운영 알림</h3>
+                <div className="stack-list">
+                  {internalNotifications.map((row) => (
+                    <div className="stack-item notification-item" key={row.id}>
+                      <div>
+                        <strong>{row.title}</strong>
+                        <small>{row.message}</small>
+                        <small>{row.channel} · {row.category} · {row.severity}</small>
+                      </div>
+                      <StatusPill value={row.severity} />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </article>
 
