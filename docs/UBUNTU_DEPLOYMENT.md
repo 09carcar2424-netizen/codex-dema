@@ -48,6 +48,7 @@ chmod 600 .env
 DATABASE_URL=postgresql://wpauto:<DB_PASSWORD>@127.0.0.1:5432/wp_automation
 API_HOST=0.0.0.0
 API_PORT=8787
+CORS_ALLOW_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
 VITE_API_BASE_URL=
 ```
 
@@ -68,6 +69,8 @@ curl http://127.0.0.1:8787/api/health
 ```
 
 브라우저에서는 `http://SERVER_IP:8787`로 접속합니다.
+
+PC의 `http://127.0.0.1:5173` 화면에서 Ubuntu API를 보려면 `docs/PC_TO_UBUNTU_API.md`를 기준으로 SSH tunnel 또는 Cloudflare Tunnel을 우선 사용합니다.
 
 ## 6. systemd 서비스 등록
 

@@ -22,10 +22,28 @@ const contentTypes = {
   '.webp': 'image/webp',
 };
 
-function sendJson(res, statusCode, payload) {
+function getAllowedOrigins() {
+  const configured = process.env.CORS_ALLOW_ORIGINS || process.env.CORS_ORIGIN || 'http://127.0.0.1:5173';
+  return configured
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function getCorsOrigin(req) {
+  const requestOrigin = req.headers.origin;
+  const allowedOrigins = getAllowedOrigins();
+
+  if (allowedOrigins.includes('*')) return '*';
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) return requestOrigin;
+  return allowedOrigins[0] || 'http://127.0.0.1:5173';
+}
+
+function sendJson(req, res, statusCode, payload) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || 'http://127.0.0.1:5173',
+    'Access-Control-Allow-Origin': getCorsOrigin(req),
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   });
@@ -34,7 +52,7 @@ function sendJson(res, statusCode, payload) {
 
 async function sendStatic(req, res, url) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
-    return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
+    return sendJson(req, res, 405, { ok: false, error: 'Method not allowed' });
   }
 
   const requestedPath = decodeURIComponent(url.pathname);
@@ -43,7 +61,7 @@ async function sendStatic(req, res, url) {
   const resolvedPath = path.resolve(filePath);
 
   if (!resolvedPath.startsWith(staticDir)) {
-    return sendJson(res, 403, { ok: false, error: 'Forbidden' });
+    return sendJson(req, res, 403, { ok: false, error: 'Forbidden' });
   }
 
   try {
@@ -373,7 +391,7 @@ async function getDashboardData() {
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
-    return sendJson(res, 204, {});
+    return sendJson(req, res, 204, {});
   }
 
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -381,16 +399,16 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname === '/api/health') {
       const db = await checkDatabase();
-      return sendJson(res, 200, { ok: true, database: 'connected', checkedAt: db.now });
+      return sendJson(req, res, 200, { ok: true, database: 'connected', checkedAt: db.now });
     }
 
     if (url.pathname === '/api/dashboard') {
-      return sendJson(res, 200, await getDashboardData());
+      return sendJson(req, res, 200, await getDashboardData());
     }
 
     return sendStatic(req, res, url);
   } catch (error) {
-    return sendJson(res, 503, {
+    return sendJson(req, res, 503, {
       ok: false,
       source: 'fallback',
       error: 'Database unavailable',
