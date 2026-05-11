@@ -220,6 +220,33 @@ async function getDashboardData() {
     limit 50
   `);
 
+  const domainInventory = await queryOptional(`
+    select di.domain, di.ownership_type, di.acquisition_type, di.language_priority,
+      di.category_fit, di.inventory_status, di.offer_status, di.public_listing_allowed,
+      di.memo, da.overall_score, da.final_grade, da.history_score, da.spam_score,
+      da.backlink_score, da.index_score, da.trademark_risk, da.ymyl_risk_level,
+      da.manual_review_required, da.evidence_attached
+    from domain_inventory di
+    left join lateral (
+      select *
+      from domain_audits da
+      where da.inventory_id = di.id
+      order by da.created_at desc
+      limit 1
+    ) da on true
+    order by
+      case di.inventory_status
+        when 'recommended' then 1
+        when 'brokerage_ready' then 2
+        when 'operating_first' then 3
+        when 'internal_review' then 4
+        when 'hold' then 5
+        else 6
+      end,
+      di.updated_at desc
+    limit 100
+  `);
+
   return {
     source: 'postgres',
     sites: sites.rows.map(mapSite),
@@ -301,6 +328,27 @@ async function getDashboardData() {
       severity: row.severity,
       status: row.send_status,
       marketing: row.marketing_message,
+    })),
+    domainInventory: domainInventory.rows.map((row) => ({
+      domain: row.domain,
+      ownershipType: row.ownership_type,
+      acquisitionType: row.acquisition_type,
+      languagePriority: row.language_priority,
+      categoryFit: row.category_fit,
+      inventoryStatus: row.inventory_status,
+      offerStatus: row.offer_status,
+      publicListingAllowed: row.public_listing_allowed,
+      memo: row.memo,
+      overallScore: row.overall_score,
+      finalGrade: row.final_grade || 'unrated',
+      historyScore: row.history_score,
+      spamScore: row.spam_score,
+      backlinkScore: row.backlink_score,
+      indexScore: row.index_score,
+      trademarkRisk: row.trademark_risk || 'unknown',
+      ymylRiskLevel: row.ymyl_risk_level || 'unknown',
+      manualReviewRequired: row.manual_review_required ?? true,
+      evidenceAttached: row.evidence_attached ?? false,
     })),
     taxEstimates: [
       {

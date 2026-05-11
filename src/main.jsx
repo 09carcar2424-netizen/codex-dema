@@ -24,6 +24,7 @@ import { fetchDashboardData } from './api.js';
 import {
   contentQueueRows,
   customerRows,
+  domainInventoryRows,
   notificationRows,
   portalSummary,
   referralRows,
@@ -48,6 +49,7 @@ const fallbackDashboard = {
   referrals: referralRows,
   taxEstimates: taxEstimateRows,
   notifications: notificationRows,
+  domainInventory: domainInventoryRows,
 };
 
 const siteStatusFilters = [
@@ -116,6 +118,7 @@ function App() {
           referrals: data.referrals?.length ? data.referrals : referralRows,
           taxEstimates: data.taxEstimates?.length ? data.taxEstimates : taxEstimateRows,
           notifications: data.notifications?.length ? data.notifications : notificationRows,
+          domainInventory: data.domainInventory?.length ? data.domainInventory : domainInventoryRows,
         });
         setApiState({ status: 'connected', message: 'PostgreSQL 연결됨' });
       })
@@ -168,6 +171,12 @@ function App() {
     setupFilter === 'all'
       ? dashboard.wpSetup
       : dashboard.wpSetup.filter((row) => row.status === setupFilter);
+  const recommendedDomains = dashboard.domainInventory.filter((row) =>
+    ['recommended', 'brokerage_ready'].includes(row.inventoryStatus),
+  );
+  const heldDomains = dashboard.domainInventory.filter((row) =>
+    ['hold', 'rejected'].includes(row.inventoryStatus),
+  );
 
   return (
     <main className="app-shell">
@@ -195,6 +204,7 @@ function App() {
           <a href="#sites"><Users size={18} />사이트 관리</a>
           <a href="#queue"><FileText size={18} />콘텐츠 큐</a>
           <a href="#setup"><ServerCog size={18} />WP 세팅</a>
+          <a href="#inventory"><ShieldCheck size={18} />도메인 검수</a>
           <a href="#portal"><UserPlus size={18} />고객 포털</a>
           <a href="#settlements"><WalletCards size={18} />정산/추천</a>
           <a href="#tax"><ClipboardCheck size={18} />세액 안내</a>
@@ -498,6 +508,69 @@ function App() {
                   <span key={site.domain}>{site.domain}</span>
                 ))}
               </div>
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="inventory">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">domain_inventory / domain_audits</p>
+                <h2>도메인 재고 및 검수</h2>
+              </div>
+              <span className="status-pill planned">내부 검수 전용</span>
+            </div>
+            <div className="inventory-summary">
+              <div>
+                <strong>{dashboard.domainInventory.length}</strong>
+                <span>검수 재고</span>
+              </div>
+              <div>
+                <strong>{recommendedDomains.length}</strong>
+                <span>추천/중개 후보</span>
+              </div>
+              <div>
+                <strong>{heldDomains.length}</strong>
+                <span>보류/제외</span>
+              </div>
+              <p>
+                도메인 검수 결과는 보장이 아니라 참고자료입니다. 수익, 애드센스 승인, IP/VPN 안전성은
+                보장 표현 없이 내부 리스크 판단용으로만 관리합니다.
+              </p>
+            </div>
+            <div className="inventory-grid">
+              {dashboard.domainInventory.map((row) => (
+                <article className={`inventory-card grade-${row.finalGrade}`} key={row.domain}>
+                  <div className="inventory-card-head">
+                    <div>
+                      <strong>{row.domain}</strong>
+                      <small>{row.ownershipType} · {row.acquisitionType} · {row.languagePriority}</small>
+                    </div>
+                    <StatusPill value={row.finalGrade} />
+                  </div>
+                  <div className="score-line">
+                    <strong>{row.overallScore ?? '-'}</strong>
+                    <span>검수 점수</span>
+                  </div>
+                  <div className="audit-score-grid">
+                    <span>History {row.historyScore ?? '-'}</span>
+                    <span>Spam {row.spamScore ?? '-'}</span>
+                    <span>Backlink {row.backlinkScore ?? '-'}</span>
+                    <span>Index {row.indexScore ?? '-'}</span>
+                  </div>
+                  <div className="setup-meta">
+                    <span>{row.inventoryStatus}</span>
+                    <span>{row.offerStatus}</span>
+                    <span>TM {row.trademarkRisk}</span>
+                    <span>YMYL {row.ymylRiskLevel}</span>
+                  </div>
+                  <p>{row.memo || '검수 메모 없음'}</p>
+                  <small>
+                    공개 가능: {row.publicListingAllowed ? '예' : '아니오'} ·
+                    수동 검수: {row.manualReviewRequired ? '필수' : '완료'} ·
+                    증빙: {row.evidenceAttached ? '첨부' : '대기'}
+                  </small>
+                </article>
+              ))}
             </div>
           </article>
 

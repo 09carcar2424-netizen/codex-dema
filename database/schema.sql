@@ -508,6 +508,62 @@ CREATE TABLE IF NOT EXISTS notifications (
   CHECK (send_status IN ('draft', 'ready', 'scheduled', 'sent', 'failed', 'canceled'))
 );
 
+CREATE TABLE IF NOT EXISTS domain_inventory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID REFERENCES sites(id) ON DELETE SET NULL,
+  domain TEXT NOT NULL UNIQUE,
+  ownership_type TEXT NOT NULL DEFAULT 'boss_owned',
+  acquisition_type TEXT NOT NULL DEFAULT 'unknown',
+  tld_type TEXT,
+  language_priority TEXT NOT NULL DEFAULT 'en',
+  category_fit TEXT,
+  inventory_status TEXT NOT NULL DEFAULT 'internal_review',
+  offer_status TEXT NOT NULL DEFAULT 'not_listed',
+  asking_price NUMERIC(14, 2),
+  currency TEXT NOT NULL DEFAULT 'KRW',
+  public_listing_allowed BOOLEAN NOT NULL DEFAULT false,
+  revenue_guarantee_forbidden BOOLEAN NOT NULL DEFAULT true,
+  adsense_guarantee_forbidden BOOLEAN NOT NULL DEFAULT true,
+  risk_disclosure_required BOOLEAN NOT NULL DEFAULT true,
+  memo TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (ownership_type IN ('boss_owned', 'customer_owned', 'third_party')),
+  CHECK (acquisition_type IN ('new_registration', 'aged_domain', 'expired_domain', 'customer_supplied', 'unknown')),
+  CHECK (language_priority IN ('ko', 'en', 'mixed')),
+  CHECK (inventory_status IN ('internal_review', 'recommended', 'brokerage_ready', 'operating_first', 'hold', 'rejected')),
+  CHECK (offer_status IN ('not_listed', 'internal_only', 'candidate', 'listed_private', 'listed_public', 'sold', 'transferred', 'withdrawn'))
+);
+
+CREATE TABLE IF NOT EXISTS domain_audits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  inventory_id UUID NOT NULL REFERENCES domain_inventory(id) ON DELETE CASCADE,
+  audit_status TEXT NOT NULL DEFAULT 'draft',
+  history_score INTEGER,
+  spam_score INTEGER,
+  backlink_score INTEGER,
+  index_score INTEGER,
+  trademark_risk TEXT NOT NULL DEFAULT 'unknown',
+  ymyl_risk_level TEXT NOT NULL DEFAULT 'unknown',
+  overall_score INTEGER,
+  final_grade TEXT NOT NULL DEFAULT 'unrated',
+  manual_review_required BOOLEAN NOT NULL DEFAULT true,
+  evidence_attached BOOLEAN NOT NULL DEFAULT false,
+  notes TEXT,
+  checked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (audit_status IN ('draft', 'queued', 'checked', 'needs_review', 'rejected', 'approved')),
+  CHECK (history_score IS NULL OR history_score BETWEEN 0 AND 100),
+  CHECK (spam_score IS NULL OR spam_score BETWEEN 0 AND 100),
+  CHECK (backlink_score IS NULL OR backlink_score BETWEEN 0 AND 100),
+  CHECK (index_score IS NULL OR index_score BETWEEN 0 AND 100),
+  CHECK (overall_score IS NULL OR overall_score BETWEEN 0 AND 100),
+  CHECK (trademark_risk IN ('unknown', 'low', 'medium', 'high')),
+  CHECK (ymyl_risk_level IN ('unknown', 'low', 'medium', 'high')),
+  CHECK (final_grade IN ('unrated', 'safe_candidate', 'watch', 'hold', 'reject'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_sites_site_key ON sites(site_key);
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
 CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);
@@ -522,3 +578,7 @@ CREATE INDEX IF NOT EXISTS idx_keyword_map_topic ON keyword_map(topic_group);
 CREATE INDEX IF NOT EXISTS idx_notifications_customer ON notifications(customer_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_audience ON notifications(audience_type);
 CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(send_status);
+CREATE INDEX IF NOT EXISTS idx_domain_inventory_status ON domain_inventory(inventory_status);
+CREATE INDEX IF NOT EXISTS idx_domain_inventory_offer ON domain_inventory(offer_status);
+CREATE INDEX IF NOT EXISTS idx_domain_audits_inventory ON domain_audits(inventory_id);
+CREATE INDEX IF NOT EXISTS idx_domain_audits_grade ON domain_audits(final_grade);
