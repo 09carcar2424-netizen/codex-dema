@@ -391,6 +391,27 @@ async function getDashboardData() {
     limit 100
   `);
 
+  const sitemapSubmissions = await queryOptional(`
+    select ss.id::text, ss.site_key, ss.domain, ss.sitemap_url, ss.search_engine,
+      ss.property_url, ss.submission_mode, ss.submission_status,
+      to_char(ss.last_submitted_at, 'YYYY-MM-DD HH24:MI') as last_submitted_at,
+      to_char(ss.last_checked_at, 'YYYY-MM-DD HH24:MI') as last_checked_at,
+      ss.response_message, ss.notes
+    from sitemap_submissions ss
+    order by
+      case ss.submission_status
+        when 'failed' then 1
+        when 'manual_required' then 2
+        when 'ready' then 3
+        when 'draft' then 4
+        when 'submitted' then 5
+        when 'verified' then 6
+        else 7
+      end,
+      ss.updated_at desc
+    limit 100
+  `);
+
   return {
     source: 'postgres',
     sites: sites.rows.map(mapSite),
@@ -493,6 +514,20 @@ async function getDashboardData() {
       ymylRiskLevel: row.ymyl_risk_level || 'unknown',
       manualReviewRequired: row.manual_review_required ?? true,
       evidenceAttached: row.evidence_attached ?? false,
+    })),
+    sitemapSubmissions: sitemapSubmissions.rows.map((row) => ({
+      id: row.id,
+      siteKey: row.site_key,
+      domain: row.domain,
+      sitemapUrl: row.sitemap_url,
+      searchEngine: row.search_engine,
+      propertyUrl: row.property_url,
+      submissionMode: row.submission_mode,
+      status: row.submission_status,
+      lastSubmittedAt: row.last_submitted_at,
+      lastCheckedAt: row.last_checked_at,
+      responseMessage: row.response_message,
+      notes: row.notes,
     })),
     taxEstimates: [
       {

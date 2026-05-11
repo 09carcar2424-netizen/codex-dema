@@ -421,6 +421,20 @@ h2 {
   grid-template-columns: minmax(160px, 1fr) 120px minmax(160px, 1fr) 140px 130px 100px;
 }
 
+.sitemap-table .ops-row {
+  grid-template-columns: minmax(180px, 1.1fr) 110px minmax(240px, 1.6fr) 130px 130px minmax(180px, 1.2fr);
+}
+
+.sitemap-table a {
+  color: var(--accent-strong);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.sitemap-table a:hover {
+  text-decoration: underline;
+}
+
 .ops-head {
   min-height: 34px;
   background: transparent;
@@ -512,7 +526,8 @@ h2 {
   margin: 0;
 }
 
-.inventory-summary {
+.inventory-summary,
+.sitemap-summary {
   display: grid;
   grid-template-columns: 150px 150px 150px minmax(0, 1fr);
   gap: 14px;
@@ -524,16 +539,21 @@ h2 {
 }
 
 .inventory-summary strong,
-.inventory-summary span {
+.inventory-summary span,
+.sitemap-summary strong,
+.sitemap-summary span {
   display: block;
 }
 
-.inventory-summary strong {
+.inventory-summary strong,
+.sitemap-summary strong {
   font-size: 28px;
 }
 
 .inventory-summary span,
 .inventory-summary p,
+.sitemap-summary span,
+.sitemap-summary p,
 .inventory-card p,
 .inventory-card small {
   color: var(--text-muted);
@@ -542,6 +562,7 @@ h2 {
 }
 
 .inventory-summary p,
+.sitemap-summary p,
 .inventory-card p {
   margin: 0;
 }
@@ -1171,7 +1192,8 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .inventory-summary {
+  .inventory-summary,
+  .sitemap-summary {
     grid-template-columns: 1fr;
   }
 
@@ -1179,6 +1201,7 @@ h2 {
   .enhanced-sites-table .ops-row,
   .queue-table .ops-row,
   .customer-table .ops-row,
+  .sitemap-table .ops-row,
   .tax-table .ops-row {
     grid-template-columns: 1fr 1fr;
   }
@@ -1200,6 +1223,7 @@ h2 {
   .sites-table .ops-row,
   .queue-table .ops-row,
   .customer-table .ops-row,
+  .sitemap-table .ops-row,
   .tax-table .ops-row {
     grid-template-columns: 1fr;
     padding: 12px;

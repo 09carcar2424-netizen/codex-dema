@@ -413,6 +413,51 @@ export const notificationRows = [
   },
 ];
 
+export const sitemapRows = [
+  {
+    id: 'sitemap-001',
+    siteKey: 'sjournal_main',
+    domain: 'sjournal.kr',
+    sitemapUrl: 'https://sjournal.kr/sitemap.xml',
+    searchEngine: 'google',
+    propertyUrl: 'https://sjournal.kr/',
+    submissionMode: 'pending_api',
+    status: 'ready',
+    lastSubmittedAt: '',
+    lastCheckedAt: '',
+    responseMessage: '',
+    notes: 'Google Search Console API 연결 후 자동 제출 대상',
+  },
+  {
+    id: 'sitemap-002',
+    siteKey: 'sjournal_main',
+    domain: 'sjournal.kr',
+    sitemapUrl: 'https://sjournal.kr/sitemap.xml',
+    searchEngine: 'naver',
+    propertyUrl: 'https://sjournal.kr/',
+    submissionMode: 'manual',
+    status: 'manual_required',
+    lastSubmittedAt: '',
+    lastCheckedAt: '',
+    responseMessage: '',
+    notes: '네이버는 수동 등록/검수 대상으로 관리',
+  },
+  {
+    id: 'sitemap-003',
+    siteKey: 'emf_main',
+    domain: 'emf-bioshield.com',
+    sitemapUrl: 'https://emf-bioshield.com/sitemap.xml',
+    searchEngine: 'google',
+    propertyUrl: 'https://emf-bioshield.com/',
+    submissionMode: 'pending_api',
+    status: 'ready',
+    lastSubmittedAt: '',
+    lastCheckedAt: '',
+    responseMessage: '',
+    notes: '영문 사이트 Google 우선 제출 후보',
+  },
+];
+
 export const domainInventoryRows = [
   {
     domain: 'kalyanacentre.com',

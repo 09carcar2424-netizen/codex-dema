@@ -31,6 +31,7 @@ import {
   referralRows,
   runLogRows,
   settlementRows,
+  sitemapRows,
   siteRows,
   taxEstimateRows,
   workflowRows,
@@ -51,6 +52,7 @@ const fallbackDashboard = {
   taxEstimates: taxEstimateRows,
   notifications: notificationRows,
   domainInventory: domainInventoryRows,
+  sitemapSubmissions: sitemapRows,
 };
 
 const emptyNotificationForm = {
@@ -165,6 +167,7 @@ function App() {
           taxEstimates: data.taxEstimates?.length ? data.taxEstimates : taxEstimateRows,
           notifications: data.notifications?.length ? data.notifications : notificationRows,
           domainInventory: data.domainInventory?.length ? data.domainInventory : domainInventoryRows,
+          sitemapSubmissions: data.sitemapSubmissions?.length ? data.sitemapSubmissions : sitemapRows,
         });
         setApiState({
           status: 'connected',
@@ -192,10 +195,15 @@ function App() {
     { label: 'N8N 워크플로우', value: dashboard.workflows.length, icon: Activity },
     { label: '포털 고객', value: dashboard.customers.length, icon: Users },
     { label: '알림 준비', value: dashboard.notifications.length, icon: Bell },
+    { label: '사이트맵', value: dashboard.sitemapSubmissions.length, icon: Search },
   ];
 
   const customerNotifications = dashboard.notifications.filter((row) => row.audience === 'customer');
   const internalNotifications = dashboard.notifications.filter((row) => row.visibility === 'internal_only');
+  const googleSitemaps = dashboard.sitemapSubmissions.filter((row) => row.searchEngine === 'google');
+  const manualSitemaps = dashboard.sitemapSubmissions.filter((row) =>
+    ['manual_required', 'failed'].includes(row.status),
+  );
   const siteCounts = siteStatusFilters.map((filter) => ({
     ...filter,
     count:
@@ -293,6 +301,7 @@ function App() {
           <a href="#queue"><FileText size={18} />콘텐츠 큐</a>
           <a href="#setup"><ServerCog size={18} />WP 세팅</a>
           <a href="#inventory"><ShieldCheck size={18} />도메인 검수</a>
+          <a href="#sitemaps"><Search size={18} />사이트맵</a>
           <a href="#portal"><UserPlus size={18} />고객 포털</a>
           <a href="#settlements"><WalletCards size={18} />정산/추천</a>
           <a href="#tax"><ClipboardCheck size={18} />세액 안내</a>
@@ -753,6 +762,63 @@ function App() {
             {filteredInventory.length === 0 ? (
               <div className="empty-state">
                 조건에 맞는 도메인이 없습니다. 필터를 초기화하거나 검색어를 줄여보세요.
+              </div>
+            ) : null}
+          </article>
+
+          <article className="panel wide-panel" id="sitemaps">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">sitemap_submissions</p>
+                <h2>사이트맵 등록 관리</h2>
+              </div>
+              <span className="status-pill planned">자동화 준비</span>
+            </div>
+            <div className="sitemap-summary">
+              <div>
+                <strong>{dashboard.sitemapSubmissions.length}</strong>
+                <span>등록 관리 항목</span>
+              </div>
+              <div>
+                <strong>{googleSitemaps.length}</strong>
+                <span>Google API 후보</span>
+              </div>
+              <div>
+                <strong>{manualSitemaps.length}</strong>
+                <span>수동 확인 필요</span>
+              </div>
+              <p>
+                Google은 Search Console API 연결 후 자동 제출 대상으로 관리합니다. 네이버는 공개 제출 API가 확인되기
+                전까지 수동 등록과 검수 기록 중심으로 운영합니다.
+              </p>
+            </div>
+            <div className="ops-table sitemap-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>도메인</span>
+                <span>검색엔진</span>
+                <span>사이트맵</span>
+                <span>등록 방식</span>
+                <span>상태</span>
+                <span>메모</span>
+              </div>
+              {dashboard.sitemapSubmissions.map((row) => (
+                <div className="ops-row" role="row" key={`${row.domain}-${row.searchEngine}`}>
+                  <div>
+                    <strong>{row.domain}</strong>
+                    <small>{row.siteKey || 'site_key 미지정'}</small>
+                  </div>
+                  <StatusPill value={row.searchEngine} />
+                  <a href={row.sitemapUrl} target="_blank" rel="noreferrer">{row.sitemapUrl}</a>
+                  <span>{row.submissionMode}</span>
+                  <StatusPill value={row.status} />
+                  <small>{row.notes || row.responseMessage || '등록 기록 없음'}</small>
+                </div>
+              ))}
+            </div>
+            {dashboard.sitemapSubmissions.length === 0 ? (
+              <div className="empty-state">
+                아직 사이트맵 등록 큐가 없습니다. 서버에서 `npm run sync:sitemaps`를 실행하면 운영 후보 사이트 기준으로
+                Google/Naver 관리 항목이 생성됩니다.
               </div>
             ) : null}
           </article>

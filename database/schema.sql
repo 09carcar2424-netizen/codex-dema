@@ -508,6 +508,28 @@ CREATE TABLE IF NOT EXISTS notifications (
   CHECK (send_status IN ('draft', 'ready', 'scheduled', 'sent', 'failed', 'canceled'))
 );
 
+CREATE TABLE IF NOT EXISTS sitemap_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
+  site_key TEXT,
+  domain TEXT NOT NULL,
+  sitemap_url TEXT NOT NULL,
+  search_engine TEXT NOT NULL DEFAULT 'google',
+  property_url TEXT,
+  submission_mode TEXT NOT NULL DEFAULT 'manual',
+  submission_status TEXT NOT NULL DEFAULT 'draft',
+  last_submitted_at TIMESTAMPTZ,
+  last_checked_at TIMESTAMPTZ,
+  response_message TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (search_engine IN ('google', 'naver', 'bing', 'other')),
+  CHECK (submission_mode IN ('manual', 'api', 'robots_txt', 'pending_api')),
+  CHECK (submission_status IN ('draft', 'ready', 'submitted', 'verified', 'failed', 'manual_required', 'not_supported')),
+  UNIQUE(domain, search_engine)
+);
+
 CREATE TABLE IF NOT EXISTS domain_inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   site_id UUID REFERENCES sites(id) ON DELETE SET NULL,
@@ -578,6 +600,9 @@ CREATE INDEX IF NOT EXISTS idx_keyword_map_topic ON keyword_map(topic_group);
 CREATE INDEX IF NOT EXISTS idx_notifications_customer ON notifications(customer_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_audience ON notifications(audience_type);
 CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(send_status);
+CREATE INDEX IF NOT EXISTS idx_sitemap_submissions_domain ON sitemap_submissions(domain);
+CREATE INDEX IF NOT EXISTS idx_sitemap_submissions_engine ON sitemap_submissions(search_engine);
+CREATE INDEX IF NOT EXISTS idx_sitemap_submissions_status ON sitemap_submissions(submission_status);
 CREATE INDEX IF NOT EXISTS idx_domain_inventory_status ON domain_inventory(inventory_status);
 CREATE INDEX IF NOT EXISTS idx_domain_inventory_offer ON domain_inventory(offer_status);
 CREATE INDEX IF NOT EXISTS idx_domain_audits_inventory ON domain_audits(inventory_id);
