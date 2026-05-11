@@ -61,6 +61,15 @@ const siteStatusFilters = [
   { key: 'unclassified', label: '미분류' },
 ];
 
+const setupStatusFilters = [
+  { key: 'all', label: '전체' },
+  { key: 'PROCESSING', label: '진행중' },
+  { key: 'PENDING', label: '대기' },
+  { key: 'DONE', label: '완료' },
+  { key: 'SKIP', label: '보류' },
+  { key: 'FAILED', label: '실패' },
+];
+
 function StatusPill({ value }) {
   const normalized = String(value || 'not_set').toLowerCase();
   return <span className={`status-pill ${normalized}`}>{value || 'NOT_SET'}</span>;
@@ -79,6 +88,7 @@ function getSiteNextAction(site) {
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wp-auto-theme') || 'light');
   const [siteFilter, setSiteFilter] = useState('all');
+  const [setupFilter, setSetupFilter] = useState('all');
   const [dashboard, setDashboard] = useState(fallbackDashboard);
   const [apiState, setApiState] = useState({ status: 'sample', message: '샘플 데이터 사용 중' });
   const isDark = theme === 'dark';
@@ -141,6 +151,23 @@ function App() {
     siteFilter === 'all'
       ? dashboard.sites
       : dashboard.sites.filter((site) => site.portfolioStatus === siteFilter);
+  const setupCounts = setupStatusFilters.map((filter) => ({
+    ...filter,
+    count:
+      filter.key === 'all'
+        ? dashboard.wpSetup.length
+        : dashboard.wpSetup.filter((row) => row.status === filter.key).length,
+  }));
+  const setupDomains = new Set(dashboard.wpSetup.map((row) => row.domain));
+  const activeSitesWithoutSetup = dashboard.sites.filter(
+    (site) =>
+      !setupDomains.has(site.domain) &&
+      ['operating_ready', 'setup_pipeline', 'unclassified'].includes(site.portfolioStatus),
+  );
+  const filteredSetupRows =
+    setupFilter === 'all'
+      ? dashboard.wpSetup
+      : dashboard.wpSetup.filter((row) => row.status === setupFilter);
 
   return (
     <main className="app-shell">
@@ -417,21 +444,60 @@ function App() {
                 <p className="eyebrow">wp_setup_queue</p>
                 <h2>워드프레스 세팅 큐</h2>
               </div>
+              <span className="status-pill planned">비밀번호 숨김</span>
+            </div>
+            <div className="site-filter-grid setup-filter-grid" aria-label="WP 세팅상태 필터">
+              {setupCounts.map((filter) => (
+                <button
+                  className={`filter-card ${setupFilter === filter.key ? 'active' : ''}`}
+                  key={filter.key}
+                  type="button"
+                  onClick={() => setSetupFilter(filter.key)}
+                >
+                  <span>{filter.label}</span>
+                  <strong>{filter.count}</strong>
+                </button>
+              ))}
+            </div>
+            <div className="setup-summary">
+              <div>
+                <strong>{activeSitesWithoutSetup.length}</strong>
+                <span>세팅 큐가 없는 운영/검토 도메인</span>
+              </div>
+              <p>
+                PROCESSING/PENDING을 우선 처리하고, 큐가 없는 도메인은 실제 WP 상태를 확인한 뒤
+                필요할 때만 wp_setup_queue에 추가합니다.
+              </p>
             </div>
             <div className="setup-grid">
-              {dashboard.wpSetup.map((row) => (
-                <article className="setup-card" key={row.domain}>
+              {filteredSetupRows.map((row) => (
+                <article className={`setup-card setup-${String(row.status).toLowerCase()}`} key={row.domain}>
                   <div>
                     <strong>{row.domain}</strong>
                     <small>{row.siteName} · {row.language} · {row.theme}</small>
                   </div>
                   <p>{row.concept}</p>
+                  <div className="setup-meta">
+                    <span>수익화: {row.monetize || '-'}</span>
+                    <span>승인: {row.approval || '-'}</span>
+                    <span>DR: {row.drScore ?? '-'}</span>
+                  </div>
+                  <p>{row.memo || '세팅 메모 없음'}</p>
+                  {row.errorLog ? <p className="error-text">{row.errorLog}</p> : null}
                   <div className="card-footer">
-                    <span>{row.monetize}</span>
+                    <span>{row.setupDate || '일정 미정'}</span>
                     <StatusPill value={row.status} />
                   </div>
                 </article>
               ))}
+            </div>
+            <div className="queue-gap-list">
+              <strong>세팅 큐 미등록 주요 도메인</strong>
+              <div>
+                {activeSitesWithoutSetup.slice(0, 10).map((site) => (
+                  <span key={site.domain}>{site.domain}</span>
+                ))}
+              </div>
             </div>
           </article>
 

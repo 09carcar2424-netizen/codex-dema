@@ -148,9 +148,19 @@ async function getDashboardData() {
       query(`
         select domain, language_code as language, linux_user, site_name,
           site_concept as concept, theme_slug as theme, monetize, approval,
-          setup_status as status
+          dr_score, setup_status as status, memo, error_log,
+          to_char(setup_date, 'YYYY-MM-DD HH24:MI') as setup_date
         from wp_setup_queue
-        order by created_at desc
+        order by
+          case setup_status
+            when 'processing' then 1
+            when 'pending' then 2
+            when 'failed' then 3
+            when 'done' then 4
+            when 'skip' then 5
+            else 6
+          end,
+          created_at desc
         limit 100
       `),
       query(`
@@ -242,7 +252,11 @@ async function getDashboardData() {
       theme: row.theme,
       monetize: row.monetize,
       approval: row.approval,
+      drScore: row.dr_score === null ? null : Number(row.dr_score),
       status: row.status?.toUpperCase(),
+      memo: row.memo,
+      errorLog: row.error_log,
+      setupDate: row.setup_date,
     })),
     workflows: workflows.rows.map((row) => ({
       key: row.key,

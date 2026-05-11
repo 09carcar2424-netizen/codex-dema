@@ -155,6 +155,10 @@ export const wpSetupRows = [
     monetize: 'adsense_agency',
     approval: '합격',
     status: 'DONE',
+    drScore: 22,
+    memo: 'ESG 본진. 운영중',
+    errorLog: '',
+    setupDate: '',
   },
   {
     domain: 'emf-bioshield.com',
@@ -166,6 +170,10 @@ export const wpSetupRows = [
     monetize: 'adsense',
     approval: '합격',
     status: 'DONE',
+    drScore: 8,
+    memo: '영문 건강 본진. 운영중',
+    errorLog: '',
+    setupDate: '',
   },
   {
     domain: 'a-creative.kr',
@@ -177,6 +185,10 @@ export const wpSetupRows = [
     monetize: 'adsense',
     approval: '합격',
     status: 'PROCESSING',
+    drScore: 3.2,
+    memo: 'S급 공공기관 도메인. 애드센스 수익형',
+    errorLog: '',
+    setupDate: '',
   },
   {
     domain: 'achillesmed.com',
@@ -188,6 +200,10 @@ export const wpSetupRows = [
     monetize: 'adsense',
     approval: '합격',
     status: 'DONE',
+    drScore: 0.9,
+    memo: 'WP-CLI 실패 이력 확인 필요',
+    errorLog: 'WP-CLI 실패',
+    setupDate: '2026-05-08 03:23',
   },
 ];
 
