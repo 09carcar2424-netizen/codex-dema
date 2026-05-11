@@ -502,11 +502,18 @@ CREATE TABLE IF NOT EXISTS notifications (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (audience_type IN ('customer', 'admin', 'staff')),
   CHECK (visibility IN ('public_to_customer', 'internal_only')),
-  CHECK (category IN ('settlement', 'payment', 'account_action', 'contract', 'domain', 'automation', 'security', 'general')),
+  CHECK (category IN ('notice', 'settlement', 'payment', 'account_action', 'contract', 'domain', 'automation', 'security', 'general')),
   CHECK (severity IN ('info', 'action_required', 'warning', 'critical')),
   CHECK (channel IN ('portal', 'sms', 'kakao', 'telegram', 'portal_sms', 'portal_telegram')),
   CHECK (send_status IN ('draft', 'ready', 'scheduled', 'sent', 'failed', 'canceled'))
 );
+
+ALTER TABLE notifications
+  DROP CONSTRAINT IF EXISTS notifications_category_check;
+
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_category_check
+  CHECK (category IN ('notice', 'settlement', 'payment', 'account_action', 'contract', 'domain', 'automation', 'security', 'general'));
 
 CREATE TABLE IF NOT EXISTS sitemap_submissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

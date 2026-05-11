@@ -930,6 +930,7 @@ function App() {
                     value={notificationForm.category}
                     onChange={(event) => updateNotificationForm('category', event.target.value)}
                   >
+                    <option value="notice">공지사항</option>
                     <option value="settlement">정산</option>
                     <option value="payment">입금</option>
                     <option value="account_action">계정 확인</option>

@@ -144,7 +144,7 @@ async function createNotification(req, res) {
       : 'internal_only';
   const category = normalizeChoice(
     body.category,
-    ['settlement', 'payment', 'account_action', 'contract', 'domain', 'automation', 'security', 'general'],
+    ['notice', 'settlement', 'payment', 'account_action', 'contract', 'domain', 'automation', 'security', 'general'],
     'general',
   );
   const severity = normalizeChoice(body.severity, ['info', 'action_required', 'warning', 'critical'], 'info');
