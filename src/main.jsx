@@ -81,6 +81,14 @@ const SITE_PAGE_SIZE = 20;
 const INVENTORY_PAGE_SIZE = 20;
 const SITEMAP_PAGE_SIZE = 20;
 
+const defaultDiscoveryForm = {
+  category: 'health',
+  keywords: 'bio, care, journal, korea',
+  language: 'mixed',
+  tlds: '.kr, .co.kr, .com',
+  budgetPolicy: 'general_only',
+};
+
 const setupStatusFilters = [
   { key: 'all', label: '전체' },
   { key: 'PROCESSING', label: '진행중' },
@@ -152,6 +160,52 @@ function normalizeDisplayValue(value, fallback = '미정') {
   return value;
 }
 
+function normalizeDomainToken(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '')
+    .replace(/^-+|-+$/g, '');
+}
+
+function parseCsv(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildDomainCandidates(form) {
+  const keywords = parseCsv(form.keywords)
+    .map(normalizeDomainToken)
+    .filter(Boolean)
+    .slice(0, 8);
+  const tlds = parseCsv(form.tlds)
+    .map((tld) => (tld.startsWith('.') ? tld : `.${tld}`))
+    .slice(0, 5);
+  const category = normalizeDomainToken(form.category) || 'site';
+  const baseKeywords = keywords.length ? keywords : [category];
+  const suffixes = ['hub', 'guide', 'journal', 'lab', 'news', 'wise'];
+  const names = new Map();
+
+  baseKeywords.forEach((keyword) => {
+    names.set(keyword, { name: keyword, style: '브랜드형' });
+    names.set(`${keyword}${category}`, { name: `${keyword}${category}`, style: '카테고리형' });
+    suffixes.forEach((suffix) => {
+      names.set(`${keyword}${suffix}`, { name: `${keyword}${suffix}`, style: suffix === 'news' ? '정보형' : '브랜드형' });
+    });
+  });
+
+  return [...names.values()].flatMap((item) =>
+    tlds.map((tld) => ({
+      domain: `${item.name}${tld}`,
+      style: item.style,
+      tld,
+      channel: tld.includes('kr') ? '호스팅KR 수동/CSV' : 'Namecheap API 우선',
+      status: form.budgetPolicy === 'premium_allowed' ? '등록 가능 확인 대기' : '일반 등록가 우선',
+    })),
+  );
+}
+
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wp-auto-theme') || 'light');
   const [siteFilter, setSiteFilter] = useState('all');
@@ -176,6 +230,7 @@ function App() {
   const [apiState, setApiState] = useState({ status: 'sample', message: '샘플 데이터 사용 중' });
   const [notificationForm, setNotificationForm] = useState(emptyNotificationForm);
   const [notificationSaveState, setNotificationSaveState] = useState({ status: 'idle', message: '' });
+  const [discoveryForm, setDiscoveryForm] = useState(defaultDiscoveryForm);
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -775,6 +830,7 @@ function App() {
       output: '운영/매각/보류 결정',
     },
   ];
+  const generatedDomainCandidates = buildDomainCandidates(discoveryForm).slice(0, 12);
 
   return (
     <main className="app-shell">
@@ -1595,6 +1651,75 @@ function App() {
                   <span>{item.label}</span>
                   <strong>{item.value}</strong>
                 </article>
+              ))}
+            </div>
+            <form className="candidate-form-grid" aria-label="도메인 후보 입력">
+              <label>
+                <span>카테고리</span>
+                <input
+                  type="text"
+                  value={discoveryForm.category}
+                  onChange={(event) => setDiscoveryForm((current) => ({ ...current, category: event.target.value }))}
+                  placeholder="health, finance, pet"
+                />
+              </label>
+              <label>
+                <span>키워드</span>
+                <input
+                  type="text"
+                  value={discoveryForm.keywords}
+                  onChange={(event) => setDiscoveryForm((current) => ({ ...current, keywords: event.target.value }))}
+                  placeholder="bio, care, journal"
+                />
+              </label>
+              <label>
+                <span>TLD</span>
+                <input
+                  type="text"
+                  value={discoveryForm.tlds}
+                  onChange={(event) => setDiscoveryForm((current) => ({ ...current, tlds: event.target.value }))}
+                  placeholder=".kr, .co.kr, .com"
+                />
+              </label>
+              <label>
+                <span>가격 정책</span>
+                <select
+                  value={discoveryForm.budgetPolicy}
+                  onChange={(event) => setDiscoveryForm((current) => ({ ...current, budgetPolicy: event.target.value }))}
+                >
+                  <option value="general_only">일반 등록가만</option>
+                  <option value="premium_review">프리미엄 수동 검토</option>
+                  <option value="premium_allowed">프리미엄 허용</option>
+                </select>
+              </label>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => setDiscoveryForm(defaultDiscoveryForm)}
+              >
+                기본값
+              </button>
+            </form>
+            <div className="table-meta candidate-result-line">
+              <strong>{generatedDomainCandidates.length}개 후보 도메인 생성</strong>
+              <span>등록 가능 확인 전 검수 대기</span>
+            </div>
+            <div className="ops-table candidate-queue-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>후보 도메인</span>
+                <span>유형</span>
+                <span>TLD</span>
+                <span>확인 채널</span>
+                <span>상태</span>
+              </div>
+              {generatedDomainCandidates.map((candidate) => (
+                <div className="ops-row" role="row" key={candidate.domain}>
+                  <strong>{candidate.domain}</strong>
+                  <span>{candidate.style}</span>
+                  <span>{candidate.tld}</span>
+                  <span>{candidate.channel}</span>
+                  <StatusPill value={candidate.status} />
+                </div>
               ))}
             </div>
             <div className="discovery-strategy-grid">
