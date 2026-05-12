@@ -49,6 +49,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const limit = Number(process.argv[2] || process.env.GOOGLE_SITEMAP_SUBMIT_LIMIT || 10);
+const domainFilter = process.argv[3]?.trim().toLowerCase();
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
@@ -58,16 +59,19 @@ const accessToken = await getAccessToken();
 const client = await pool.connect();
 
 try {
+  const domainClause = domainFilter ? 'and lower(domain) = $2' : '';
+  const queryParams = domainFilter ? [limit, domainFilter] : [limit];
   const { rows } = await client.query(
     `
       select id, domain, sitemap_url, property_url
       from sitemap_submissions
       where search_engine = 'google'
         and submission_status in ('ready', 'failed')
+        ${domainClause}
       order by updated_at asc
       limit $1
     `,
-    [limit],
+    queryParams,
   );
 
   let successCount = 0;
@@ -95,7 +99,8 @@ try {
     console.log(`${result.ok ? 'OK' : 'FAIL'} ${row.domain} ${row.sitemap_url}`);
   }
 
-  console.log(`Google sitemap submit complete. submitted=${successCount}, failed=${failedCount}, total=${rows.length}`);
+  const scope = domainFilter ? `, domain=${domainFilter}` : '';
+  console.log(`Google sitemap submit complete. submitted=${successCount}, failed=${failedCount}, total=${rows.length}${scope}`);
 } finally {
   client.release();
   await pool.end();
