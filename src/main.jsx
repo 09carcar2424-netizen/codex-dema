@@ -90,6 +90,41 @@ function StatusPill({ value }) {
   return <span className={`status-pill ${normalized}`}>{value || 'NOT_SET'}</span>;
 }
 
+function summarizeSitemapMessage(row) {
+  if (row.status === 'submitted' && row.lastSubmittedAt) {
+    return `Google 제출 완료: ${row.lastSubmittedAt}`;
+  }
+
+  const rawMessage = row.responseMessage || row.notes || '';
+  const normalized = rawMessage.toLowerCase();
+
+  if (normalized.includes('sufficient permission') || normalized.includes('forbidden')) {
+    return '권한 없음: Search Console URL 속성 확인 필요';
+  }
+
+  if (normalized.includes('search console api has not been used') || normalized.includes('disabled')) {
+    return 'API 비활성: Google Search Console API 사용 설정 필요';
+  }
+
+  if (normalized.includes('invalid_grant')) {
+    return 'Google 인증 만료: refresh token 재발급 필요';
+  }
+
+  if (normalized.includes('not found') || normalized.includes('404')) {
+    return '사이트맵 접근 실패: sitemap.xml 확인 필요';
+  }
+
+  if (row.status === 'ready') {
+    return `제출 대기: npm run submit:sitemaps:google -- 1 ${row.domain}`;
+  }
+
+  if (row.status === 'manual_required') {
+    return '수동 등록 필요: Naver 웹마스터 도구에서 확인';
+  }
+
+  return row.notes || row.responseMessage || '등록 기록 없음';
+}
+
 function getSiteNextAction(site) {
   if (site.portfolioStatus === 'customer_portal') return '고객 포털 기능 설계';
   if (site.portfolioStatus === 'infra_internal') return '인프라 전용 유지';
@@ -835,11 +870,7 @@ function App() {
                   <a href={row.sitemapUrl} target="_blank" rel="noreferrer">{row.sitemapUrl}</a>
                   <span>{row.submissionMode}</span>
                   <StatusPill value={row.status} />
-                  <small>
-                    {row.status === 'submitted' && row.lastSubmittedAt
-                      ? `Google 제출 완료: ${row.lastSubmittedAt}`
-                      : row.notes || row.responseMessage || '등록 기록 없음'}
-                  </small>
+                  <small>{summarizeSitemapMessage(row)}</small>
                 </div>
               ))}
             </div>
