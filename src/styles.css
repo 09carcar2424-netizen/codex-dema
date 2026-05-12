@@ -1031,6 +1031,40 @@ h2 {
   margin-top: 14px;
 }
 
+.portal-program-table {
+  margin-top: 18px;
+}
+
+.portal-program-table .ops-row {
+  grid-template-columns: minmax(170px, 0.8fr) minmax(240px, 1.25fr) minmax(240px, 1.25fr) minmax(100px, 0.45fr);
+}
+
+.portal-program-table .ops-row > span {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.portal-program-table .ops-row > strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.portal-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.portal-rule-grid .policy-box {
+  min-height: 96px;
+}
+
+.warning-policy svg {
+  color: var(--warning);
+}
+
 .portal-grid > div,
 .policy-box {
   min-height: 118px;
@@ -1503,6 +1537,7 @@ h2 {
   .inventory-grid,
   .compose-row,
   .portal-grid,
+  .portal-rule-grid,
   .site-filter-grid,
   .site-toolbar,
   .site-workbench,

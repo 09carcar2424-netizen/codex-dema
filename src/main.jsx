@@ -274,6 +274,73 @@ function App() {
 
   const customerNotifications = dashboard.notifications.filter((row) => row.audience === 'customer');
   const internalNotifications = dashboard.notifications.filter((row) => row.visibility === 'internal_only');
+  const portalCustomers = dashboard.customers.filter((customer) =>
+    ['ACTIVE', 'LEAD', 'PENDING', 'SUBMITTED'].includes(String(customer.contractStatus || '').toUpperCase()),
+  );
+  const portalReportableSites = dashboard.sites.filter((site) =>
+    ['Customer owned', 'Customer portal'].includes(site.owner) &&
+    site.portfolioStatus !== 'high_risk_hold' &&
+    !['high', 'critical'].includes(site.riskLevel),
+  );
+  const portalSettlementRows = dashboard.settlements.filter((row) =>
+    ['CONFIRMED', 'DRAFT', 'PENDING'].includes(String(row.status || '').toUpperCase()),
+  );
+  const portalReferralRows = dashboard.referrals.filter((row) =>
+    Number(row.depth || 1) === 1 && String(row.status || '').toUpperCase() !== 'DISABLED',
+  );
+  const portalSubmittedSitemaps = dashboard.sitemapSubmissions.filter((row) =>
+    row.searchEngine === 'google' && ['submitted', 'verified'].includes(row.status),
+  );
+  const portalPrograms = [
+    {
+      name: '회원가입 / 로그인',
+      status: 'MVP 1',
+      metric: `${portalCustomers.length}명`,
+      wordfriends: '고객 계정 생성, 로그인, 비밀번호 재설정, 내 정보 확인',
+      siteops: '고객 상태, 접근 권한, 계약 상태, 마지막 활동 기록',
+    },
+    {
+      name: '전자계약 / 정책 동의',
+      status: 'MVP 1',
+      metric: `${dashboard.customers.filter((customer) => customer.contractStatus === 'ACTIVE').length}건`,
+      wordfriends: '전자계약서, 이용약관, 개인정보처리방침, 정책 버전 동의',
+      siteops: '계약 버전, 동의 일시, 정책 변경 이력, 재동의 필요 여부',
+    },
+    {
+      name: '내 사이트 운영 리포트',
+      status: 'MVP 1',
+      metric: `${portalReportableSites.length}개`,
+      wordfriends: '사이트 상태, 발행 현황, 사이트맵 제출 여부, 고객용 공지',
+      siteops: '검수, 리스크, N8N 실행, Search Console 오류, 내부 메모',
+    },
+    {
+      name: '정산 / 추천 보상',
+      status: 'MVP 1',
+      metric: `${portalSettlementRows.length + portalReferralRows.length}건`,
+      wordfriends: '예상 정산 안내, 입금 예정, 1단계 추천 보상 상태',
+      siteops: '정산 근거, 지급 보류 사유, 세액 참고값, 법무/세무 검토 상태',
+    },
+    {
+      name: '문의 / AI 상담',
+      status: 'MVP 2',
+      metric: `${customerNotifications.length}건`,
+      wordfriends: '문의 접수, AI 초안, 담당자 답변, 공지 확인',
+      siteops: '정책/세무/수익 관련 질문 자동 차단, 사람 검토 큐, 내부 알림',
+    },
+    {
+      name: 'SEO / 색인 요약',
+      status: 'MVP 2',
+      metric: `${portalSubmittedSitemaps.length}건`,
+      wordfriends: '고객에게 보여도 되는 제출 완료/대기 상태만 표시',
+      siteops: '권한 없음, API 오류, 토큰 만료, 사이트맵 실패 원인 추적',
+    },
+  ];
+  const portalGuardrails = [
+    '수익, 애드센스 승인, 트래픽, 순위 상승은 고객 화면에서 보장 표현 금지',
+    '도메인 검수 점수, 스팸 이력, 내부 리스크, 서버/IP 정보는 SiteOps 내부 전용',
+    '앱 비밀번호, 애드센스 로그인, API 키, 토큰은 Wordfriends와 DB에 평문 저장 금지',
+    '세금, 정책 회피, 의료/금융/법률성 문의는 AI 자동 답변 없이 사람 검토로 전환',
+  ];
   const googleSitemaps = dashboard.sitemapSubmissions.filter((row) => row.searchEngine === 'google');
   const googleSubmittedSitemaps = googleSitemaps.filter((row) => ['submitted', 'verified'].includes(row.status));
   const googleReadySitemaps = googleSitemaps.filter((row) => ['ready', 'failed'].includes(row.status));
@@ -885,32 +952,54 @@ function App() {
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">wordfriends customer portal</p>
-                <h2>고객 포털 관리 범위</h2>
+                <h2>Wordfriends 공유 프로그램 산정</h2>
               </div>
               <span className="status-pill planned">MVP 2단계</span>
             </div>
-            <div className="delivery-grid">
-              <article className="delivery-card">
-                <strong>고객 진입</strong>
-                <span>회원가입 / 로그인</span>
-                <p>고객 계정은 wordfriends.co.kr에서 받고, SiteOps에서는 계정 상태와 계약 상태만 관리합니다.</p>
-              </article>
-              <article className="delivery-card">
-                <strong>계약/정책</strong>
-                <span>전자계약서 / 약관 / 개인정보처리방침</span>
-                <p>계약 버전, 동의 일시, 정책 버전을 기록합니다. 실제 전자서명 API는 MVP 이후 연동합니다.</p>
-              </article>
-              <article className="delivery-card">
-                <strong>문의/AI 상담</strong>
-                <span>AI 초안 + 사람 검토</span>
-                <p>수익, 세금, 애드센스, 정책 회피 질문은 AI 자동 답변을 막고 내부 검토 대상으로 보냅니다.</p>
-              </article>
+            <div className="ops-table portal-program-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>프로그램</span>
+                <span>Wordfriends 공개 범위</span>
+                <span>SiteOps 내부 관리</span>
+                <span>상태/수치</span>
+              </div>
+              {portalPrograms.map((program) => (
+                <div className="ops-row" role="row" key={program.name}>
+                  <div>
+                    <strong>{program.name}</strong>
+                    <small>{program.status}</small>
+                  </div>
+                  <span>{program.wordfriends}</span>
+                  <span>{program.siteops}</span>
+                  <strong>{program.metric}</strong>
+                </div>
+              ))}
             </div>
-            <ul className="check-list compact-check-list">
-              <li><CheckCircle2 size={18} />고객용 화면은 wordfriends.co.kr에 둡니다.</li>
-              <li><CheckCircle2 size={18} />SiteOps에는 고객 포털의 상태, 공지, 문의, 계약 관리만 둡니다.</li>
-              <li><AlertTriangle size={18} />수익 보장, 애드센스 승인 보장, 트래픽 보장 문구는 고객 화면에서 금지합니다.</li>
-            </ul>
+            <div className="portal-rule-grid">
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>고객 화면 위치</strong>
+                  <p>회원가입, 로그인, 전자계약, 약관, 개인정보처리방침, 문의, AI 상담은 wordfriends.co.kr에 둡니다.</p>
+                </div>
+              </article>
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>관리 화면 위치</strong>
+                  <p>SiteOps에는 고객 상태, 계약 상태, 문의 검토, 공지, 정산, 운영 리스크 판단만 남깁니다.</p>
+                </div>
+              </article>
+              {portalGuardrails.map((rule) => (
+                <article className="policy-box warning-policy" key={rule}>
+                  <AlertTriangle size={18} />
+                  <div>
+                    <strong>공개 차단 기준</strong>
+                    <p>{rule}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
           </article>
 
           <article className="panel" id="security">
