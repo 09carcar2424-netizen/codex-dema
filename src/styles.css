@@ -1068,6 +1068,68 @@ h2 {
   margin-top: 18px;
 }
 
+.audit-source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.audit-source-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel-soft);
+}
+
+.audit-source-card strong,
+.audit-source-card span,
+.audit-source-card code,
+.audit-source-card p {
+  display: block;
+}
+
+.audit-source-card strong {
+  color: var(--text);
+  font-size: 28px;
+}
+
+.audit-source-card span {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.audit-source-card code {
+  border-radius: 8px;
+  padding: 9px;
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.audit-source-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.audit-automation-table {
+  margin-top: 16px;
+}
+
+.audit-automation-table .ops-row {
+  grid-template-columns: minmax(130px, 0.55fr) minmax(120px, 0.45fr) minmax(260px, 1.15fr) minmax(280px, 1.25fr);
+}
+
+.audit-automation-rules {
+  margin-top: 16px;
+}
+
 .reuse-summary > div {
   min-height: 92px;
   border: 1px solid var(--panel-border);
@@ -1592,6 +1654,7 @@ h2 {
   .setup-filter-grid,
   .inventory-controls,
   .inventory-grid,
+  .audit-source-grid,
   .reuse-summary,
   .compose-row,
   .portal-grid,

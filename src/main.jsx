@@ -614,6 +614,58 @@ function App() {
     (normalizedInventoryPage - 1) * INVENTORY_PAGE_SIZE,
     normalizedInventoryPage * INVENTORY_PAGE_SIZE,
   );
+  const auditAutomationSources = [
+    {
+      label: '기존 보유 도메인',
+      count: dashboard.sites.length,
+      command: 'npm run sync:domain-inventory',
+      note: 'sites 기준으로 domain_inventory와 domain_audits를 다시 산정합니다.',
+    },
+    {
+      label: '신규 구매 후보',
+      count: dashboard.domainInventory.filter((row) => row.inventoryStatus === 'internal_review').length,
+      command: '후보 입력 → 검수 큐 등록',
+      note: '구매 전 도메인을 먼저 큐에 올리고 점수/위험/니치 적합도를 확인합니다.',
+    },
+    {
+      label: '회생/재활용 대상',
+      count: recyclableUniverse.length,
+      command: '도메인 재활용 큐 연동',
+      note: '못 살리는 도메인만 최종 폐기 후보로 두고 나머지는 관찰 큐로 보냅니다.',
+    },
+  ];
+  const auditAutomationSteps = [
+    {
+      step: '1. 수집',
+      owner: 'SiteOps',
+      output: '도메인, 언어, 니치, 메모, 구매 출처',
+      automation: 'sites / 후보 입력 / Google Sheets 읽기 뷰어',
+    },
+    {
+      step: '2. 1차 점수',
+      owner: 'Rules',
+      output: 'History, Spam, Backlink, Index, Overall',
+      automation: '현재 sync-domain-inventory 규칙 확장',
+    },
+    {
+      step: '3. 외부 증빙',
+      owner: 'Operator',
+      output: 'Ahrefs, Search Console, Archive, 상표/YMYL 확인',
+      automation: 'API 가능 항목은 자동, 애매한 항목은 수동 증빙',
+    },
+    {
+      step: '4. 판정',
+      owner: 'BOSS',
+      output: '즉시 운영, 복구, 장기 관찰, 격리, 폐기 후보',
+      automation: '도메인 재활용 섹션과 연결',
+    },
+    {
+      step: '5. 실행',
+      owner: 'N8N/API',
+      output: 'WP 세팅, 사이트맵, 저강도 발행, 60일 재평가',
+      automation: '고객 노출 전 내부 승인 필수',
+    },
+  ];
 
   return (
     <main className="app-shell">
@@ -643,6 +695,7 @@ function App() {
           <a href="#keywords"><Search size={18} />키워드 관리</a>
           <a href="#setup"><ServerCog size={18} />WP 세팅</a>
           <a href="#inventory"><ShieldCheck size={18} />도메인 검수</a>
+          <a href="#domain-audit-auto"><Activity size={18} />검수 자동화</a>
           <a href="#domain-reuse"><RefreshCw size={18} />도메인 재활용</a>
           <a href="#domain-expiry"><Globe2 size={18} />도메인 만료</a>
           <a href="#sitemaps"><Search size={18} />사이트맵</a>
@@ -1416,6 +1469,74 @@ function App() {
                 조건에 맞는 도메인이 없습니다. 필터를 초기화하거나 검색어를 줄여보세요.
               </div>
             ) : null}
+          </article>
+
+          <article className="panel wide-panel" id="domain-audit-auto">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">domain audit automation</p>
+                <h2>도메인 검수 자동화 프로그램</h2>
+              </div>
+              <span className="status-pill planned">구매 전/보유 도메인 공통</span>
+            </div>
+            <div className="audit-source-grid">
+              {auditAutomationSources.map((source) => (
+                <article className="audit-source-card" key={source.label}>
+                  <div>
+                    <strong>{source.count}</strong>
+                    <span>{source.label}</span>
+                  </div>
+                  <code>{source.command}</code>
+                  <p>{source.note}</p>
+                </article>
+              ))}
+            </div>
+            <div className="ops-table audit-automation-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>단계</span>
+                <span>담당</span>
+                <span>결과물</span>
+                <span>자동화 방식</span>
+              </div>
+              {auditAutomationSteps.map((row) => (
+                <div className="ops-row" role="row" key={row.step}>
+                  <strong>{row.step}</strong>
+                  <StatusPill value={row.owner} />
+                  <span>{row.output}</span>
+                  <span>{row.automation}</span>
+                </div>
+              ))}
+            </div>
+            <div className="portal-rule-grid audit-automation-rules">
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>구매 전 검수</strong>
+                  <p>앞으로 사는 도메인은 먼저 후보 큐에 넣고, 점수/스팸/상표/YMYL/니치 적합도를 본 뒤 구매 여부를 정합니다.</p>
+                </div>
+              </article>
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>기존 도메인 재검수</strong>
+                  <p>이미 산 도메인도 같은 규칙으로 다시 돌려서 회생, 장기 관찰, 격리, 최종 폐기 후보로 나눕니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>자동 구매 금지</strong>
+                  <p>자동화는 점수와 위험 신호를 만들 뿐, 구매와 폐기 결정은 BOSS 수동 승인 후 진행합니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>고객 노출 금지</strong>
+                  <p>검수 점수, 오염도, 백링크 판단, 회생 계획은 내부 운영 정보이며 Wordfriends 고객 화면에 공유하지 않습니다.</p>
+                </div>
+              </article>
+            </div>
           </article>
 
           <article className="panel wide-panel" id="domain-reuse">
