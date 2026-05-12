@@ -206,6 +206,24 @@ function App() {
   const manualSitemaps = dashboard.sitemapSubmissions.filter((row) =>
     ['manual_required', 'failed'].includes(row.status),
   );
+  const sitemapStatusOrder = {
+    submitted: 1,
+    verified: 2,
+    failed: 3,
+    ready: 4,
+    draft: 5,
+    manual_required: 6,
+  };
+  const sitemapEngineOrder = { google: 1, naver: 2 };
+  const sortedSitemapSubmissions = [...dashboard.sitemapSubmissions].sort((a, b) => {
+    const engineDiff = (sitemapEngineOrder[a.searchEngine] || 9) - (sitemapEngineOrder[b.searchEngine] || 9);
+    if (engineDiff !== 0) return engineDiff;
+
+    const statusDiff = (sitemapStatusOrder[a.status] || 9) - (sitemapStatusOrder[b.status] || 9);
+    if (statusDiff !== 0) return statusDiff;
+
+    return a.domain.localeCompare(b.domain);
+  });
   const siteCounts = siteStatusFilters.map((filter) => ({
     ...filter,
     count:
@@ -807,7 +825,7 @@ function App() {
                 <span>상태</span>
                 <span>메모</span>
               </div>
-              {dashboard.sitemapSubmissions.map((row) => (
+              {sortedSitemapSubmissions.map((row) => (
                 <div className="ops-row" role="row" key={`${row.domain}-${row.searchEngine}`}>
                   <div>
                     <strong>{row.domain}</strong>
@@ -817,7 +835,11 @@ function App() {
                   <a href={row.sitemapUrl} target="_blank" rel="noreferrer">{row.sitemapUrl}</a>
                   <span>{row.submissionMode}</span>
                   <StatusPill value={row.status} />
-                  <small>{row.notes || row.responseMessage || '등록 기록 없음'}</small>
+                  <small>
+                    {row.status === 'submitted' && row.lastSubmittedAt
+                      ? `Google 제출 완료: ${row.lastSubmittedAt}`
+                      : row.notes || row.responseMessage || '등록 기록 없음'}
+                  </small>
                 </div>
               ))}
             </div>
