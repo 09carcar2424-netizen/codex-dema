@@ -666,6 +666,56 @@ function App() {
       automation: '고객 노출 전 내부 승인 필수',
     },
   ];
+  const externalAuditChannels = [
+    {
+      name: '호스팅KR',
+      role: 'KR 도메인 보유/갱신',
+      costPolicy: '보유 계정',
+      useCase: 'KR 도메인 만료일, 등록기관, 네임서버, 갱신 여부 확인',
+    },
+    {
+      name: 'Namecheap',
+      role: '해외 도메인 보유/구매',
+      costPolicy: '보유 계정',
+      useCase: '해외 도메인 갱신, 신규 구매, DNS/이전 상태 확인',
+    },
+    {
+      name: 'GoDaddy',
+      role: '경매/만료 후보',
+      costPolicy: '무료 우선',
+      useCase: '경매 후보와 만료 도메인 가격, 경쟁 상태 확인',
+    },
+    {
+      name: 'ExpiredDomains.net',
+      role: '후보 발굴',
+      costPolicy: '무료 우선',
+      useCase: '키워드, TLD, 나이, 기본 백링크 조건으로 1차 후보 수집',
+    },
+    {
+      name: 'SpamZilla',
+      role: '스팸/히스토리 필터',
+      costPolicy: '구독 활용',
+      useCase: '만료 도메인 스팸 이력, 앵커, 리다이렉션, 위험 신호 확인',
+    },
+    {
+      name: 'web.archive.org',
+      role: '과거 사이트 이력',
+      costPolicy: '무료',
+      useCase: '도박, 성인, 해킹, 언어 변경, 니치 변경 이력 확인',
+    },
+    {
+      name: 'WebsiteSEOChecker',
+      role: '보조 SEO 지표',
+      costPolicy: '무료 우선',
+      useCase: 'DA/PA, 스팸, 백링크, 인덱스 보조 지표 확인',
+    },
+    {
+      name: 'Ahrefs',
+      role: '최종 백링크 검수',
+      costPolicy: '무료 우선, 병목 시 유료',
+      useCase: 'Ref domains, 앵커 텍스트, 깨진 링크, 회생 가능성 최종 확인',
+    },
+  ];
 
   return (
     <main className="app-shell">
@@ -1504,6 +1554,22 @@ function App() {
                   <StatusPill value={row.owner} />
                   <span>{row.output}</span>
                   <span>{row.automation}</span>
+                </div>
+              ))}
+            </div>
+            <div className="ops-table external-channel-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>채널</span>
+                <span>역할</span>
+                <span>비용 원칙</span>
+                <span>검수 용도</span>
+              </div>
+              {externalAuditChannels.map((channel) => (
+                <div className="ops-row" role="row" key={channel.name}>
+                  <strong>{channel.name}</strong>
+                  <span>{channel.role}</span>
+                  <StatusPill value={channel.costPolicy} />
+                  <span>{channel.useCase}</span>
                 </div>
               ))}
             </div>

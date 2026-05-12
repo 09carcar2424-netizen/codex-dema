@@ -1122,8 +1122,22 @@ h2 {
   margin-top: 16px;
 }
 
+.external-channel-table {
+  margin-top: 16px;
+}
+
 .audit-automation-table .ops-row {
   grid-template-columns: minmax(130px, 0.55fr) minmax(120px, 0.45fr) minmax(260px, 1.15fr) minmax(280px, 1.25fr);
+}
+
+.external-channel-table .ops-row {
+  grid-template-columns: minmax(150px, 0.7fr) minmax(180px, 0.9fr) minmax(150px, 0.65fr) minmax(320px, 1.5fr);
+}
+
+.external-channel-table .ops-row > span {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .audit-automation-rules {
