@@ -716,6 +716,65 @@ function App() {
       useCase: 'Ref domains, 앵커 텍스트, 깨진 링크, 회생 가능성 최종 확인',
     },
   ];
+  const discoveryInputs = [
+    { label: '카테고리', value: 'health, real estate, news, finance, pet, local' },
+    { label: '키워드', value: 'bio, care, city, housing, journal, guide, korea' },
+    { label: '언어/TLD', value: 'ko: .kr/.co.kr · en: .com/.net/.org' },
+    { label: '가격 정책', value: '일반 등록가 우선, 프리미엄은 수동 승인' },
+  ];
+  const discoveryStrategies = [
+    {
+      name: '브랜드형',
+      pattern: 'keyword + short suffix',
+      examples: ['biocarelab.com', 'citypulse.kr', 'petwise.co.kr'],
+      note: '장기 운영이나 매각에 유리한 짧고 기억 쉬운 이름',
+    },
+    {
+      name: '정보형',
+      pattern: 'topic + news/guide/journal',
+      examples: ['housingnews.co.kr', 'financeguide.kr', 'carejournal.com'],
+      note: '콘텐츠 발행과 SEO 구조를 잡기 쉬운 이름',
+    },
+    {
+      name: '지역형',
+      pattern: 'city/region + topic',
+      examples: ['seoulcare.kr', 'busanhome.co.kr', 'koreabiohub.com'],
+      note: '지역/기관/생활 키워드와 연결하기 좋은 이름',
+    },
+    {
+      name: '니치 유지형',
+      pattern: 'old niche + clean brand',
+      examples: ['catcarejournal.com', 'medrescuehub.org', 'greenlivingguide.net'],
+      note: '기존 백링크 니치를 살려 회생 운영할 때 사용',
+    },
+  ];
+  const discoveryPipeline = [
+    {
+      step: '1. 후보 생성',
+      automation: '키워드, 카테고리, TLD, 접두/접미어 조합',
+      output: '등록 후보 100~500개',
+    },
+    {
+      step: '2. 등록 가능 확인',
+      automation: 'Namecheap API 우선, GoDaddy API 보조, KR은 수동/CSV 시작',
+      output: 'available / premium / taken',
+    },
+    {
+      step: '3. 신규 도메인 점수화',
+      automation: '길이, 발음, 브랜드성, 상표 위험, 수익화 카테고리, 가격',
+      output: '구매 후보 / 보류 / 제외',
+    },
+    {
+      step: '4. 운영 성장',
+      automation: 'WP 세팅, 사이트맵, Search Console, 저강도 발행',
+      output: '60/90일 관찰 리포트',
+    },
+    {
+      step: '5. 자산화',
+      automation: 'BOSS 운영, 고객 배정, 매각 후보, 장기 보유 판단',
+      output: '운영/매각/보류 결정',
+    },
+  ];
 
   return (
     <main className="app-shell">
@@ -745,6 +804,7 @@ function App() {
           <a href="#keywords"><Search size={18} />키워드 관리</a>
           <a href="#setup"><ServerCog size={18} />WP 세팅</a>
           <a href="#inventory"><ShieldCheck size={18} />도메인 검수</a>
+          <a href="#domain-discovery"><Search size={18} />도메인 발굴</a>
           <a href="#domain-audit-auto"><Activity size={18} />검수 자동화</a>
           <a href="#domain-reuse"><RefreshCw size={18} />도메인 재활용</a>
           <a href="#domain-expiry"><Globe2 size={18} />도메인 만료</a>
@@ -1519,6 +1579,84 @@ function App() {
                 조건에 맞는 도메인이 없습니다. 필터를 초기화하거나 검색어를 줄여보세요.
               </div>
             ) : null}
+          </article>
+
+          <article className="panel wide-panel" id="domain-discovery">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">domain discovery engine</p>
+                <h2>신규 도메인 발굴 프로그램</h2>
+              </div>
+              <span className="status-pill planned">키워드 기반</span>
+            </div>
+            <div className="discovery-input-grid">
+              {discoveryInputs.map((item) => (
+                <article className="discovery-input-card" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </article>
+              ))}
+            </div>
+            <div className="discovery-strategy-grid">
+              {discoveryStrategies.map((strategy) => (
+                <article className="discovery-strategy-card" key={strategy.name}>
+                  <div>
+                    <strong>{strategy.name}</strong>
+                    <span>{strategy.pattern}</span>
+                  </div>
+                  <div className="domain-chip-list">
+                    {strategy.examples.map((example) => (
+                      <code key={example}>{example}</code>
+                    ))}
+                  </div>
+                  <p>{strategy.note}</p>
+                </article>
+              ))}
+            </div>
+            <div className="ops-table discovery-pipeline-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>단계</span>
+                <span>자동화 방식</span>
+                <span>결과</span>
+              </div>
+              {discoveryPipeline.map((row) => (
+                <div className="ops-row" role="row" key={row.step}>
+                  <strong>{row.step}</strong>
+                  <span>{row.automation}</span>
+                  <span>{row.output}</span>
+                </div>
+              ))}
+            </div>
+            <div className="portal-rule-grid discovery-rules">
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>경매는 보조</strong>
+                  <p>경매/만료 도메인은 가격 경쟁과 리스크가 크므로 보조 채널로 두고, 신규 도메인 발굴을 기본 전략으로 둡니다.</p>
+                </div>
+              </article>
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>우리 무기 활용</strong>
+                  <p>서버, WP 세팅, 사이트맵, Search Console, 발행 파이프라인으로 신규 도메인을 60/90일 단위로 키웁니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>자동 구매 금지</strong>
+                  <p>발굴 엔진은 후보와 점수만 만들고, 실제 구매는 가격/상표/니치 검수 후 수동 승인합니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>프리미엄 주의</strong>
+                  <p>프리미엄 도메인, 상표 유사 이름, 과도하게 비싼 이름은 자동 제외 또는 별도 승인 대상으로 둡니다.</p>
+                </div>
+              </article>
+            </div>
           </article>
 
           <article className="panel wide-panel" id="domain-audit-auto">

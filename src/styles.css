@@ -1075,6 +1075,96 @@ h2 {
   margin-top: 18px;
 }
 
+.discovery-input-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.discovery-input-card {
+  display: grid;
+  gap: 8px;
+  min-height: 92px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 13px;
+  background: var(--panel-soft);
+}
+
+.discovery-input-card span {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.discovery-input-card strong {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.discovery-strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.discovery-strategy-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel-soft);
+}
+
+.discovery-strategy-card strong,
+.discovery-strategy-card span,
+.discovery-strategy-card p {
+  display: block;
+}
+
+.discovery-strategy-card span,
+.discovery-strategy-card p {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.domain-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.domain-chip-list code {
+  border-radius: 999px;
+  padding: 7px 9px;
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.discovery-pipeline-table {
+  margin-top: 16px;
+}
+
+.discovery-pipeline-table .ops-row {
+  grid-template-columns: minmax(140px, 0.55fr) minmax(360px, 1.5fr) minmax(220px, 0.9fr);
+}
+
+.discovery-pipeline-table .ops-row > span {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.discovery-rules {
+  margin-top: 16px;
+}
+
 .audit-source-card {
   display: grid;
   gap: 10px;
@@ -1668,6 +1758,8 @@ h2 {
   .setup-filter-grid,
   .inventory-controls,
   .inventory-grid,
+  .discovery-input-grid,
+  .discovery-strategy-grid,
   .audit-source-grid,
   .reuse-summary,
   .compose-row,
