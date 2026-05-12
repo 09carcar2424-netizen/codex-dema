@@ -201,6 +201,8 @@ function App() {
   const customerNotifications = dashboard.notifications.filter((row) => row.audience === 'customer');
   const internalNotifications = dashboard.notifications.filter((row) => row.visibility === 'internal_only');
   const googleSitemaps = dashboard.sitemapSubmissions.filter((row) => row.searchEngine === 'google');
+  const googleSubmittedSitemaps = googleSitemaps.filter((row) => ['submitted', 'verified'].includes(row.status));
+  const googleReadySitemaps = googleSitemaps.filter((row) => ['ready', 'failed'].includes(row.status));
   const manualSitemaps = dashboard.sitemapSubmissions.filter((row) =>
     ['manual_required', 'failed'].includes(row.status),
   );
@@ -780,8 +782,12 @@ function App() {
                 <span>등록 관리 항목</span>
               </div>
               <div>
-                <strong>{googleSitemaps.length}</strong>
-                <span>Google API 후보</span>
+                <strong>{googleSubmittedSitemaps.length}</strong>
+                <span>Google 제출 완료</span>
+              </div>
+              <div>
+                <strong>{googleReadySitemaps.length}</strong>
+                <span>Google 제출 대기</span>
               </div>
               <div>
                 <strong>{manualSitemaps.length}</strong>
@@ -805,7 +811,7 @@ function App() {
                 <div className="ops-row" role="row" key={`${row.domain}-${row.searchEngine}`}>
                   <div>
                     <strong>{row.domain}</strong>
-                    <small>{row.siteKey || 'site_key 미지정'}</small>
+                    <small>{row.propertyUrl || row.siteKey || 'site_key 미지정'}</small>
                   </div>
                   <StatusPill value={row.searchEngine} />
                   <a href={row.sitemapUrl} target="_blank" rel="noreferrer">{row.sitemapUrl}</a>

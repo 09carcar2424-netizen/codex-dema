@@ -529,7 +529,7 @@ h2 {
 .inventory-summary,
 .sitemap-summary {
   display: grid;
-  grid-template-columns: 150px 150px 150px minmax(0, 1fr);
+  grid-template-columns: repeat(4, 150px) minmax(0, 1fr);
   gap: 14px;
   align-items: center;
   margin-top: 18px;
@@ -1032,6 +1032,12 @@ h2 {
 .status-pill.medium {
   background: #e8eefc;
   color: #3656a8;
+}
+
+.status-pill.submitted,
+.status-pill.verified {
+  background: #dff5ed;
+  color: #126246;
 }
 
 .status-pill.failed,
