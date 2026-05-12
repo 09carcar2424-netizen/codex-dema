@@ -498,33 +498,68 @@ function App() {
     ['rejected', 'withdrawn'].includes(row.inventoryStatus) ||
     (row.spamScore ?? 100) < 30,
   );
+  const longTermRecoveryDomains = dashboard.domainInventory.filter((row) =>
+    !reusableDomains.includes(row) &&
+    !quarantineDomains.includes(row) &&
+    (row.overallScore ?? 0) >= 45,
+  );
+  const finalDiscardDomains = dashboard.domainInventory.filter((row) =>
+    quarantineDomains.includes(row) &&
+    (row.overallScore ?? 0) < 25 &&
+    (row.spamScore ?? 100) < 10,
+  );
   const nicheLockedDomains = reusableDomains.filter((row) =>
     ['medium', 'high'].includes(row.ymylRiskLevel) ||
     String(row.memo || '').includes('리다이렉션') ||
     String(row.memo || '').includes('본진'),
   );
+  const recyclableUniverse = dashboard.domainInventory.filter((row) => !finalDiscardDomains.includes(row));
   const reuseCandidates = [
-    ...instantReuseDomains.map((row) => ({ ...row, reuseStage: '즉시 재활용', action: '콘텐츠/소유권 확인 후 운영 큐 배치' })),
-    ...recoveryReuseDomains.map((row) => ({ ...row, reuseStage: '복구 후 재활용', action: 'GSC 등록, 백링크 검토, 니치 유지 콘텐츠 발행' })),
-    ...quarantineDomains.map((row) => ({ ...row, reuseStage: '격리/폐기', action: '고객용 노출 금지, 갱신 전 수동 재검토' })),
+    ...instantReuseDomains.map((row) => ({
+      ...row,
+      reuseStage: '즉시 재활용',
+      action: '콘텐츠/소유권 확인 후 운영 큐 배치',
+    })),
+    ...recoveryReuseDomains.map((row) => ({
+      ...row,
+      reuseStage: '복구 후 재활용',
+      action: 'GSC 등록, 백링크 검토, 니치 유지 콘텐츠 발행',
+    })),
+    ...longTermRecoveryDomains.map((row) => ({
+      ...row,
+      reuseStage: '장기 회생 관찰',
+      action: '저강도 발행, 색인 변화 관찰, 60일 후 재평가',
+    })),
+    ...quarantineDomains
+      .filter((row) => !finalDiscardDomains.includes(row))
+      .map((row) => ({
+        ...row,
+        reuseStage: '격리 후 재판정',
+        action: '자동화 잠금, 증빙 수집 후 회생 가능성 재검토',
+      })),
+    ...finalDiscardDomains.map((row) => ({
+      ...row,
+      reuseStage: '폐기 후보',
+      action: '갱신 중단 또는 폐기 전 최종 수동 확인',
+    })),
   ]
     .sort((a, b) => (b.overallScore ?? -1) - (a.overallScore ?? -1))
-    .slice(0, 10);
+    .slice(0, 12);
   const reusePlaybook = [
     {
       title: '1차 선별',
-      metric: `${reusableDomains.length}개`,
-      body: '점수 65 이상, reject/hold 제외 도메인만 재활용 후보로 올립니다.',
+      metric: `${recyclableUniverse.length}개`,
+      body: '폐기 확정 전까지는 회생 후보로 남기고, 점수와 이력에 따라 강도를 나눕니다.',
     },
     {
       title: '복구 큐',
-      metric: `${recoveryReuseDomains.length}개`,
-      body: 'Search Console 등록, 사이트맵 제출, 백링크 오염 검토, 니치 일치 여부를 확인합니다.',
+      metric: `${recoveryReuseDomains.length + longTermRecoveryDomains.length}개`,
+      body: 'Search Console 등록, 사이트맵 제출, 백링크 오염 검토, 저강도 발행으로 회복 신호를 봅니다.',
     },
     {
-      title: '격리',
-      metric: `${quarantineDomains.length}개`,
-      body: '도박, 스팸, 해킹 이력 또는 회생 가치 낮은 도메인은 고객용 운영에서 잠급니다.',
+      title: '최종 폐기',
+      metric: `${finalDiscardDomains.length}개`,
+      body: '정말 못 살리는 도메인만 갱신 중단 후보로 두고, 그 전까지는 고객 노출 없이 격리합니다.',
     },
   ];
   const highRiskSites = dashboard.sites.filter((site) =>
@@ -1405,12 +1440,16 @@ function App() {
                 <span>복구 후 사용</span>
               </div>
               <div>
+                <strong>{longTermRecoveryDomains.length}</strong>
+                <span>장기 회생 관찰</span>
+              </div>
+              <div>
                 <strong>{nicheLockedDomains.length}</strong>
                 <span>니치 유지 필요</span>
               </div>
               <div>
-                <strong>{quarantineDomains.length}</strong>
-                <span>격리/폐기 검토</span>
+                <strong>{finalDiscardDomains.length}</strong>
+                <span>최종 폐기 후보</span>
               </div>
             </div>
             <div className="delivery-grid reuse-playbook-grid">
@@ -1443,8 +1482,10 @@ function App() {
                   </div>
                   <span>{row.action}</span>
                   <span>
-                    {row.reuseStage === '격리/폐기'
-                      ? '자동 발행/고객 노출 금지'
+                    {row.reuseStage === '폐기 후보'
+                      ? '갱신 중단 전 최종 확인'
+                      : row.reuseStage === '격리 후 재판정'
+                        ? '고객 노출 금지, 내부 관찰'
                       : row.ymylRiskLevel === 'high'
                         ? 'YMYL 검수 후 발행'
                         : '수익/승인 보장 표현 금지'}
@@ -1456,15 +1497,15 @@ function App() {
               <article className="policy-box">
                 <CheckCircle2 size={18} />
                 <div>
-                  <strong>살릴 도메인 기준</strong>
-                  <p>히스토리와 백링크가 살아 있고 스팸 점수가 낮지 않은 도메인만 복구 큐에 올립니다.</p>
+                  <strong>회생 우선 원칙</strong>
+                  <p>서버와 발행 파이프라인이 있으므로 폐기는 최후로 미루고, 낮은 강도라도 살릴 수 있는 도메인은 관찰 큐에 둡니다.</p>
                 </div>
               </article>
               <article className="policy-box">
                 <CheckCircle2 size={18} />
                 <div>
                   <strong>복구 작업 순서</strong>
-                  <p>Search Console 확인, 사이트맵 제출, Ahrefs/백링크 검토, 필요 시 disavow, 니치 일치 콘텐츠 발행 순서로 진행합니다.</p>
+                  <p>Search Console 확인, 사이트맵 제출, Ahrefs/백링크 검토, 필요 시 disavow, 니치 일치 콘텐츠를 저강도부터 발행합니다.</p>
                 </div>
               </article>
               <article className="policy-box warning-policy">
@@ -1478,7 +1519,7 @@ function App() {
                 <AlertTriangle size={18} />
                 <div>
                   <strong>자동화 잠금</strong>
-                  <p>격리/폐기 도메인은 콘텐츠 발행, 사이트맵 제출, 수익화 연결, 고객 배정을 모두 수동 승인 전까지 막습니다.</p>
+                  <p>격리 후 재판정과 폐기 후보는 수익화 연결과 고객 배정을 막고, 내부 관찰/복구 작업만 허용합니다.</p>
                 </div>
               </article>
             </div>
