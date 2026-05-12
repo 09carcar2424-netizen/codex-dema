@@ -293,6 +293,17 @@ function App() {
   const heldDomains = dashboard.domainInventory.filter((row) =>
     ['hold', 'rejected'].includes(row.inventoryStatus),
   );
+  const highRiskSites = dashboard.sites.filter((site) =>
+    site.portfolioStatus === 'high_risk_hold' || ['high', 'critical'].includes(site.riskLevel),
+  );
+  const unclassifiedSites = dashboard.sites.filter((site) => site.portfolioStatus === 'unclassified');
+  const validationFailedContent = dashboard.contentQueue.filter((item) =>
+    String(item.status || '').includes('FAILED'),
+  );
+  const adsenseReadySites = dashboard.sites.filter((site) =>
+    ['approved', 'ready'].includes(String(site.adsense || '').toLowerCase()),
+  );
+  const failedSitemapRows = dashboard.sitemapSubmissions.filter((row) => row.status === 'failed');
   const inventoryGradeOptions = ['all', ...new Set(dashboard.domainInventory.map((row) => row.finalGrade || 'unrated'))];
   const inventoryStatusOptions = [
     'all',
@@ -354,14 +365,20 @@ function App() {
           <a className="active" href="#overview"><Globe2 size={18} />운영 현황</a>
           <a href="#sites"><Users size={18} />사이트 관리</a>
           <a href="#queue"><FileText size={18} />콘텐츠 큐</a>
+          <a href="#keywords"><Search size={18} />키워드 관리</a>
           <a href="#setup"><ServerCog size={18} />WP 세팅</a>
           <a href="#inventory"><ShieldCheck size={18} />도메인 검수</a>
+          <a href="#domain-expiry"><Globe2 size={18} />도메인 만료</a>
           <a href="#sitemaps"><Search size={18} />사이트맵</a>
+          <a href="#seo"><Activity size={18} />SEO 현황</a>
+          <a href="#monetization"><WalletCards size={18} />수익화 현황</a>
           <a href="#portal"><UserPlus size={18} />고객 포털</a>
+          <a href="#portal-admin"><ClipboardCheck size={18} />포털 관리</a>
           <a href="#settlements"><WalletCards size={18} />정산/추천</a>
           <a href="#tax"><ClipboardCheck size={18} />세액 안내</a>
           <a href="#notifications"><Bell size={18} />알림센터</a>
           <a href="#n8n"><Play size={18} />N8N 실행</a>
+          <a href="#errors"><AlertTriangle size={18} />에러 센터</a>
           <a href="#logs"><Database size={18} />작업 로그</a>
           <a href="#security"><ShieldCheck size={18} />보안 기준</a>
         </nav>
@@ -427,6 +444,33 @@ function App() {
               </article>
             );
           })}
+        </section>
+
+        <section className="panel wide-panel delivery-panel" id="delivery">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Delivery map</p>
+              <h2>SiteOps와 Wordfriends 역할 분리</h2>
+            </div>
+            <span className="status-pill active">설계 확정</span>
+          </div>
+          <div className="delivery-grid">
+            <article className="delivery-card">
+              <strong>siteops.09car.co.kr</strong>
+              <span>내부 관리자 전용</span>
+              <p>도메인, 사이트, WP 세팅, 사이트맵, 리스크, 정산, 알림, N8N, 에러, 보안 상태를 관리합니다.</p>
+            </article>
+            <article className="delivery-card">
+              <strong>wordfriends.co.kr</strong>
+              <span>고객 포털 및 고객용 홈페이지</span>
+              <p>회원가입, 로그인, 전자계약서, 약관, 개인정보처리방침, 문의, AI 상담, 내 사이트, 공지를 제공합니다.</p>
+            </article>
+            <article className="delivery-card">
+              <strong>MVP 원칙</strong>
+              <span>빠르게 만들되 과장 금지</span>
+              <p>수익, 애드센스 승인, 트래픽, 서버/IP/VPN 안전성은 보장하지 않고 내부 리스크 판단만 기록합니다.</p>
+            </article>
+          </div>
         </section>
 
         <section className="content-grid">
@@ -560,6 +604,38 @@ function App() {
             </div>
           </article>
 
+          <article className="panel wide-panel" id="portal-admin">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">wordfriends customer portal</p>
+                <h2>고객 포털 관리 범위</h2>
+              </div>
+              <span className="status-pill planned">MVP 2단계</span>
+            </div>
+            <div className="delivery-grid">
+              <article className="delivery-card">
+                <strong>고객 진입</strong>
+                <span>회원가입 / 로그인</span>
+                <p>고객 계정은 wordfriends.co.kr에서 받고, SiteOps에서는 계정 상태와 계약 상태만 관리합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>계약/정책</strong>
+                <span>전자계약서 / 약관 / 개인정보처리방침</span>
+                <p>계약 버전, 동의 일시, 정책 버전을 기록합니다. 실제 전자서명 API는 MVP 이후 연동합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>문의/AI 상담</strong>
+                <span>AI 초안 + 사람 검토</span>
+                <p>수익, 세금, 애드센스, 정책 회피 질문은 AI 자동 답변을 막고 내부 검토 대상으로 보냅니다.</p>
+              </article>
+            </div>
+            <ul className="check-list compact-check-list">
+              <li><CheckCircle2 size={18} />고객용 화면은 wordfriends.co.kr에 둡니다.</li>
+              <li><CheckCircle2 size={18} />SiteOps에는 고객 포털의 상태, 공지, 문의, 계약 관리만 둡니다.</li>
+              <li><AlertTriangle size={18} />수익 보장, 애드센스 승인 보장, 트래픽 보장 문구는 고객 화면에서 금지합니다.</li>
+            </ul>
+          </article>
+
           <article className="panel" id="security">
             <div className="panel-heading">
               <div>
@@ -609,6 +685,33 @@ function App() {
                   <StatusPill value={item.status} />
                 </div>
               ))}
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="keywords">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">keyword_map</p>
+                <h2>키워드 관리 설계</h2>
+              </div>
+              <span className="status-pill planned">다음 구현</span>
+            </div>
+            <div className="delivery-grid">
+              <article className="delivery-card">
+                <strong>{dashboard.contentQueue.length}</strong>
+                <span>콘텐츠 큐 키워드</span>
+                <p>중복 키워드, 사이트별 배정, 카테고리 매핑, 발행 상태를 한 화면에서 관리합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{validationFailedContent.length}</strong>
+                <span>검증 실패 콘텐츠</span>
+                <p>FAILED_VALIDATION, 금지 키워드, YMYL 경고를 에러 센터와 연결합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>금지어</strong>
+                <span>수익/승인 보장 표현 차단</span>
+                <p>수익 보장, 애드센스 승인 보장, 과도한 서버/IP/VPN 안전 표현을 기본 차단합니다.</p>
+              </article>
             </div>
           </article>
 
@@ -821,6 +924,33 @@ function App() {
             ) : null}
           </article>
 
+          <article className="panel wide-panel" id="domain-expiry">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">registrar / dns</p>
+                <h2>도메인 만료와 DNS 관리</h2>
+              </div>
+              <span className="status-pill planned">DB 필드 추가 예정</span>
+            </div>
+            <div className="delivery-grid">
+              <article className="delivery-card">
+                <strong>만료일</strong>
+                <span>Namecheap 등 등록기관 기준</span>
+                <p>도메인 갱신 누락은 운영 중단으로 이어지므로 만료 60/30/7일 알림을 기본값으로 둡니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>Cloudflare</strong>
+                <span>Active / Pending / DNS 오류</span>
+                <p>네임서버 전파, 주황 구름 상태, SSL 상태를 도메인별로 기록합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>갱신 판단</strong>
+                <span>A/B/C/D/Reject 등급 연동</span>
+                <p>고위험 또는 회생 가치 낮은 도메인은 자동 갱신하지 않고 수동 확인 대상으로 둡니다.</p>
+              </article>
+            </div>
+          </article>
+
           <article className="panel wide-panel" id="sitemaps">
             <div className="panel-heading">
               <div>
@@ -880,6 +1010,60 @@ function App() {
                 Google/Naver 관리 항목이 생성됩니다.
               </div>
             ) : null}
+          </article>
+
+          <article className="panel wide-panel" id="seo">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">seo / indexing</p>
+                <h2>SEO와 색인 현황</h2>
+              </div>
+              <span className="status-pill planned">Search Console 확장 예정</span>
+            </div>
+            <div className="delivery-grid">
+              <article className="delivery-card">
+                <strong>{googleSubmittedSitemaps.length}</strong>
+                <span>Google 사이트맵 제출 완료</span>
+                <p>Search Console URL 속성 확인이 끝난 도메인부터 안전하게 제출합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{failedSitemapRows.length}</strong>
+                <span>색인/권한 확인 필요</span>
+                <p>권한 없음, API 비활성, 토큰 만료, 사이트맵 접근 실패를 짧은 운영 문구로 표시합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>Rank Math</strong>
+                <span>기본 SEO 플러그인</span>
+                <p>인증 메타, 사이트맵, robots, 제목/메타 상태를 나중에 사이트별 스냅샷으로 저장합니다.</p>
+              </article>
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="monetization">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">adsense / monetization</p>
+                <h2>수익화 현황</h2>
+              </div>
+              <span className="status-pill planned">보장 표현 금지</span>
+            </div>
+            <div className="delivery-grid">
+              <article className="delivery-card">
+                <strong>{adsenseReadySites.length}</strong>
+                <span>AdSense 승인/준비 사이트</span>
+                <p>승인 상태는 운영 참고용입니다. 고객 화면에는 수익이나 승인 보장 문구를 표시하지 않습니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{dashboard.sites.filter((site) => site.monetizeMode).length}</strong>
+                <span>수익화 방식 지정</span>
+                <p>adsense, agency, affiliate, CPA, business 등 방식을 구분해 운영 리스크를 관리합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>정산 연결</strong>
+                <span>고객 계정 기준</span>
+                <p>고객 애드센스 수익은 고객 계정 보고서 또는 고객 제공 자료를 기준으로 정산합니다.</p>
+              </article>
+            </div>
           </article>
 
           <article className="panel wide-panel" id="settlements">
@@ -1095,6 +1279,38 @@ function App() {
                   ))}
                 </div>
               </div>
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="errors">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">error center</p>
+                <h2>에러 센터</h2>
+              </div>
+              <span className="status-pill warning">내부 전용</span>
+            </div>
+            <div className="delivery-grid">
+              <article className="delivery-card">
+                <strong>{failedSitemapRows.length}</strong>
+                <span>사이트맵/Search Console 실패</span>
+                <p>대부분 URL 속성 권한 확인 문제입니다. 고객에게 노출하지 않고 내부 조치로 관리합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{validationFailedContent.length}</strong>
+                <span>콘텐츠 검증 실패</span>
+                <p>검증 실패 콘텐츠는 재시도보다 원인 확인, 금지어, YMYL, 길이/H2 기준을 먼저 확인합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{highRiskSites.length}</strong>
+                <span>고위험 도메인/사이트</span>
+                <p>도박, 스팸, 악성 이력 도메인은 고객용 애드센스 운영에서 기본 잠금 처리합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{unclassifiedSites.length}</strong>
+                <span>미분류 도메인/사이트</span>
+                <p>카테고리, 리스크, 수익화 방식이 정해지기 전에는 자동 발행이나 고객 노출을 보류합니다.</p>
+              </article>
             </div>
           </article>
 

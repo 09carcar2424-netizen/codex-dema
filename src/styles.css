@@ -718,6 +718,53 @@ h2 {
   margin-top: 18px;
 }
 
+.delivery-panel {
+  margin-bottom: 18px;
+}
+
+.delivery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.delivery-card {
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel-soft);
+}
+
+.delivery-card strong,
+.delivery-card span {
+  display: block;
+}
+
+.delivery-card strong {
+  font-size: 22px;
+}
+
+.delivery-card span {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.delivery-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.compact-check-list {
+  margin-top: 14px;
+}
+
 .portal-grid > div,
 .policy-box {
   min-height: 118px;
@@ -1183,6 +1230,7 @@ h2 {
   .metric-grid,
   .api-config-panel,
   .content-grid,
+  .delivery-grid,
   .setup-grid,
   .setup-filter-grid,
   .inventory-controls,
