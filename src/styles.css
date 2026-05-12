@@ -1113,7 +1113,7 @@ h2 {
 
 .candidate-form-grid {
   display: grid;
-  grid-template-columns: minmax(130px, 0.7fr) minmax(240px, 1.4fr) minmax(190px, 1fr) minmax(160px, 0.8fr) auto;
+  grid-template-columns: minmax(130px, 0.7fr) minmax(240px, 1.4fr) minmax(190px, 1fr) minmax(160px, 0.8fr) auto auto;
   align-items: end;
   gap: 10px;
   margin-top: 16px;
@@ -1157,7 +1157,16 @@ h2 {
   grid-template-columns: minmax(210px, 1fr) minmax(120px, 0.55fr) minmax(100px, 0.45fr) minmax(190px, 0.85fr) minmax(160px, 0.75fr);
 }
 
-.candidate-queue-table .ops-row > span {
+.saved-candidate-table {
+  margin-top: 10px;
+}
+
+.saved-candidate-table .ops-row {
+  grid-template-columns: minmax(210px, 1fr) minmax(130px, 0.55fr) minmax(120px, 0.55fr) minmax(120px, 0.55fr) minmax(130px, 0.6fr) minmax(120px, 0.55fr);
+}
+
+.candidate-queue-table .ops-row > span,
+.saved-candidate-table .ops-row > span {
   color: var(--text-muted);
   font-size: 14px;
 }

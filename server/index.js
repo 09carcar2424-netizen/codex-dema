@@ -111,6 +111,27 @@ function normalizeChoice(value, allowed, fallback) {
   return allowed.includes(value) ? value : fallback;
 }
 
+function normalizeDomain(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '');
+}
+
+function normalizeTextArray(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean).slice(0, 20);
+  }
+
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
 function mapNotification(row) {
   return {
     id: row.id,
@@ -175,6 +196,109 @@ async function createNotification(req, res) {
   );
 
   return sendJson(req, res, 201, { ok: true, notification: mapNotification(result.rows[0]) });
+}
+
+function mapDomainCandidate(row) {
+  return {
+    id: row.id,
+    domain: row.domain,
+    sourceType: row.source_type,
+    category: row.category,
+    keywords: row.keywords || [],
+    languagePriority: row.language_priority,
+    tld: row.tld,
+    pricePolicy: row.price_policy,
+    registrarChannel: row.registrar_channel,
+    candidateStyle: row.candidate_style,
+    availabilityStatus: row.availability_status,
+    auditStatus: row.audit_status,
+    purchaseStatus: row.purchase_status,
+    notes: row.notes,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function createDomainCandidates(req, res) {
+  const body = await readJsonBody(req);
+  const rawCandidates = Array.isArray(body.candidates) ? body.candidates : [];
+  const category = String(body.category || '').trim();
+  const keywords = normalizeTextArray(body.keywords);
+  const languagePriority = normalizeChoice(body.languagePriority, ['ko', 'en', 'mixed'], 'mixed');
+  const pricePolicy = normalizeChoice(
+    body.pricePolicy,
+    ['general_only', 'premium_review', 'premium_allowed'],
+    'general_only',
+  );
+
+  const candidates = rawCandidates
+    .map((candidate) => ({
+      domain: normalizeDomain(candidate.domain),
+      tld: String(candidate.tld || '').trim(),
+      registrarChannel: String(candidate.channel || candidate.registrarChannel || '').trim(),
+      candidateStyle: String(candidate.style || candidate.candidateStyle || '').trim(),
+      notes: String(candidate.notes || '').trim(),
+    }))
+    .filter((candidate) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(candidate.domain))
+    .slice(0, 100);
+
+  if (!candidates.length) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'At least one valid candidate domain is required.',
+    });
+  }
+
+  const saved = [];
+
+  for (const candidate of candidates) {
+    const result = await query(
+      `
+        insert into domain_candidates (
+          domain, source_type, category, keywords, language_priority, tld,
+          price_policy, registrar_channel, candidate_style, availability_status,
+          audit_status, purchase_status, notes, updated_at
+        )
+        values (
+          $1, 'generated', $2, $3, $4, $5,
+          $6, $7, $8, 'unchecked',
+          'queued', 'not_approved', $9, now()
+        )
+        on conflict (domain) do update set
+          category = excluded.category,
+          keywords = excluded.keywords,
+          language_priority = excluded.language_priority,
+          tld = excluded.tld,
+          price_policy = excluded.price_policy,
+          registrar_channel = excluded.registrar_channel,
+          candidate_style = excluded.candidate_style,
+          audit_status = 'queued',
+          purchase_status = case
+            when domain_candidates.purchase_status = 'purchased' then domain_candidates.purchase_status
+            else 'not_approved'
+          end,
+          notes = excluded.notes,
+          updated_at = now()
+        returning id::text, domain, source_type, category, keywords, language_priority,
+          tld, price_policy, registrar_channel, candidate_style, availability_status,
+          audit_status, purchase_status, notes, to_char(updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
+      `,
+      [
+        candidate.domain,
+        category,
+        keywords,
+        languagePriority,
+        candidate.tld,
+        pricePolicy,
+        candidate.registrarChannel,
+        candidate.candidateStyle,
+        candidate.notes || 'Generated from SiteOps domain discovery.',
+      ],
+    );
+
+    saved.push(mapDomainCandidate(result.rows[0]));
+  }
+
+  return sendJson(req, res, 201, { ok: true, savedCount: saved.length, candidates: saved });
 }
 
 function getPublicBaseUrl(req) {
@@ -482,6 +606,25 @@ async function getDashboardData() {
     limit 100
   `);
 
+  const domainCandidates = await queryOptional(`
+    select id::text, domain, source_type, category, keywords, language_priority,
+      tld, price_policy, registrar_channel, candidate_style, availability_status,
+      audit_status, purchase_status, notes,
+      to_char(updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
+    from domain_candidates
+    order by
+      case audit_status
+        when 'queued' then 1
+        when 'checking' then 2
+        when 'needs_review' then 3
+        when 'approved' then 4
+        when 'rejected' then 5
+        else 6
+      end,
+      updated_at desc
+    limit 100
+  `);
+
   return {
     source: 'postgres',
     sites: sites.rows.map(mapSite),
@@ -599,6 +742,7 @@ async function getDashboardData() {
       responseMessage: row.response_message,
       notes: row.notes,
     })),
+    domainCandidates: domainCandidates.rows.map(mapDomainCandidate),
     taxEstimates: [
       {
         label: '소개 보상 예시',
@@ -640,6 +784,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/notifications' && req.method === 'POST') {
       return createNotification(req, res);
+    }
+
+    if (url.pathname === '/api/domain-candidates' && req.method === 'POST') {
+      return createDomainCandidates(req, res);
     }
 
     if (url.pathname === '/api/google/search-console/auth-url') {

@@ -607,6 +607,31 @@ CREATE TABLE IF NOT EXISTS domain_audits (
   CHECK (final_grade IN ('unrated', 'safe_candidate', 'watch', 'hold', 'reject'))
 );
 
+CREATE TABLE IF NOT EXISTS domain_candidates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  domain TEXT NOT NULL UNIQUE,
+  source_type TEXT NOT NULL DEFAULT 'generated',
+  category TEXT,
+  keywords TEXT[] NOT NULL DEFAULT '{}',
+  language_priority TEXT NOT NULL DEFAULT 'mixed',
+  tld TEXT,
+  price_policy TEXT NOT NULL DEFAULT 'general_only',
+  registrar_channel TEXT,
+  candidate_style TEXT,
+  availability_status TEXT NOT NULL DEFAULT 'unchecked',
+  audit_status TEXT NOT NULL DEFAULT 'queued',
+  purchase_status TEXT NOT NULL DEFAULT 'not_approved',
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (source_type IN ('generated', 'manual', 'imported')),
+  CHECK (language_priority IN ('ko', 'en', 'mixed')),
+  CHECK (price_policy IN ('general_only', 'premium_review', 'premium_allowed')),
+  CHECK (availability_status IN ('unchecked', 'available', 'taken', 'premium', 'error')),
+  CHECK (audit_status IN ('queued', 'checking', 'needs_review', 'approved', 'rejected')),
+  CHECK (purchase_status IN ('not_approved', 'approved_to_buy', 'purchased', 'skipped'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_sites_site_key ON sites(site_key);
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
 CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);
@@ -629,3 +654,5 @@ CREATE INDEX IF NOT EXISTS idx_domain_inventory_status ON domain_inventory(inven
 CREATE INDEX IF NOT EXISTS idx_domain_inventory_offer ON domain_inventory(offer_status);
 CREATE INDEX IF NOT EXISTS idx_domain_audits_inventory ON domain_audits(inventory_id);
 CREATE INDEX IF NOT EXISTS idx_domain_audits_grade ON domain_audits(final_grade);
+CREATE INDEX IF NOT EXISTS idx_domain_candidates_audit ON domain_candidates(audit_status);
+CREATE INDEX IF NOT EXISTS idx_domain_candidates_purchase ON domain_candidates(purchase_status);

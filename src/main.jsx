@@ -21,7 +21,13 @@ import {
   UserPlus,
   WalletCards,
 } from 'lucide-react';
-import { createNotificationDraft, fetchDashboardData, getApiBaseUrl, saveApiBaseUrl } from './api.js';
+import {
+  createNotificationDraft,
+  fetchDashboardData,
+  getApiBaseUrl,
+  saveApiBaseUrl,
+  saveDomainCandidates,
+} from './api.js';
 import {
   contentQueueRows,
   customerRows,
@@ -53,6 +59,7 @@ const fallbackDashboard = {
   notifications: notificationRows,
   domainInventory: domainInventoryRows,
   sitemapSubmissions: sitemapRows,
+  domainCandidates: [],
 };
 
 const emptyNotificationForm = {
@@ -231,6 +238,7 @@ function App() {
   const [notificationForm, setNotificationForm] = useState(emptyNotificationForm);
   const [notificationSaveState, setNotificationSaveState] = useState({ status: 'idle', message: '' });
   const [discoveryForm, setDiscoveryForm] = useState(defaultDiscoveryForm);
+  const [candidateSaveState, setCandidateSaveState] = useState({ status: 'idle', message: '' });
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -297,6 +305,7 @@ function App() {
           notifications: data.notifications?.length ? data.notifications : notificationRows,
           domainInventory: data.domainInventory?.length ? data.domainInventory : domainInventoryRows,
           sitemapSubmissions: data.sitemapSubmissions?.length ? data.sitemapSubmissions : sitemapRows,
+          domainCandidates: data.domainCandidates || [],
         });
         setApiState({
           status: 'connected',
@@ -831,6 +840,32 @@ function App() {
     },
   ];
   const generatedDomainCandidates = buildDomainCandidates(discoveryForm).slice(0, 12);
+  const savedDomainCandidates = dashboard.domainCandidates || [];
+  const queuedDomainCandidates = savedDomainCandidates.filter((candidate) =>
+    ['queued', 'checking', 'needs_review'].includes(candidate.auditStatus),
+  );
+  const saveGeneratedCandidates = async () => {
+    setCandidateSaveState({ status: 'saving', message: '후보 큐 저장 중...' });
+    try {
+      const result = await saveDomainCandidates({
+        category: discoveryForm.category,
+        keywords: parseCsv(discoveryForm.keywords),
+        languagePriority: discoveryForm.language,
+        pricePolicy: discoveryForm.budgetPolicy,
+        candidates: generatedDomainCandidates,
+      });
+      setCandidateSaveState({
+        status: 'saved',
+        message: `${result.savedCount}개 후보를 구매 전 검수 큐에 저장했습니다.`,
+      });
+      reloadDashboard();
+    } catch (error) {
+      setCandidateSaveState({
+        status: 'error',
+        message: `후보 저장 실패: ${error.message}`,
+      });
+    }
+  };
 
   return (
     <main className="app-shell">
@@ -1699,7 +1734,20 @@ function App() {
               >
                 기본값
               </button>
+              <button
+                className="primary-action"
+                type="button"
+                onClick={saveGeneratedCandidates}
+                disabled={candidateSaveState.status === 'saving'}
+              >
+                {candidateSaveState.status === 'saving' ? '저장 중' : '후보 큐 저장'}
+              </button>
             </form>
+            {candidateSaveState.message ? (
+              <div className={`form-status ${candidateSaveState.status}`}>
+                {candidateSaveState.message}
+              </div>
+            ) : null}
             <div className="table-meta candidate-result-line">
               <strong>{generatedDomainCandidates.length}개 후보 도메인 생성</strong>
               <span>등록 가능 확인 전 검수 대기</span>
@@ -1722,6 +1770,35 @@ function App() {
                 </div>
               ))}
             </div>
+            <div className="table-meta candidate-result-line">
+              <strong>{savedDomainCandidates.length}개 저장된 후보</strong>
+              <span>{queuedDomainCandidates.length}개 구매 전 검수 대기</span>
+            </div>
+            <div className="ops-table saved-candidate-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>저장 후보</span>
+                <span>카테고리</span>
+                <span>등록 확인</span>
+                <span>검수</span>
+                <span>구매</span>
+                <span>갱신</span>
+              </div>
+              {savedDomainCandidates.slice(0, 12).map((candidate) => (
+                <div className="ops-row" role="row" key={candidate.id || candidate.domain}>
+                  <strong>{candidate.domain}</strong>
+                  <span>{candidate.category || '분류 대기'}</span>
+                  <StatusPill value={candidate.availabilityStatus} />
+                  <StatusPill value={candidate.auditStatus} />
+                  <StatusPill value={candidate.purchaseStatus} />
+                  <span>{candidate.updatedAt || '방금 전'}</span>
+                </div>
+              ))}
+            </div>
+            {savedDomainCandidates.length === 0 ? (
+              <div className="empty-state">
+                저장된 도메인 후보가 없습니다. 후보를 생성한 뒤 구매 전 검수 큐에 저장하세요.
+              </div>
+            ) : null}
             <div className="discovery-strategy-grid">
               {discoveryStrategies.map((strategy) => (
                 <article className="discovery-strategy-card" key={strategy.name}>
