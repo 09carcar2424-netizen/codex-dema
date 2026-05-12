@@ -78,6 +78,7 @@ const siteStatusFilters = [
 ];
 
 const SITE_PAGE_SIZE = 20;
+const INVENTORY_PAGE_SIZE = 20;
 
 const setupStatusFilters = [
   { key: 'all', label: '전체' },
@@ -90,7 +91,8 @@ const setupStatusFilters = [
 
 function StatusPill({ value }) {
   const normalized = String(value || 'not_set').toLowerCase();
-  return <span className={`status-pill ${normalized}`}>{value || 'NOT_SET'}</span>;
+  const label = normalized === 'not_set' ? '미정' : value || '미정';
+  return <span className={`status-pill ${normalized}`}>{label}</span>;
 }
 
 function summarizeSitemapMessage(row) {
@@ -162,6 +164,7 @@ function App() {
   const [inventoryGradeFilter, setInventoryGradeFilter] = useState('all');
   const [inventoryStatusFilter, setInventoryStatusFilter] = useState('all');
   const [inventorySort, setInventorySort] = useState('score_desc');
+  const [inventoryPage, setInventoryPage] = useState(1);
   const [apiEndpointInput, setApiEndpointInput] = useState(() => getApiBaseUrl());
   const [apiReloadToken, setApiReloadToken] = useState(0);
   const [dashboard, setDashboard] = useState(fallbackDashboard);
@@ -178,6 +181,10 @@ function App() {
   useEffect(() => {
     setSitePage(1);
   }, [siteFilter, siteQuery, siteLanguageFilter, siteMonetizeFilter]);
+
+  useEffect(() => {
+    setInventoryPage(1);
+  }, [inventoryQuery, inventoryGradeFilter, inventoryStatusFilter, inventorySort]);
 
   const reloadDashboard = useCallback(() => {
     setApiReloadToken((value) => value + 1);
@@ -407,6 +414,12 @@ function App() {
       }
       return (b.overallScore ?? -1) - (a.overallScore ?? -1);
     });
+  const inventoryPageCount = Math.max(1, Math.ceil(filteredInventory.length / INVENTORY_PAGE_SIZE));
+  const normalizedInventoryPage = Math.min(inventoryPage, inventoryPageCount);
+  const pagedInventory = filteredInventory.slice(
+    (normalizedInventoryPage - 1) * INVENTORY_PAGE_SIZE,
+    normalizedInventoryPage * INVENTORY_PAGE_SIZE,
+  );
 
   return (
     <main className="app-shell">
@@ -1098,11 +1111,21 @@ function App() {
               </button>
             </div>
             <div className="inventory-result-line">
-              <strong>{filteredInventory.length}</strong>
-              <span>개 도메인 표시 중</span>
+              <div>
+                <strong>{filteredInventory.length}</strong>
+                <span>개 도메인 표시 중</span>
+              </div>
+              <span>
+                {filteredInventory.length === 0
+                  ? '조건에 맞는 도메인이 없습니다'
+                  : `${(normalizedInventoryPage - 1) * INVENTORY_PAGE_SIZE + 1}-${Math.min(
+                      normalizedInventoryPage * INVENTORY_PAGE_SIZE,
+                      filteredInventory.length,
+                    )} / ${filteredInventory.length}`}
+              </span>
             </div>
             <div className="inventory-grid">
-              {filteredInventory.map((row) => (
+              {pagedInventory.map((row) => (
                 <article className={`inventory-card grade-${row.finalGrade}`} key={row.domain}>
                   <div className="inventory-card-head">
                     <div>
@@ -1135,6 +1158,41 @@ function App() {
                   </small>
                 </article>
               ))}
+            </div>
+            <div className="pagination-bar" aria-label="도메인 검수 페이지">
+              <button
+                className="secondary-action"
+                type="button"
+                disabled={normalizedInventoryPage === 1}
+                onClick={() => setInventoryPage((current) => Math.max(1, current - 1))}
+              >
+                이전
+              </button>
+              {Array.from({ length: inventoryPageCount }, (_, index) => index + 1)
+                .filter(
+                  (page) =>
+                    page === 1 || page === inventoryPageCount || Math.abs(page - normalizedInventoryPage) <= 2,
+                )
+                .map((page, index, pages) => (
+                  <React.Fragment key={page}>
+                    {index > 0 && page - pages[index - 1] > 1 ? <span className="page-ellipsis">…</span> : null}
+                    <button
+                      className={`page-button ${normalizedInventoryPage === page ? 'active' : ''}`}
+                      type="button"
+                      onClick={() => setInventoryPage(page)}
+                    >
+                      {page}
+                    </button>
+                  </React.Fragment>
+                ))}
+              <button
+                className="secondary-action"
+                type="button"
+                disabled={normalizedInventoryPage === inventoryPageCount}
+                onClick={() => setInventoryPage((current) => Math.min(inventoryPageCount, current + 1))}
+              >
+                다음
+              </button>
             </div>
             {filteredInventory.length === 0 ? (
               <div className="empty-state">
