@@ -40,6 +40,38 @@ CREATE TABLE IF NOT EXISTS referral_codes (
   CHECK (status IN ('active', 'paused', 'closed'))
 );
 
+CREATE TABLE IF NOT EXISTS portal_activity_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  session_id TEXT,
+  event_type TEXT NOT NULL,
+  page_path TEXT,
+  event_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (event_type IN (
+    'page_view', 'signup_started', 'signup_completed', 'login',
+    'contract_started', 'contract_completed', 'site_viewed',
+    'settlement_viewed', 'question_submitted', 'ai_handoff'
+  ))
+);
+
+CREATE TABLE IF NOT EXISTS portal_question_threads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  parent_question_id UUID REFERENCES portal_question_threads(id) ON DELETE SET NULL,
+  question TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'general',
+  status TEXT NOT NULL DEFAULT 'open',
+  ai_allowed BOOLEAN NOT NULL DEFAULT true,
+  human_review_required BOOLEAN NOT NULL DEFAULT false,
+  answer_summary TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (category IN ('general', 'settlement', 'contract', 'adsense', 'tax', 'policy', 'technical')),
+  CHECK (status IN ('open', 'ai_draft', 'human_review', 'answered', 'closed', 'blocked'))
+);
+
 CREATE TABLE IF NOT EXISTS referral_relationships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   referrer_customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
@@ -633,6 +665,10 @@ CREATE TABLE IF NOT EXISTS domain_candidates (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sites_site_key ON sites(site_key);
+CREATE INDEX IF NOT EXISTS idx_portal_activity_occurred ON portal_activity_events(occurred_at);
+CREATE INDEX IF NOT EXISTS idx_portal_activity_event_type ON portal_activity_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_portal_questions_status ON portal_question_threads(status);
+CREATE INDEX IF NOT EXISTS idx_portal_questions_customer ON portal_question_threads(customer_id);
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
 CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);
 CREATE INDEX IF NOT EXISTS idx_referral_rewards_status ON referral_rewards(status);

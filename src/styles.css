@@ -1057,6 +1057,55 @@ h2 {
   margin-top: 16px;
 }
 
+.realtime-card-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.realtime-card {
+  display: grid;
+  gap: 7px;
+  min-height: 104px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 13px;
+  background: var(--panel-soft);
+}
+
+.realtime-card span,
+.realtime-card small {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.realtime-card strong {
+  color: var(--text);
+  font-size: 28px;
+}
+
+.realtime-progress-table,
+.derived-question-table {
+  margin-top: 16px;
+}
+
+.realtime-progress-table .ops-row {
+  grid-template-columns: minmax(150px, 0.6fr) minmax(130px, 0.5fr) minmax(130px, 0.55fr) minmax(340px, 1.45fr);
+}
+
+.derived-question-table .ops-row {
+  grid-template-columns: minmax(120px, 0.45fr) minmax(120px, 0.45fr) minmax(380px, 1.5fr) minmax(130px, 0.55fr) minmax(120px, 0.5fr);
+}
+
+.realtime-progress-table .ops-row > span,
+.derived-question-table .ops-row > span {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .portal-rule-grid .policy-box {
   min-height: 96px;
 }
@@ -1826,6 +1875,7 @@ h2 {
   .compose-row,
   .portal-grid,
   .portal-rule-grid,
+  .realtime-card-grid,
   .site-filter-grid,
   .site-toolbar,
   .site-workbench,

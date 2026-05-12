@@ -60,6 +60,19 @@ const fallbackDashboard = {
   domainInventory: domainInventoryRows,
   sitemapSubmissions: sitemapRows,
   domainCandidates: [],
+  portalRealtime: {
+    activeVisitors5m: 0,
+    signupStartedToday: 0,
+    signupCompletedToday: 0,
+    contractStartedToday: 0,
+    contractCompletedToday: 0,
+    questionsToday: 0,
+    handoffsToday: 0,
+    openQuestions: 0,
+    humanReviewQuestions: 0,
+    blockedQuestions: 0,
+    questions: [],
+  },
 };
 
 const emptyNotificationForm = {
@@ -87,6 +100,7 @@ const siteStatusFilters = [
 const SITE_PAGE_SIZE = 20;
 const INVENTORY_PAGE_SIZE = 20;
 const SITEMAP_PAGE_SIZE = 20;
+const REALTIME_REFRESH_MS = 30000;
 
 const defaultDiscoveryForm = {
   category: 'health',
@@ -262,6 +276,14 @@ function App() {
     setApiReloadToken((value) => value + 1);
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setApiReloadToken((value) => value + 1);
+    }, REALTIME_REFRESH_MS);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   const updateNotificationForm = (field, value) => {
     setNotificationForm((current) => ({ ...current, [field]: value }));
   };
@@ -306,6 +328,7 @@ function App() {
           domainInventory: data.domainInventory?.length ? data.domainInventory : domainInventoryRows,
           sitemapSubmissions: data.sitemapSubmissions?.length ? data.sitemapSubmissions : sitemapRows,
           domainCandidates: data.domainCandidates || [],
+          portalRealtime: data.portalRealtime || fallbackDashboard.portalRealtime,
         });
         setApiState({
           status: 'connected',
@@ -338,6 +361,35 @@ function App() {
 
   const customerNotifications = dashboard.notifications.filter((row) => row.audience === 'customer');
   const internalNotifications = dashboard.notifications.filter((row) => row.visibility === 'internal_only');
+  const portalRealtime = dashboard.portalRealtime || fallbackDashboard.portalRealtime;
+  const realtimeCards = [
+    { label: '실시간 접속', value: portalRealtime.activeVisitors5m, detail: '최근 5분 활성 세션' },
+    { label: '가입 시작', value: portalRealtime.signupStartedToday, detail: '오늘 시작한 회원가입' },
+    { label: '가입 완료', value: portalRealtime.signupCompletedToday, detail: '오늘 완료한 회원가입' },
+    { label: '계약 진행', value: portalRealtime.contractStartedToday, detail: '오늘 전자계약 시작' },
+    { label: '파생 질문', value: portalRealtime.questionsToday, detail: '오늘 접수된 문의/AI 질문' },
+    { label: '사람 검토', value: portalRealtime.humanReviewQuestions, detail: 'AI 자동답변 차단/검토' },
+  ];
+  const realtimeProgressRows = [
+    {
+      stage: '회원가입',
+      current: `${portalRealtime.signupCompletedToday}/${portalRealtime.signupStartedToday}`,
+      status: portalRealtime.signupStartedToday ? 'tracking' : '수집 대기',
+      note: 'Wordfriends 가입 이벤트 연결 후 실시간 전환율 표시',
+    },
+    {
+      stage: '전자계약',
+      current: `${portalRealtime.contractCompletedToday}/${portalRealtime.contractStartedToday}`,
+      status: portalRealtime.contractStartedToday ? 'tracking' : '수집 대기',
+      note: '계약 시작/완료 이벤트를 분리해 이탈 지점 확인',
+    },
+    {
+      stage: '문의/AI',
+      current: `${portalRealtime.handoffsToday}건 handoff`,
+      status: portalRealtime.handoffsToday ? 'human_review' : '수집 대기',
+      note: '정산, 세금, AdSense, 정책성 질문은 사람 검토로 전환',
+    },
+  ];
   const portalCustomers = dashboard.customers.filter((customer) =>
     ['ACTIVE', 'LEAD', 'PENDING', 'SUBMITTED'].includes(String(customer.contractStatus || '').toUpperCase()),
   );
@@ -904,6 +956,7 @@ function App() {
           <a href="#monetization"><WalletCards size={18} />수익화 현황</a>
           <a href="#portal"><UserPlus size={18} />고객 포털</a>
           <a href="#portal-admin"><ClipboardCheck size={18} />포털 관리</a>
+          <a href="#realtime"><Activity size={18} />실시간 관제</a>
           <a href="#settlements"><WalletCards size={18} />정산/추천</a>
           <a href="#tax"><ClipboardCheck size={18} />세액 안내</a>
           <a href="#notifications"><Bell size={18} />알림센터</a>
@@ -1353,6 +1406,64 @@ function App() {
               <li><CheckCircle2 size={18} />고객 애드센스와 도메인 소유권 분리 기록</li>
               <li><AlertTriangle size={18} />YMYL 콘텐츠는 항상 검수 후 발행</li>
             </ul>
+          </article>
+
+          <article className="panel wide-panel" id="realtime">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">wordfriends realtime</p>
+                <h2>실시간 접속·가입·질문 관제</h2>
+              </div>
+              <span className="status-pill planned">30초 자동 갱신</span>
+            </div>
+            <div className="realtime-card-grid">
+              {realtimeCards.map((card) => (
+                <article className="realtime-card" key={card.label}>
+                  <span>{card.label}</span>
+                  <strong>{card.value}</strong>
+                  <small>{card.detail}</small>
+                </article>
+              ))}
+            </div>
+            <div className="ops-table realtime-progress-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>진행 구간</span>
+                <span>오늘 상태</span>
+                <span>상태</span>
+                <span>관리 메모</span>
+              </div>
+              {realtimeProgressRows.map((row) => (
+                <div className="ops-row" role="row" key={row.stage}>
+                  <strong>{row.stage}</strong>
+                  <span>{row.current}</span>
+                  <StatusPill value={row.status} />
+                  <span>{row.note}</span>
+                </div>
+              ))}
+            </div>
+            <div className="ops-table derived-question-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>고객</span>
+                <span>분류</span>
+                <span>질문</span>
+                <span>상태</span>
+                <span>갱신</span>
+              </div>
+              {portalRealtime.questions.slice(0, 8).map((question) => (
+                <div className="ops-row" role="row" key={question.id}>
+                  <strong>{question.customerCode}</strong>
+                  <span>{question.category}</span>
+                  <span>{question.question}</span>
+                  <StatusPill value={question.status} />
+                  <span>{question.updatedAt}</span>
+                </div>
+              ))}
+            </div>
+            {portalRealtime.questions.length === 0 ? (
+              <div className="empty-state">
+                아직 수집된 파생 질문이 없습니다. Wordfriends 문의/AI 상담 이벤트가 연결되면 이곳에 실시간으로 표시됩니다.
+              </div>
+            ) : null}
           </article>
 
           <article className="panel wide-panel" id="queue">

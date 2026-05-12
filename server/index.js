@@ -625,6 +625,40 @@ async function getDashboardData() {
     limit 100
   `);
 
+  const portalRealtimeStats = await queryOptional(`
+    select
+      count(*) filter (where occurred_at >= now() - interval '5 minutes')::int as active_5m,
+      count(*) filter (where event_type = 'signup_started' and occurred_at >= date_trunc('day', now()))::int as signup_started_today,
+      count(*) filter (where event_type = 'signup_completed' and occurred_at >= date_trunc('day', now()))::int as signup_completed_today,
+      count(*) filter (where event_type = 'contract_started' and occurred_at >= date_trunc('day', now()))::int as contract_started_today,
+      count(*) filter (where event_type = 'contract_completed' and occurred_at >= date_trunc('day', now()))::int as contract_completed_today,
+      count(*) filter (where event_type = 'question_submitted' and occurred_at >= date_trunc('day', now()))::int as questions_today,
+      count(*) filter (where event_type = 'ai_handoff' and occurred_at >= date_trunc('day', now()))::int as handoffs_today
+    from portal_activity_events
+  `);
+
+  const portalQuestions = await queryOptional(`
+    select pqt.id::text, coalesce(c.customer_code, 'NO_CUSTOMER') as customer_code,
+      pqt.category, pqt.status, pqt.ai_allowed, pqt.human_review_required,
+      pqt.question, pqt.answer_summary,
+      to_char(pqt.updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
+    from portal_question_threads pqt
+    left join customers c on c.id = pqt.customer_id
+    order by
+      case pqt.status
+        when 'human_review' then 1
+        when 'open' then 2
+        when 'ai_draft' then 3
+        when 'blocked' then 4
+        else 5
+      end,
+      pqt.updated_at desc
+    limit 10
+  `);
+
+  const realtimeRow = portalRealtimeStats.rows[0] || {};
+  const questionRows = portalQuestions.rows || [];
+
   return {
     source: 'postgres',
     sites: sites.rows.map(mapSite),
@@ -743,6 +777,29 @@ async function getDashboardData() {
       notes: row.notes,
     })),
     domainCandidates: domainCandidates.rows.map(mapDomainCandidate),
+    portalRealtime: {
+      activeVisitors5m: Number(realtimeRow.active_5m || 0),
+      signupStartedToday: Number(realtimeRow.signup_started_today || 0),
+      signupCompletedToday: Number(realtimeRow.signup_completed_today || 0),
+      contractStartedToday: Number(realtimeRow.contract_started_today || 0),
+      contractCompletedToday: Number(realtimeRow.contract_completed_today || 0),
+      questionsToday: Number(realtimeRow.questions_today || 0),
+      handoffsToday: Number(realtimeRow.handoffs_today || 0),
+      openQuestions: questionRows.filter((row) => ['open', 'ai_draft', 'human_review'].includes(row.status)).length,
+      humanReviewQuestions: questionRows.filter((row) => row.human_review_required || row.status === 'human_review').length,
+      blockedQuestions: questionRows.filter((row) => !row.ai_allowed || row.status === 'blocked').length,
+      questions: questionRows.map((row) => ({
+        id: row.id,
+        customerCode: row.customer_code,
+        category: row.category,
+        status: row.status,
+        aiAllowed: row.ai_allowed,
+        humanReviewRequired: row.human_review_required,
+        question: row.question,
+        answerSummary: row.answer_summary,
+        updatedAt: row.updated_at,
+      })),
+    },
     taxEstimates: [
       {
         label: '소개 보상 예시',
