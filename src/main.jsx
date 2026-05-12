@@ -79,6 +79,7 @@ const siteStatusFilters = [
 
 const SITE_PAGE_SIZE = 20;
 const INVENTORY_PAGE_SIZE = 20;
+const SITEMAP_PAGE_SIZE = 20;
 
 const setupStatusFilters = [
   { key: 'all', label: '전체' },
@@ -165,6 +166,10 @@ function App() {
   const [inventoryStatusFilter, setInventoryStatusFilter] = useState('all');
   const [inventorySort, setInventorySort] = useState('score_desc');
   const [inventoryPage, setInventoryPage] = useState(1);
+  const [sitemapQuery, setSitemapQuery] = useState('');
+  const [sitemapEngineFilter, setSitemapEngineFilter] = useState('all');
+  const [sitemapStatusFilter, setSitemapStatusFilter] = useState('all');
+  const [sitemapPage, setSitemapPage] = useState(1);
   const [apiEndpointInput, setApiEndpointInput] = useState(() => getApiBaseUrl());
   const [apiReloadToken, setApiReloadToken] = useState(0);
   const [dashboard, setDashboard] = useState(fallbackDashboard);
@@ -185,6 +190,10 @@ function App() {
   useEffect(() => {
     setInventoryPage(1);
   }, [inventoryQuery, inventoryGradeFilter, inventoryStatusFilter, inventorySort]);
+
+  useEffect(() => {
+    setSitemapPage(1);
+  }, [sitemapQuery, sitemapEngineFilter, sitemapStatusFilter]);
 
   const reloadDashboard = useCallback(() => {
     setApiReloadToken((value) => value + 1);
@@ -289,6 +298,42 @@ function App() {
 
     return a.domain.localeCompare(b.domain);
   });
+  const sitemapEngineOptions = [
+    'all',
+    ...new Set(dashboard.sitemapSubmissions.map((row) => row.searchEngine || 'unknown')),
+  ];
+  const sitemapStatusOptions = [
+    'all',
+    ...new Set(dashboard.sitemapSubmissions.map((row) => row.status || 'unknown')),
+  ];
+  const normalizedSitemapQuery = sitemapQuery.trim().toLowerCase();
+  const filteredSitemapSubmissions = sortedSitemapSubmissions.filter((row) => {
+    const haystack = [
+      row.domain,
+      row.propertyUrl,
+      row.siteKey,
+      row.searchEngine,
+      row.sitemapUrl,
+      row.submissionMode,
+      row.status,
+      row.notes,
+      row.responseMessage,
+      summarizeSitemapMessage(row),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const queryMatch = !normalizedSitemapQuery || haystack.includes(normalizedSitemapQuery);
+    const engineMatch = sitemapEngineFilter === 'all' || (row.searchEngine || 'unknown') === sitemapEngineFilter;
+    const statusMatch = sitemapStatusFilter === 'all' || (row.status || 'unknown') === sitemapStatusFilter;
+    return queryMatch && engineMatch && statusMatch;
+  });
+  const sitemapPageCount = Math.max(1, Math.ceil(filteredSitemapSubmissions.length / SITEMAP_PAGE_SIZE));
+  const normalizedSitemapPage = Math.min(sitemapPage, sitemapPageCount);
+  const pagedSitemapSubmissions = filteredSitemapSubmissions.slice(
+    (normalizedSitemapPage - 1) * SITEMAP_PAGE_SIZE,
+    normalizedSitemapPage * SITEMAP_PAGE_SIZE,
+  );
   const siteCounts = siteStatusFilters.map((filter) => ({
     ...filter,
     count: dashboard.sites.filter((site) => matchesSiteStatusFilter(site, filter.key)).length,
@@ -1258,6 +1303,59 @@ function App() {
                 전까지 수동 등록과 검수 기록 중심으로 운영합니다.
               </p>
             </div>
+            <div className="sitemap-controls" aria-label="사이트맵 등록 필터">
+              <label className="sitemap-search">
+                <Search size={18} />
+                <input
+                  type="search"
+                  value={sitemapQuery}
+                  onChange={(event) => setSitemapQuery(event.target.value)}
+                  placeholder="도메인, 사이트맵, 상태, 메모 검색"
+                />
+              </label>
+              <label>
+                <span>검색엔진</span>
+                <select value={sitemapEngineFilter} onChange={(event) => setSitemapEngineFilter(event.target.value)}>
+                  {sitemapEngineOptions.map((engine) => (
+                    <option value={engine} key={engine}>
+                      {engine === 'all' ? '전체' : engine}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>상태</span>
+                <select value={sitemapStatusFilter} onChange={(event) => setSitemapStatusFilter(event.target.value)}>
+                  {sitemapStatusOptions.map((status) => (
+                    <option value={status} key={status}>
+                      {status === 'all' ? '전체' : status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => {
+                  setSitemapQuery('');
+                  setSitemapEngineFilter('all');
+                  setSitemapStatusFilter('all');
+                }}
+              >
+                초기화
+              </button>
+            </div>
+            <div className="table-meta sitemap-result-line">
+              <strong>{filteredSitemapSubmissions.length}개 사이트맵 표시</strong>
+              <span>
+                {filteredSitemapSubmissions.length === 0
+                  ? '조건에 맞는 사이트맵 항목이 없습니다'
+                  : `${(normalizedSitemapPage - 1) * SITEMAP_PAGE_SIZE + 1}-${Math.min(
+                      normalizedSitemapPage * SITEMAP_PAGE_SIZE,
+                      filteredSitemapSubmissions.length,
+                    )} / ${filteredSitemapSubmissions.length}`}
+              </span>
+            </div>
             <div className="ops-table sitemap-table" role="table">
               <div className="ops-row ops-head" role="row">
                 <span>도메인</span>
@@ -1267,7 +1365,7 @@ function App() {
                 <span>상태</span>
                 <span>메모</span>
               </div>
-              {sortedSitemapSubmissions.map((row) => (
+              {pagedSitemapSubmissions.map((row) => (
                 <div className="ops-row" role="row" key={`${row.domain}-${row.searchEngine}`}>
                   <div>
                     <strong>{row.domain}</strong>
@@ -1281,10 +1379,49 @@ function App() {
                 </div>
               ))}
             </div>
+            <div className="pagination-bar" aria-label="사이트맵 등록 페이지">
+              <button
+                className="secondary-action"
+                type="button"
+                disabled={normalizedSitemapPage === 1}
+                onClick={() => setSitemapPage((current) => Math.max(1, current - 1))}
+              >
+                이전
+              </button>
+              {Array.from({ length: sitemapPageCount }, (_, index) => index + 1)
+                .filter(
+                  (page) => page === 1 || page === sitemapPageCount || Math.abs(page - normalizedSitemapPage) <= 2,
+                )
+                .map((page, index, pages) => (
+                  <React.Fragment key={page}>
+                    {index > 0 && page - pages[index - 1] > 1 ? <span className="page-ellipsis">…</span> : null}
+                    <button
+                      className={`page-button ${normalizedSitemapPage === page ? 'active' : ''}`}
+                      type="button"
+                      onClick={() => setSitemapPage(page)}
+                    >
+                      {page}
+                    </button>
+                  </React.Fragment>
+                ))}
+              <button
+                className="secondary-action"
+                type="button"
+                disabled={normalizedSitemapPage === sitemapPageCount}
+                onClick={() => setSitemapPage((current) => Math.min(sitemapPageCount, current + 1))}
+              >
+                다음
+              </button>
+            </div>
             {dashboard.sitemapSubmissions.length === 0 ? (
               <div className="empty-state">
                 아직 사이트맵 등록 큐가 없습니다. 서버에서 `npm run sync:sitemaps`를 실행하면 운영 후보 사이트 기준으로
                 Google/Naver 관리 항목이 생성됩니다.
+              </div>
+            ) : null}
+            {dashboard.sitemapSubmissions.length > 0 && filteredSitemapSubmissions.length === 0 ? (
+              <div className="empty-state">
+                조건에 맞는 사이트맵 항목이 없습니다. 필터를 초기화하거나 검색어를 줄여보세요.
               </div>
             ) : null}
           </article>
