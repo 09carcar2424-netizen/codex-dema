@@ -1061,6 +1061,63 @@ h2 {
   min-height: 96px;
 }
 
+.reuse-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.reuse-summary > div {
+  min-height: 92px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 13px;
+  background: var(--panel-soft);
+}
+
+.reuse-summary strong,
+.reuse-summary span {
+  display: block;
+}
+
+.reuse-summary strong {
+  color: var(--text);
+  font-size: 28px;
+}
+
+.reuse-summary span {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reuse-playbook-grid {
+  margin-top: 14px;
+}
+
+.reuse-table {
+  margin-top: 16px;
+}
+
+.reuse-table .ops-row {
+  grid-template-columns: minmax(190px, 1fr) minmax(130px, 0.55fr) minmax(110px, 0.45fr) minmax(260px, 1.2fr) minmax(170px, 0.75fr);
+}
+
+.score-stack {
+  display: grid;
+  gap: 4px;
+}
+
+.score-stack strong,
+.score-stack small {
+  display: block;
+}
+
+.reuse-rules {
+  margin-top: 16px;
+}
+
 .warning-policy svg {
   color: var(--warning);
 }
@@ -1535,6 +1592,7 @@ h2 {
   .setup-filter-grid,
   .inventory-controls,
   .inventory-grid,
+  .reuse-summary,
   .compose-row,
   .portal-grid,
   .portal-rule-grid,

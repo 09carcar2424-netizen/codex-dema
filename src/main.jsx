@@ -480,6 +480,53 @@ function App() {
   const heldDomains = dashboard.domainInventory.filter((row) =>
     ['hold', 'rejected'].includes(row.inventoryStatus),
   );
+  const reusableDomains = dashboard.domainInventory.filter((row) =>
+    !['reject', 'hold'].includes(row.finalGrade) &&
+    !['rejected', 'withdrawn'].includes(row.inventoryStatus) &&
+    (row.overallScore ?? 0) >= 65,
+  );
+  const instantReuseDomains = reusableDomains.filter((row) =>
+    row.finalGrade === 'safe_candidate' &&
+    row.manualReviewRequired === false &&
+    (row.spamScore ?? 0) >= 70,
+  );
+  const recoveryReuseDomains = reusableDomains.filter((row) =>
+    row.finalGrade === 'watch' || row.manualReviewRequired || (row.indexScore ?? 0) < 70,
+  );
+  const quarantineDomains = dashboard.domainInventory.filter((row) =>
+    ['reject', 'hold'].includes(row.finalGrade) ||
+    ['rejected', 'withdrawn'].includes(row.inventoryStatus) ||
+    (row.spamScore ?? 100) < 30,
+  );
+  const nicheLockedDomains = reusableDomains.filter((row) =>
+    ['medium', 'high'].includes(row.ymylRiskLevel) ||
+    String(row.memo || '').includes('리다이렉션') ||
+    String(row.memo || '').includes('본진'),
+  );
+  const reuseCandidates = [
+    ...instantReuseDomains.map((row) => ({ ...row, reuseStage: '즉시 재활용', action: '콘텐츠/소유권 확인 후 운영 큐 배치' })),
+    ...recoveryReuseDomains.map((row) => ({ ...row, reuseStage: '복구 후 재활용', action: 'GSC 등록, 백링크 검토, 니치 유지 콘텐츠 발행' })),
+    ...quarantineDomains.map((row) => ({ ...row, reuseStage: '격리/폐기', action: '고객용 노출 금지, 갱신 전 수동 재검토' })),
+  ]
+    .sort((a, b) => (b.overallScore ?? -1) - (a.overallScore ?? -1))
+    .slice(0, 10);
+  const reusePlaybook = [
+    {
+      title: '1차 선별',
+      metric: `${reusableDomains.length}개`,
+      body: '점수 65 이상, reject/hold 제외 도메인만 재활용 후보로 올립니다.',
+    },
+    {
+      title: '복구 큐',
+      metric: `${recoveryReuseDomains.length}개`,
+      body: 'Search Console 등록, 사이트맵 제출, 백링크 오염 검토, 니치 일치 여부를 확인합니다.',
+    },
+    {
+      title: '격리',
+      metric: `${quarantineDomains.length}개`,
+      body: '도박, 스팸, 해킹 이력 또는 회생 가치 낮은 도메인은 고객용 운영에서 잠급니다.',
+    },
+  ];
   const highRiskSites = dashboard.sites.filter((site) =>
     site.portfolioStatus === 'high_risk_hold' || ['high', 'critical'].includes(site.riskLevel),
   );
@@ -561,6 +608,7 @@ function App() {
           <a href="#keywords"><Search size={18} />키워드 관리</a>
           <a href="#setup"><ServerCog size={18} />WP 세팅</a>
           <a href="#inventory"><ShieldCheck size={18} />도메인 검수</a>
+          <a href="#domain-reuse"><RefreshCw size={18} />도메인 재활용</a>
           <a href="#domain-expiry"><Globe2 size={18} />도메인 만료</a>
           <a href="#sitemaps"><Search size={18} />사이트맵</a>
           <a href="#seo"><Activity size={18} />SEO 현황</a>
@@ -1333,6 +1381,107 @@ function App() {
                 조건에 맞는 도메인이 없습니다. 필터를 초기화하거나 검색어를 줄여보세요.
               </div>
             ) : null}
+          </article>
+
+          <article className="panel wide-panel" id="domain-reuse">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">domain recycle program</p>
+                <h2>도메인 재활용 운영 큐</h2>
+              </div>
+              <span className="status-pill planned">내부 전용</span>
+            </div>
+            <div className="reuse-summary">
+              <div>
+                <strong>{reusableDomains.length}</strong>
+                <span>재활용 후보</span>
+              </div>
+              <div>
+                <strong>{instantReuseDomains.length}</strong>
+                <span>즉시 운영 가능</span>
+              </div>
+              <div>
+                <strong>{recoveryReuseDomains.length}</strong>
+                <span>복구 후 사용</span>
+              </div>
+              <div>
+                <strong>{nicheLockedDomains.length}</strong>
+                <span>니치 유지 필요</span>
+              </div>
+              <div>
+                <strong>{quarantineDomains.length}</strong>
+                <span>격리/폐기 검토</span>
+              </div>
+            </div>
+            <div className="delivery-grid reuse-playbook-grid">
+              {reusePlaybook.map((item) => (
+                <article className="delivery-card" key={item.title}>
+                  <strong>{item.metric}</strong>
+                  <span>{item.title}</span>
+                  <p>{item.body}</p>
+                </article>
+              ))}
+            </div>
+            <div className="ops-table reuse-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>도메인</span>
+                <span>재활용 단계</span>
+                <span>점수</span>
+                <span>다음 액션</span>
+                <span>주의</span>
+              </div>
+              {reuseCandidates.map((row) => (
+                <div className="ops-row" role="row" key={`${row.domain}-${row.reuseStage}`}>
+                  <div>
+                    <strong>{row.domain}</strong>
+                    <small>{row.acquisitionType} · {row.languagePriority} · {row.categoryFit || '분류 대기'}</small>
+                  </div>
+                  <StatusPill value={row.reuseStage} />
+                  <div className="score-stack">
+                    <strong>{row.overallScore ?? '-'}</strong>
+                    <small>Spam {row.spamScore ?? '-'} · Index {row.indexScore ?? '-'}</small>
+                  </div>
+                  <span>{row.action}</span>
+                  <span>
+                    {row.reuseStage === '격리/폐기'
+                      ? '자동 발행/고객 노출 금지'
+                      : row.ymylRiskLevel === 'high'
+                        ? 'YMYL 검수 후 발행'
+                        : '수익/승인 보장 표현 금지'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="portal-rule-grid reuse-rules">
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>살릴 도메인 기준</strong>
+                  <p>히스토리와 백링크가 살아 있고 스팸 점수가 낮지 않은 도메인만 복구 큐에 올립니다.</p>
+                </div>
+              </article>
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>복구 작업 순서</strong>
+                  <p>Search Console 확인, 사이트맵 제출, Ahrefs/백링크 검토, 필요 시 disavow, 니치 일치 콘텐츠 발행 순서로 진행합니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>고객 공개 금지</strong>
+                  <p>재활용 판단, 오염도, 백링크 메모, 격리 사유는 Wordfriends 고객 화면에 노출하지 않습니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>자동화 잠금</strong>
+                  <p>격리/폐기 도메인은 콘텐츠 발행, 사이트맵 제출, 수익화 연결, 고객 배정을 모두 수동 승인 전까지 막습니다.</p>
+                </div>
+              </article>
+            </div>
           </article>
 
           <article className="panel wide-panel" id="domain-expiry">
