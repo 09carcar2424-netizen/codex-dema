@@ -1091,6 +1091,51 @@ h2 {
   margin-top: 16px;
 }
 
+.realtime-ingest-guide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(28, 211, 171, 0.08);
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.realtime-ingest-guide article {
+  min-width: 280px;
+  flex: 1;
+}
+
+.realtime-ingest-guide strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.realtime-ingest-guide p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.realtime-ingest-guide code {
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.realtime-ingest-guide span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .realtime-progress-table .ops-row {
   grid-template-columns: minmax(150px, 0.6fr) minmax(130px, 0.5fr) minmax(130px, 0.55fr) minmax(340px, 1.45fr);
 }

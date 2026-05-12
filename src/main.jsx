@@ -1441,6 +1441,15 @@ function App() {
                 </div>
               ))}
             </div>
+            <div className="realtime-ingest-guide">
+              <article>
+                <strong>Wordfriends 이벤트 수집 API</strong>
+                <p>wordfriends.co.kr에서 접속, 가입, 계약, 질문 이벤트를 SiteOps로 전송하면 이 화면에 30초 단위로 반영됩니다.</p>
+              </article>
+              <code>POST /api/wordfriends/events</code>
+              <code>POST /api/wordfriends/questions</code>
+              <span>헤더: X-SiteOps-Event-Token · 서버 환경변수: SITEOPS_EVENT_TOKEN</span>
+            </div>
             <div className="ops-table derived-question-table" role="table">
               <div className="ops-row ops-head" role="row">
                 <span>고객</span>

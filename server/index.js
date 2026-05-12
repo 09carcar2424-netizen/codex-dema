@@ -13,6 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const staticDir = path.resolve(__dirname, '..', 'dist');
 const adminUser = process.env.SITEOPS_ADMIN_USER || 'boss';
 const adminPassword = process.env.SITEOPS_ADMIN_PASSWORD || '';
+const wordfriendsEventToken = process.env.SITEOPS_EVENT_TOKEN || '';
 const googleSearchConsoleScope = 'https://www.googleapis.com/auth/webmasters';
 
 const contentTypes = {
@@ -49,7 +50,7 @@ function sendJson(req, res, statusCode, payload) {
     'Access-Control-Allow-Origin': getCorsOrigin(req),
     'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-SiteOps-Event-Token',
   });
   res.end(statusCode === 204 ? '' : JSON.stringify(payload));
 }
@@ -91,7 +92,7 @@ function requireAdminAuth(req, res) {
     'Access-Control-Allow-Origin': getCorsOrigin(req),
     'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-SiteOps-Event-Token',
   });
   res.end('Authentication required');
   return false;
@@ -130,6 +131,102 @@ function normalizeTextArray(value) {
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 20);
+}
+
+function getRequestClientMeta(req) {
+  return {
+    userAgent: req.headers['user-agent'] || '',
+    referer: req.headers.referer || '',
+    forwardedFor: req.headers['x-forwarded-for'] || '',
+  };
+}
+
+function hasValidEventToken(req) {
+  if (!wordfriendsEventToken) return false;
+
+  const headerToken = String(req.headers['x-siteops-event-token'] || '').trim();
+  const bearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  const token = headerToken || bearer;
+
+  return Boolean(token) && safeEquals(token, wordfriendsEventToken);
+}
+
+function requireEventToken(req, res) {
+  if (hasValidEventToken(req)) return true;
+
+  const statusCode = wordfriendsEventToken ? 401 : 503;
+  sendJson(req, res, statusCode, {
+    ok: false,
+    error: wordfriendsEventToken
+      ? 'Invalid Wordfriends event token.'
+      : 'SITEOPS_EVENT_TOKEN is not configured.',
+  });
+  return false;
+}
+
+async function findCustomerId(customerCode) {
+  const normalized = String(customerCode || '').trim();
+  if (!normalized) return null;
+
+  const result = await query(
+    `
+      select id
+      from customers
+      where customer_code = $1
+      limit 1
+    `,
+    [normalized],
+  );
+
+  return result.rows[0]?.id || null;
+}
+
+function classifyPortalQuestion(question, requestedCategory, requestedStatus) {
+  const text = String(question || '').toLowerCase();
+  const category = normalizeChoice(
+    requestedCategory,
+    ['general', 'settlement', 'contract', 'adsense', 'tax', 'policy', 'technical'],
+    'general',
+  );
+  const contains = (words) => words.some((word) => text.includes(word));
+  const blockedKeywords = [
+    '수익 보장',
+    '애드센스 승인 보장',
+    '승인 보장',
+    '순위 보장',
+    '트래픽 보장',
+    '정책 우회',
+    '계정 우회',
+    '클릭 유도',
+    '무효 트래픽',
+  ];
+  const reviewKeywords = [
+    '세금',
+    '원천징수',
+    '사업자',
+    '환급',
+    '애드센스',
+    'adsense',
+    '계약',
+    '해지',
+    '정산',
+    '입금',
+    '개인정보',
+  ];
+  const isBlocked = contains(blockedKeywords);
+  const needsReview = isBlocked || contains(reviewKeywords) || ['adsense', 'tax', 'policy', 'contract', 'settlement'].includes(category);
+  const status = isBlocked
+    ? 'blocked'
+    : needsReview
+      ? 'human_review'
+      : normalizeChoice(requestedStatus, ['open', 'ai_draft', 'human_review', 'answered', 'closed', 'blocked'], 'open');
+
+  return {
+    category,
+    status,
+    aiAllowed: !isBlocked && !needsReview,
+    humanReviewRequired: needsReview,
+  };
 }
 
 function mapNotification(row) {
@@ -299,6 +396,151 @@ async function createDomainCandidates(req, res) {
   }
 
   return sendJson(req, res, 201, { ok: true, savedCount: saved.length, candidates: saved });
+}
+
+async function createWordfriendsEvent(req, res) {
+  if (!requireEventToken(req, res)) return undefined;
+
+  const body = await readJsonBody(req);
+  const eventType = normalizeChoice(
+    body.eventType || body.event_type,
+    [
+      'page_view',
+      'signup_started',
+      'signup_completed',
+      'login',
+      'contract_started',
+      'contract_completed',
+      'site_viewed',
+      'settlement_viewed',
+      'question_submitted',
+      'ai_handoff',
+    ],
+    '',
+  );
+
+  if (!eventType) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'A valid eventType is required.',
+    });
+  }
+
+  const customerId = await findCustomerId(body.customerCode || body.customer_code);
+  const sessionId = String(body.sessionId || body.session_id || '').trim().slice(0, 120);
+  const pagePath = String(body.pagePath || body.page_path || '').trim().slice(0, 500);
+  const payload = {
+    ...(body.payload && typeof body.payload === 'object' ? body.payload : {}),
+    source: 'wordfriends',
+    client: getRequestClientMeta(req),
+  };
+
+  const event = await query(
+    `
+      insert into portal_activity_events (
+        customer_id, session_id, event_type, page_path, event_payload, occurred_at
+      )
+      values ($1, $2, $3, $4, $5::jsonb, now())
+      returning id::text, event_type, to_char(occurred_at, 'YYYY-MM-DD HH24:MI:SS') as occurred_at
+    `,
+    [customerId, sessionId || null, eventType, pagePath || null, JSON.stringify(payload)],
+  );
+
+  return sendJson(req, res, 201, {
+    ok: true,
+    event: event.rows[0],
+  });
+}
+
+async function createWordfriendsQuestion(req, res) {
+  if (!requireEventToken(req, res)) return undefined;
+
+  const body = await readJsonBody(req);
+  const question = String(body.question || '').trim();
+
+  if (question.length < 3) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'Question is required.',
+    });
+  }
+
+  const customerId = await findCustomerId(body.customerCode || body.customer_code);
+  const sessionId = String(body.sessionId || body.session_id || '').trim().slice(0, 120);
+  const pagePath = String(body.pagePath || body.page_path || '/contact').trim().slice(0, 500);
+  const classification = classifyPortalQuestion(question, body.category, body.status);
+  const answerSummary = String(body.answerSummary || body.answer_summary || '').trim();
+
+  const thread = await query(
+    `
+      insert into portal_question_threads (
+        customer_id, question, category, status, ai_allowed,
+        human_review_required, answer_summary, updated_at
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, now())
+      returning id::text, category, status, ai_allowed, human_review_required,
+        to_char(updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
+    `,
+    [
+      customerId,
+      question.slice(0, 2000),
+      classification.category,
+      classification.status,
+      classification.aiAllowed,
+      classification.humanReviewRequired,
+      answerSummary || null,
+    ],
+  );
+
+  await query(
+    `
+      insert into portal_activity_events (
+        customer_id, session_id, event_type, page_path, event_payload, occurred_at
+      )
+      values ($1, $2, 'question_submitted', $3, $4::jsonb, now())
+    `,
+    [
+      customerId,
+      sessionId || null,
+      pagePath || null,
+      JSON.stringify({
+        source: 'wordfriends',
+        questionThreadId: thread.rows[0].id,
+        category: classification.category,
+        status: classification.status,
+        client: getRequestClientMeta(req),
+      }),
+    ],
+  );
+
+  if (classification.humanReviewRequired) {
+    await query(
+      `
+        insert into portal_activity_events (
+          customer_id, session_id, event_type, page_path, event_payload, occurred_at
+        )
+        values ($1, $2, 'ai_handoff', $3, $4::jsonb, now())
+      `,
+      [
+        customerId,
+        sessionId || null,
+        pagePath || null,
+        JSON.stringify({
+          source: 'wordfriends',
+          questionThreadId: thread.rows[0].id,
+          reason: classification.status === 'blocked' ? 'blocked_keyword' : 'human_review_required',
+        }),
+      ],
+    );
+  }
+
+  return sendJson(req, res, 201, {
+    ok: true,
+    question: {
+      ...thread.rows[0],
+      customerCode: body.customerCode || body.customer_code || 'NO_CUSTOMER',
+    },
+  });
 }
 
 function getPublicBaseUrl(req) {
@@ -627,7 +869,7 @@ async function getDashboardData() {
 
   const portalRealtimeStats = await queryOptional(`
     select
-      count(*) filter (where occurred_at >= now() - interval '5 minutes')::int as active_5m,
+      count(distinct coalesce(session_id, id::text)) filter (where occurred_at >= now() - interval '5 minutes')::int as active_5m,
       count(*) filter (where event_type = 'signup_started' and occurred_at >= date_trunc('day', now()))::int as signup_started_today,
       count(*) filter (where event_type = 'signup_completed' and occurred_at >= date_trunc('day', now()))::int as signup_completed_today,
       count(*) filter (where event_type = 'contract_started' and occurred_at >= date_trunc('day', now()))::int as contract_started_today,
@@ -827,9 +1069,18 @@ const server = http.createServer(async (req, res) => {
   }
 
   const url = new URL(req.url, `http://${req.headers.host}`);
-  if (!requireAdminAuth(req, res)) return;
 
   try {
+    if (url.pathname === '/api/wordfriends/events' && req.method === 'POST') {
+      return createWordfriendsEvent(req, res);
+    }
+
+    if (url.pathname === '/api/wordfriends/questions' && req.method === 'POST') {
+      return createWordfriendsQuestion(req, res);
+    }
+
+    if (!requireAdminAuth(req, res)) return;
+
     if (url.pathname === '/api/health') {
       const db = await checkDatabase();
       return sendJson(req, res, 200, { ok: true, database: 'connected', checkedAt: db.now });
