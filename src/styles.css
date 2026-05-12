@@ -321,6 +321,78 @@ h2 {
   margin-top: 18px;
 }
 
+.site-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 150px 190px auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.site-toolbar label {
+  display: grid;
+  gap: 6px;
+}
+
+.site-toolbar label > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.site-toolbar input,
+.site-toolbar select {
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--panel-soft);
+  color: var(--text-main);
+}
+
+.site-search {
+  position: relative;
+}
+
+.site-search svg {
+  position: absolute;
+  left: 12px;
+  bottom: 11px;
+  color: var(--text-muted);
+}
+
+.site-search input {
+  padding-left: 38px;
+}
+
+.site-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 14px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+.table-meta,
+.pagination-bar,
+.detail-pill-row,
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-meta {
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.table-meta strong {
+  color: var(--text-main);
+}
+
 .filter-card {
   display: grid;
   gap: 8px;
@@ -387,6 +459,142 @@ h2 {
 
 .enhanced-sites-table .ops-row {
   grid-template-columns: minmax(220px, 1.1fr) 150px 150px 150px minmax(180px, 0.9fr) minmax(180px, 1fr);
+}
+
+.site-click-row {
+  width: 100%;
+  border: 0;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.site-click-row:hover,
+.site-click-row.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.pagination-bar {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.page-button {
+  min-width: 36px;
+  min-height: 36px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--text-main);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.page-button.active {
+  border-color: var(--accent);
+  background: #e3f5ef;
+  color: #126246;
+}
+
+:root[data-theme="dark"] .page-button.active {
+  background: #183a34;
+  color: #d7f8ea;
+}
+
+.page-ellipsis {
+  color: var(--text-muted);
+  font-weight: 800;
+}
+
+.secondary-action:disabled,
+.page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.site-detail-panel {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--panel-soft);
+}
+
+.site-detail-panel h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.site-detail-panel small {
+  color: var(--text-muted);
+}
+
+.detail-pill-row {
+  flex-wrap: wrap;
+}
+
+.detail-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.detail-list div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 32px;
+}
+
+.detail-list dt {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.detail-next-action {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 12px;
+}
+
+.detail-next-action span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-next-action p {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.detail-actions {
+  flex-wrap: wrap;
+}
+
+.detail-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #102027;
+  color: #d7f8ea;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .pill-stack {
@@ -1238,6 +1446,8 @@ h2 {
   .compose-row,
   .portal-grid,
   .site-filter-grid,
+  .site-toolbar,
+  .site-workbench,
   .split-grid {
     grid-template-columns: 1fr;
   }
@@ -1275,12 +1485,23 @@ h2 {
 
   .table-row,
   .sites-table .ops-row,
+  .enhanced-sites-table .ops-row,
   .queue-table .ops-row,
   .customer-table .ops-row,
   .sitemap-table .ops-row,
   .tax-table .ops-row {
     grid-template-columns: 1fr;
     padding: 12px;
+  }
+
+  .table-meta,
+  .pagination-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .detail-list div {
+    grid-template-columns: 1fr;
   }
 
   .table-head,

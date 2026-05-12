@@ -67,6 +67,7 @@ const emptyNotificationForm = {
 
 const siteStatusFilters = [
   { key: 'all', label: '전체' },
+  { key: 'review_required', label: '검수 필요' },
   { key: 'operating_ready', label: '운영 가능' },
   { key: 'setup_pipeline', label: '세팅 진행' },
   { key: 'recovery_review', label: '복구 검토' },
@@ -75,6 +76,8 @@ const siteStatusFilters = [
   { key: 'customer_portal', label: '고객포털' },
   { key: 'unclassified', label: '미분류' },
 ];
+
+const SITE_PAGE_SIZE = 20;
 
 const setupStatusFilters = [
   { key: 'all', label: '전체' },
@@ -135,9 +138,25 @@ function getSiteNextAction(site) {
   return '분류 기준 수동 검토';
 }
 
+function matchesSiteStatusFilter(site, filterKey) {
+  if (filterKey === 'all') return true;
+  if (filterKey === 'review_required') return Boolean(site.reviewRequired);
+  return site.portfolioStatus === filterKey;
+}
+
+function normalizeDisplayValue(value, fallback = '미정') {
+  if (!value || String(value).toLowerCase() === 'not_set') return fallback;
+  return value;
+}
+
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wp-auto-theme') || 'light');
   const [siteFilter, setSiteFilter] = useState('all');
+  const [siteQuery, setSiteQuery] = useState('');
+  const [siteLanguageFilter, setSiteLanguageFilter] = useState('all');
+  const [siteMonetizeFilter, setSiteMonetizeFilter] = useState('all');
+  const [sitePage, setSitePage] = useState(1);
+  const [selectedSiteKey, setSelectedSiteKey] = useState(null);
   const [setupFilter, setSetupFilter] = useState('all');
   const [inventoryQuery, setInventoryQuery] = useState('');
   const [inventoryGradeFilter, setInventoryGradeFilter] = useState('all');
@@ -155,6 +174,10 @@ function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('wp-auto-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    setSitePage(1);
+  }, [siteFilter, siteQuery, siteLanguageFilter, siteMonetizeFilter]);
 
   const reloadDashboard = useCallback(() => {
     setApiReloadToken((value) => value + 1);
@@ -261,15 +284,60 @@ function App() {
   });
   const siteCounts = siteStatusFilters.map((filter) => ({
     ...filter,
-    count:
-      filter.key === 'all'
-        ? dashboard.sites.length
-        : dashboard.sites.filter((site) => site.portfolioStatus === filter.key).length,
+    count: dashboard.sites.filter((site) => matchesSiteStatusFilter(site, filter.key)).length,
   }));
-  const filteredSites =
-    siteFilter === 'all'
-      ? dashboard.sites
-      : dashboard.sites.filter((site) => site.portfolioStatus === siteFilter);
+  const siteLanguageOptions = [
+    'all',
+    ...new Set(dashboard.sites.map((site) => site.language || 'unknown')),
+  ];
+  const siteMonetizeOptions = [
+    'all',
+    ...new Set(dashboard.sites.map((site) => site.monetizeMode || 'not_set')),
+  ];
+  const normalizedSiteQuery = siteQuery.trim().toLowerCase();
+  const filteredSites = dashboard.sites.filter((site) => {
+    const haystack = [
+      site.domain,
+      site.siteKey,
+      site.owner,
+      site.language,
+      site.topic,
+      site.portfolioStatus,
+      site.approvalStatus,
+      site.riskLevel,
+      site.monetizeMode,
+      site.setupStatus,
+      site.memo,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const queryMatch = !normalizedSiteQuery || haystack.includes(normalizedSiteQuery);
+    const statusMatch = matchesSiteStatusFilter(site, siteFilter);
+    const languageMatch = siteLanguageFilter === 'all' || (site.language || 'unknown') === siteLanguageFilter;
+    const monetizeMatch = siteMonetizeFilter === 'all' || (site.monetizeMode || 'not_set') === siteMonetizeFilter;
+    return queryMatch && statusMatch && languageMatch && monetizeMatch;
+  });
+  const sitePageCount = Math.max(1, Math.ceil(filteredSites.length / SITE_PAGE_SIZE));
+  const normalizedSitePage = Math.min(sitePage, sitePageCount);
+  const pagedSites = filteredSites.slice(
+    (normalizedSitePage - 1) * SITE_PAGE_SIZE,
+    normalizedSitePage * SITE_PAGE_SIZE,
+  );
+  const selectedSite = dashboard.sites.find((site) => site.siteKey === selectedSiteKey) || pagedSites[0] || null;
+  const selectedSiteQueue = selectedSite
+    ? dashboard.contentQueue.filter((item) => item.siteKey === selectedSite.siteKey)
+    : [];
+  const selectedSiteSitemaps = selectedSite
+    ? dashboard.sitemapSubmissions.filter((row) => row.domain === selectedSite.domain || row.siteKey === selectedSite.siteKey)
+    : [];
+  const selectedSiteSetup = selectedSite
+    ? dashboard.wpSetup.find((row) => row.domain === selectedSite.domain)
+    : null;
+  const selectedSiteErrors = [
+    ...dashboard.runLogs.filter((log) => log.siteKey === selectedSite?.siteKey && String(log.status || '').toLowerCase().includes('fail')),
+    ...selectedSiteSitemaps.filter((row) => row.status === 'failed'),
+  ];
   const setupCounts = setupStatusFilters.map((filter) => ({
     ...filter,
     count:
@@ -495,37 +563,188 @@ function App() {
                 </button>
               ))}
             </div>
-            <div className="ops-table sites-table enhanced-sites-table" role="table">
-              <div className="ops-row ops-head" role="row">
-                <span>도메인</span>
-                <span>운영상태</span>
-                <span>승인/위험도</span>
-                <span>세팅/수익화</span>
-                <span>다음 액션</span>
-                <span>메모</span>
-              </div>
-              {filteredSites.map((site) => (
-                <div className={`ops-row risk-${site.riskLevel || 'unknown'}`} role="row" key={site.siteKey}>
-                  <div>
-                    <strong>{site.domain}</strong>
-                    <small>{site.siteKey} · {site.language || '-'} · {site.topic || '-'}</small>
-                  </div>
-                  <div className="pill-stack">
-                    <StatusPill value={site.portfolioStatus || site.status} />
-                    <small>{site.owner}</small>
-                  </div>
-                  <div className="pill-stack">
-                    <StatusPill value={site.approvalStatus} />
-                    <StatusPill value={site.riskLevel} />
-                  </div>
-                  <div className="pill-stack">
-                    <StatusPill value={site.setupStatus} />
-                    <small>{site.monetizeMode || 'monetize 미정'}</small>
-                  </div>
-                  <strong>{getSiteNextAction(site)}</strong>
-                  <small>{site.memo || '운영 메모 없음'}</small>
+
+            <div className="site-toolbar" aria-label="도메인 검색과 추가 필터">
+              <label className="site-search">
+                <Search size={18} />
+                <input
+                  type="search"
+                  value={siteQuery}
+                  onChange={(event) => setSiteQuery(event.target.value)}
+                  placeholder="도메인, site_key, 메모, 상태 검색"
+                />
+              </label>
+              <label>
+                <span>언어</span>
+                <select value={siteLanguageFilter} onChange={(event) => setSiteLanguageFilter(event.target.value)}>
+                  {siteLanguageOptions.map((language) => (
+                    <option value={language} key={language}>
+                      {language === 'all' ? '전체' : language}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>수익화</span>
+                <select value={siteMonetizeFilter} onChange={(event) => setSiteMonetizeFilter(event.target.value)}>
+                  {siteMonetizeOptions.map((mode) => (
+                    <option value={mode} key={mode}>
+                      {mode === 'all' ? '전체' : normalizeDisplayValue(mode, '미정')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => {
+                  setSiteFilter('all');
+                  setSiteQuery('');
+                  setSiteLanguageFilter('all');
+                  setSiteMonetizeFilter('all');
+                }}
+              >
+                초기화
+              </button>
+            </div>
+
+            <div className="site-workbench">
+              <div>
+                <div className="table-meta">
+                  <strong>{filteredSites.length}개 도메인 표시</strong>
+                  <span>
+                    {filteredSites.length === 0
+                      ? '조건에 맞는 도메인이 없습니다'
+                      : `${(normalizedSitePage - 1) * SITE_PAGE_SIZE + 1}-${Math.min(
+                          normalizedSitePage * SITE_PAGE_SIZE,
+                          filteredSites.length,
+                        )} / ${filteredSites.length}`}
+                  </span>
                 </div>
-              ))}
+                <div className="ops-table sites-table enhanced-sites-table" role="table">
+                  <div className="ops-row ops-head" role="row">
+                    <span>도메인</span>
+                    <span>운영상태</span>
+                    <span>승인/위험도</span>
+                    <span>세팅/수익화</span>
+                    <span>다음 액션</span>
+                    <span>메모</span>
+                  </div>
+                  {pagedSites.map((site) => (
+                    <button
+                      className={`ops-row site-click-row risk-${site.riskLevel || 'unknown'} ${
+                        selectedSite?.siteKey === site.siteKey ? 'selected' : ''
+                      }`}
+                      role="row"
+                      key={site.siteKey}
+                      type="button"
+                      onClick={() => setSelectedSiteKey(site.siteKey)}
+                    >
+                      <div>
+                        <strong>{site.domain}</strong>
+                        <small>{site.siteKey} · {site.language || '-'} · {site.topic || '-'}</small>
+                      </div>
+                      <div className="pill-stack">
+                        <StatusPill value={site.portfolioStatus || site.status} />
+                        <small>{site.owner}</small>
+                      </div>
+                      <div className="pill-stack">
+                        <StatusPill value={site.approvalStatus} />
+                        <StatusPill value={site.riskLevel} />
+                      </div>
+                      <div className="pill-stack">
+                        <StatusPill value={site.setupStatus} />
+                        <small>{normalizeDisplayValue(site.monetizeMode, '수익화 미정')}</small>
+                      </div>
+                      <strong>{getSiteNextAction(site)}</strong>
+                      <small>{site.memo || '운영 메모 없음'}</small>
+                    </button>
+                  ))}
+                </div>
+                <div className="pagination-bar" aria-label="사이트 목록 페이지">
+                  <button
+                    className="secondary-action"
+                    type="button"
+                    disabled={normalizedSitePage === 1}
+                    onClick={() => setSitePage((current) => Math.max(1, current - 1))}
+                  >
+                    이전
+                  </button>
+                  {Array.from({ length: sitePageCount }, (_, index) => index + 1)
+                    .filter((page) => page === 1 || page === sitePageCount || Math.abs(page - normalizedSitePage) <= 2)
+                    .map((page, index, pages) => (
+                      <React.Fragment key={page}>
+                        {index > 0 && page - pages[index - 1] > 1 ? <span className="page-ellipsis">…</span> : null}
+                        <button
+                          className={`page-button ${normalizedSitePage === page ? 'active' : ''}`}
+                          type="button"
+                          onClick={() => setSitePage(page)}
+                        >
+                          {page}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  <button
+                    className="secondary-action"
+                    type="button"
+                    disabled={normalizedSitePage === sitePageCount}
+                    onClick={() => setSitePage((current) => Math.min(sitePageCount, current + 1))}
+                  >
+                    다음
+                  </button>
+                </div>
+              </div>
+
+              {selectedSite ? (
+                <aside className="site-detail-panel" aria-label="선택 도메인 상세">
+                  <div>
+                    <p className="eyebrow">Domain detail</p>
+                    <h3>{selectedSite.domain}</h3>
+                    <small>{selectedSite.siteKey} · {selectedSite.language || '-'} · {selectedSite.topic || '-'}</small>
+                  </div>
+                  <div className="detail-pill-row">
+                    <StatusPill value={selectedSite.portfolioStatus} />
+                    <StatusPill value={selectedSite.approvalStatus} />
+                    <StatusPill value={selectedSite.riskLevel} />
+                  </div>
+                  <dl className="detail-list">
+                    <div>
+                      <dt>WP Base</dt>
+                      <dd>{selectedSite.wpBaseUrl || '미등록'}</dd>
+                    </div>
+                    <div>
+                      <dt>WP 세팅</dt>
+                      <dd>{selectedSiteSetup?.status || selectedSite.setupStatus || '큐 없음'}</dd>
+                    </div>
+                    <div>
+                      <dt>콘텐츠 큐</dt>
+                      <dd>{selectedSiteQueue.length}건</dd>
+                    </div>
+                    <div>
+                      <dt>사이트맵</dt>
+                      <dd>{selectedSiteSitemaps.length}건</dd>
+                    </div>
+                    <div>
+                      <dt>수익화</dt>
+                      <dd>{normalizeDisplayValue(selectedSite.monetizeMode, '미정')} / {selectedSite.adsense || '미확인'}</dd>
+                    </div>
+                    <div>
+                      <dt>에러</dt>
+                      <dd>{selectedSiteErrors.length}건</dd>
+                    </div>
+                  </dl>
+                  <div className="detail-next-action">
+                    <span>다음 액션</span>
+                    <strong>{getSiteNextAction(selectedSite)}</strong>
+                    <p>{selectedSite.memo || '운영 메모 없음'}</p>
+                  </div>
+                  <div className="detail-actions">
+                    <a href="#errors">에러 센터</a>
+                    <a href="#seo">SEO 현황</a>
+                    <a href="#sitemaps">사이트맵</a>
+                  </div>
+                </aside>
+              ) : null}
             </div>
           </article>
 
