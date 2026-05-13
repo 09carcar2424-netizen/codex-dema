@@ -1050,6 +1050,69 @@ h2 {
   font-size: 16px;
 }
 
+.revenue-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.policy-ledger-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel-soft);
+}
+
+.compact-heading {
+  margin-bottom: 12px;
+}
+
+.compact-heading h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.policy-ledger-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr);
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid var(--panel-border);
+  padding: 12px 0;
+}
+
+.policy-ledger-row:first-of-type {
+  border-top: 0;
+}
+
+.policy-ledger-row strong,
+.policy-ledger-row span {
+  color: var(--text);
+  font-weight: 900;
+}
+
+.policy-ledger-row small {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.validation-table {
+  margin-top: 18px;
+}
+
+.validation-table .ops-row {
+  grid-template-columns: minmax(90px, 0.35fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr) minmax(110px, 0.4fr) minmax(360px, 1.5fr);
+}
+
+.validation-table .ops-row > span {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .portal-rule-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1920,6 +1983,7 @@ h2 {
   .compose-row,
   .portal-grid,
   .portal-rule-grid,
+  .revenue-policy-grid,
   .realtime-card-grid,
   .site-filter-grid,
   .site-toolbar,
@@ -1945,6 +2009,11 @@ h2 {
   .sitemap-table .ops-row,
   .tax-table .ops-row {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .validation-table .ops-row,
+  .policy-ledger-row {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -457,6 +457,72 @@ function App() {
     '앱 비밀번호, 애드센스 로그인, API 키, 토큰은 Wordfriends와 DB에 평문 저장 금지',
     '세금, 정책 회피, 의료/금융/법률성 문의는 AI 자동 답변 없이 사람 검토로 전환',
   ];
+  const productPolicyRows = [
+    {
+      label: '정가 기준',
+      value: '5,000,000원',
+      status: 'internal_list_price',
+      note: '실제 판매 이력/고지 기준이 정리되기 전에는 내부 기준가로만 관리',
+    },
+    {
+      label: '추천 이벤트 세팅비',
+      value: '3,000,000원',
+      status: 'event_price',
+      note: '숙성 도메인, 기본 페이지, WP 세팅, 초기 발행 준비 포함',
+    },
+    {
+      label: 'BOSS 수익 쉐어',
+      value: '40%',
+      status: 'agency_share',
+      note: '추천 월 인센티브가 붙은 도메인은 BOSS 실수령 기준 35%로 별도 계산',
+    },
+  ];
+  const referralPolicyRows = [
+    {
+      label: '직접 추천 세팅 인센티브',
+      value: '500,000원',
+      status: 'active',
+      note: '계약/입금/철회 기간 확인 후 당일 또는 매월 5일 전 지급',
+    },
+    {
+      label: '직접 추천 월 인센티브',
+      value: 'AdSense 총수입 5%',
+      status: 'active',
+      note: '고객 제공 정산자료 기준, 해당 도메인 유지 기간에만 지급',
+    },
+    {
+      label: '2단계 추천',
+      value: '비활성',
+      status: 'legal_review',
+      note: '방문판매/후원방문판매 리스크 검토 전까지 관리자 계산만 보류',
+    },
+  ];
+  const threeYearValidationRows = [
+    {
+      year: '1년차',
+      domains: '120개',
+      setupNet: '3.0억',
+      shareNet: '0.25억',
+      total: '3.25억',
+      assumption: '월 10개, 평균 활성 60개, 도메인 월 총수입 10만원',
+    },
+    {
+      year: '2년차',
+      domains: '240개',
+      setupNet: '3.0억',
+      shareNet: '1.89억',
+      total: '4.89억',
+      assumption: '평균 활성 180개, 도메인 월 총수입 25만원',
+    },
+    {
+      year: '3년차',
+      domains: '360개',
+      setupNet: '3.0억',
+      shareNet: '5.04억',
+      total: '8.04억',
+      assumption: '평균 활성 300개, 도메인 월 총수입 40만원',
+    },
+  ];
   const googleSitemaps = dashboard.sitemapSubmissions.filter((row) => row.searchEngine === 'google');
   const googleSubmittedSitemaps = googleSitemaps.filter((row) => ['submitted', 'verified'].includes(row.status));
   const googleReadySitemaps = googleSitemaps.filter((row) => ['ready', 'failed'].includes(row.status));
@@ -2439,6 +2505,73 @@ function App() {
                   </div>
                 ))}
               </div>
+            </div>
+            <div className="revenue-policy-grid">
+              <article className="policy-ledger-card">
+                <div className="panel-heading compact-heading">
+                  <div>
+                    <p className="eyebrow">pricing policy</p>
+                    <h3>상품/세팅비 기준</h3>
+                  </div>
+                  <span className="status-pill planned">내부 기준</span>
+                </div>
+                {productPolicyRows.map((row) => (
+                  <div className="policy-ledger-row" key={row.label}>
+                    <div>
+                      <strong>{row.label}</strong>
+                      <small>{row.note}</small>
+                    </div>
+                    <span>{row.value}</span>
+                    <StatusPill value={row.status} />
+                  </div>
+                ))}
+              </article>
+              <article className="policy-ledger-card">
+                <div className="panel-heading compact-heading">
+                  <div>
+                    <p className="eyebrow">referral policy</p>
+                    <h3>추천 인센티브</h3>
+                  </div>
+                  <span className="status-pill active">1단계 확정</span>
+                </div>
+                {referralPolicyRows.map((row) => (
+                  <div className="policy-ledger-row" key={row.label}>
+                    <div>
+                      <strong>{row.label}</strong>
+                      <small>{row.note}</small>
+                    </div>
+                    <span>{row.value}</span>
+                    <StatusPill value={row.status} />
+                  </div>
+                ))}
+              </article>
+            </div>
+            <div className="ops-table validation-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>기간</span>
+                <span>누적 도메인</span>
+                <span>세팅 순매출</span>
+                <span>쉐어 순매출</span>
+                <span>합계</span>
+                <span>검증 가정</span>
+              </div>
+              {threeYearValidationRows.map((row) => (
+                <div className="ops-row" role="row" key={row.year}>
+                  <strong>{row.year}</strong>
+                  <span>{row.domains}</span>
+                  <span>{row.setupNet}</span>
+                  <span>{row.shareNet}</span>
+                  <strong>{row.total}</strong>
+                  <span>{row.assumption}</span>
+                </div>
+              ))}
+            </div>
+            <div className="tax-notice">
+              <AlertTriangle size={20} />
+              <p>
+                정가 500만원 및 이벤트 300만원은 내부 정책 기준입니다. 실제 고객 고지에는 수익, 애드센스 승인,
+                트래픽, 순위를 보장하지 않으며, 2단계 추천 수당은 법무 검토 전까지 비활성으로 유지합니다.
+              </p>
             </div>
           </article>
 
