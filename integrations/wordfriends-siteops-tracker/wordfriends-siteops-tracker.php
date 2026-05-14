@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.2.2
+ * Version: 0.2.3
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.2.2';
+const WORDFRIENDS_SITEOPS_VERSION = '0.2.3';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -591,6 +591,14 @@ function wordfriends_siteops_customer_home_url() {
     return home_url('/login/');
 }
 
+function wordfriends_siteops_login_page_url() {
+    return home_url('/login/');
+}
+
+function wordfriends_siteops_logout_page_url() {
+    return home_url('/logout/');
+}
+
 function wordfriends_siteops_is_customer_user($user = null) {
     if (!$user) {
         $user = wp_get_current_user();
@@ -632,6 +640,34 @@ function wordfriends_siteops_customer_login_redirect($redirect_to, $requested_re
     return $redirect_to;
 }
 add_filter('login_redirect', 'wordfriends_siteops_customer_login_redirect', 10, 3);
+
+function wordfriends_siteops_customer_logout_redirect($redirect_to, $requested_redirect_to, $user) {
+    if ($user instanceof WP_User && wordfriends_siteops_is_customer_user($user)) {
+        return wordfriends_siteops_login_page_url();
+    }
+
+    return $redirect_to ?: wordfriends_siteops_login_page_url();
+}
+add_filter('logout_redirect', 'wordfriends_siteops_customer_logout_redirect', 10, 3);
+
+function wordfriends_siteops_customer_login_url($login_url, $redirect, $force_reauth) {
+    if (is_admin()) {
+        return $login_url;
+    }
+
+    $url = wordfriends_siteops_login_page_url();
+
+    if ($redirect) {
+        $url = add_query_arg('redirect_to', rawurlencode($redirect), $url);
+    }
+
+    if ($force_reauth) {
+        $url = add_query_arg('reauth', '1', $url);
+    }
+
+    return $url;
+}
+add_filter('login_url', 'wordfriends_siteops_customer_login_url', 10, 3);
 
 function wordfriends_siteops_ajax_event() {
     check_ajax_referer('wordfriends_siteops_event', 'nonce');
