@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.2.1
+ * Version: 0.2.2
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.2.1';
+const WORDFRIENDS_SITEOPS_VERSION = '0.2.2';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -586,6 +586,52 @@ function wordfriends_siteops_logout_shortcode($atts = []) {
     return '<div class="wordfriends-auth"><h2>로그아웃</h2><p>' . esc_html($user->display_name ?: $user->user_login) . ' 계정으로 로그인되어 있습니다.</p><a class="wordfriends-button wordfriends-button-secondary" href="' . esc_url($logout_url) . '">로그아웃</a></div>';
 }
 add_shortcode('wordfriends_logout', 'wordfriends_siteops_logout_shortcode');
+
+function wordfriends_siteops_customer_home_url() {
+    return home_url('/login/');
+}
+
+function wordfriends_siteops_is_customer_user($user = null) {
+    if (!$user) {
+        $user = wp_get_current_user();
+    }
+
+    if (!$user || empty($user->ID)) {
+        return false;
+    }
+
+    return !user_can($user, 'edit_posts');
+}
+
+function wordfriends_siteops_hide_customer_admin_bar($show) {
+    if (is_user_logged_in() && wordfriends_siteops_is_customer_user()) {
+        return false;
+    }
+
+    return $show;
+}
+add_filter('show_admin_bar', 'wordfriends_siteops_hide_customer_admin_bar');
+
+function wordfriends_siteops_block_customer_admin() {
+    if (!is_admin() || wp_doing_ajax() || !is_user_logged_in()) {
+        return;
+    }
+
+    if (wordfriends_siteops_is_customer_user()) {
+        wp_safe_redirect(wordfriends_siteops_customer_home_url());
+        exit;
+    }
+}
+add_action('admin_init', 'wordfriends_siteops_block_customer_admin');
+
+function wordfriends_siteops_customer_login_redirect($redirect_to, $requested_redirect_to, $user) {
+    if ($user instanceof WP_User && wordfriends_siteops_is_customer_user($user)) {
+        return wordfriends_siteops_customer_home_url();
+    }
+
+    return $redirect_to;
+}
+add_filter('login_redirect', 'wordfriends_siteops_customer_login_redirect', 10, 3);
 
 function wordfriends_siteops_ajax_event() {
     check_ajax_referer('wordfriends_siteops_event', 'nonce');
