@@ -17,6 +17,7 @@
     "sync:sitemaps": "node scripts/sync-sitemap-submissions.mjs",
     "sync:siteops-readiness": "node scripts/sync-siteops-readiness.mjs",
     "report:siteops-readiness": "node scripts/report-siteops-readiness.mjs",
+    "report:domain-quarantine": "node scripts/report-domain-quarantine.mjs",
     "submit:sitemaps:google": "node scripts/submit-google-sitemaps.mjs"
   },
   "dependencies": {
