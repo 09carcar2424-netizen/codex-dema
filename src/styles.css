@@ -1113,6 +1113,34 @@ h2 {
   line-height: 1.5;
 }
 
+.proxy-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.proxy-table {
+  margin-top: 18px;
+}
+
+.proxy-table .ops-row {
+  grid-template-columns: minmax(190px, 0.9fr) minmax(190px, 0.9fr) minmax(130px, 0.55fr) minmax(180px, 0.8fr) minmax(150px, 0.65fr) minmax(110px, 0.45fr);
+}
+
+.proxy-table .ops-row > span {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.proxy-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
 .portal-rule-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1983,6 +2011,8 @@ h2 {
   .compose-row,
   .portal-grid,
   .portal-rule-grid,
+  .proxy-readiness-grid,
+  .proxy-rule-grid,
   .revenue-policy-grid,
   .realtime-card-grid,
   .site-filter-grid,
@@ -2012,6 +2042,7 @@ h2 {
   }
 
   .validation-table .ops-row,
+  .proxy-table .ops-row,
   .policy-ledger-row {
     grid-template-columns: 1fr;
   }
@@ -2034,6 +2065,7 @@ h2 {
   .enhanced-sites-table .ops-row,
   .queue-table .ops-row,
   .customer-table .ops-row,
+  .proxy-table .ops-row,
   .sitemap-table .ops-row,
   .tax-table .ops-row {
     grid-template-columns: 1fr;

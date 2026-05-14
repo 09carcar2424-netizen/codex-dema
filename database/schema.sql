@@ -172,6 +172,26 @@ CREATE TABLE IF NOT EXISTS wordpress_connections (
   CHECK (status IN ('pending', 'verified', 'failed', 'disabled'))
 );
 
+CREATE TABLE IF NOT EXISTS site_proxy_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+  proxy_profile_key TEXT NOT NULL UNIQUE,
+  proxy_provider TEXT NOT NULL DEFAULT 'manual',
+  proxy_type TEXT NOT NULL DEFAULT 'datacenter',
+  proxy_region TEXT NOT NULL DEFAULT 'KR',
+  egress_policy TEXT NOT NULL DEFAULT 'wp_publish_only',
+  credential_ref TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'planned',
+  last_verified_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(site_id),
+  CHECK (proxy_type IN ('datacenter', 'residential', 'mobile', 'none')),
+  CHECK (egress_policy IN ('wp_publish_only', 'wp_admin_ops', 'search_console_ops', 'disabled')),
+  CHECK (status IN ('planned', 'active', 'verify_required', 'failed', 'disabled'))
+);
+
 CREATE TABLE IF NOT EXISTS site_ai_settings (
   site_id UUID PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,
   automation_enabled BOOLEAN NOT NULL DEFAULT false,
@@ -670,6 +690,8 @@ CREATE INDEX IF NOT EXISTS idx_portal_activity_event_type ON portal_activity_eve
 CREATE INDEX IF NOT EXISTS idx_portal_questions_status ON portal_question_threads(status);
 CREATE INDEX IF NOT EXISTS idx_portal_questions_customer ON portal_question_threads(customer_id);
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
+CREATE INDEX IF NOT EXISTS idx_site_proxy_assignments_site ON site_proxy_assignments(site_id);
+CREATE INDEX IF NOT EXISTS idx_site_proxy_assignments_status ON site_proxy_assignments(status);
 CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);
 CREATE INDEX IF NOT EXISTS idx_referral_rewards_status ON referral_rewards(status);
 CREATE INDEX IF NOT EXISTS idx_withholding_estimates_customer ON withholding_estimates(customer_id);

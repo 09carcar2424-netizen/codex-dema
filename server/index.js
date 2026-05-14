@@ -867,6 +867,28 @@ async function getDashboardData() {
     limit 100
   `);
 
+  const proxyAssignments = await queryOptional(`
+    select spa.id::text, s.site_key, s.domain, coalesce(c.customer_code, 'BOSS') as customer_code,
+      spa.proxy_profile_key, spa.proxy_provider, spa.proxy_type, spa.proxy_region,
+      spa.egress_policy, spa.credential_ref, spa.status,
+      to_char(spa.last_verified_at, 'YYYY-MM-DD HH24:MI') as last_verified_at,
+      spa.notes
+    from site_proxy_assignments spa
+    join sites s on s.id = spa.site_id
+    left join customers c on c.id = s.customer_id
+    order by
+      case spa.status
+        when 'failed' then 1
+        when 'verify_required' then 2
+        when 'planned' then 3
+        when 'active' then 4
+        when 'disabled' then 5
+        else 6
+      end,
+      s.domain
+    limit 100
+  `);
+
   const portalRealtimeStats = await queryOptional(`
     select
       count(distinct coalesce(session_id, id::text)) filter (where occurred_at >= now() - interval '5 minutes')::int as active_5m,
@@ -1019,6 +1041,21 @@ async function getDashboardData() {
       notes: row.notes,
     })),
     domainCandidates: domainCandidates.rows.map(mapDomainCandidate),
+    proxyAssignments: proxyAssignments.rows.map((row) => ({
+      id: row.id,
+      siteKey: row.site_key,
+      domain: row.domain,
+      customerCode: row.customer_code,
+      profileKey: row.proxy_profile_key,
+      provider: row.proxy_provider,
+      proxyType: row.proxy_type,
+      region: row.proxy_region,
+      egressPolicy: row.egress_policy,
+      credentialRef: row.credential_ref,
+      status: row.status,
+      lastVerifiedAt: row.last_verified_at,
+      notes: row.notes,
+    })),
     portalRealtime: {
       activeVisitors5m: Number(realtimeRow.active_5m || 0),
       signupStartedToday: Number(realtimeRow.signup_started_today || 0),

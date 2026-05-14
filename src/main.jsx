@@ -60,6 +60,7 @@ const fallbackDashboard = {
   domainInventory: domainInventoryRows,
   sitemapSubmissions: sitemapRows,
   domainCandidates: [],
+  proxyAssignments: [],
   portalRealtime: {
     activeVisitors5m: 0,
     signupStartedToday: 0,
@@ -328,6 +329,7 @@ function App() {
           domainInventory: data.domainInventory?.length ? data.domainInventory : domainInventoryRows,
           sitemapSubmissions: data.sitemapSubmissions?.length ? data.sitemapSubmissions : sitemapRows,
           domainCandidates: data.domainCandidates || [],
+          proxyAssignments: data.proxyAssignments || [],
           portalRealtime: data.portalRealtime || fallbackDashboard.portalRealtime,
         });
         setApiState({
@@ -523,6 +525,30 @@ function App() {
       assumption: '평균 활성 300개, 도메인 월 총수입 40만원',
     },
   ];
+  const proxyAssignments = dashboard.proxyAssignments || [];
+  const proxyPlanningRows = proxyAssignments.length
+    ? proxyAssignments
+    : dashboard.sites
+        .filter((site) => !site.isInternalInfra && site.portfolioStatus !== 'infra_internal')
+        .slice(0, 8)
+        .map((site) => ({
+          siteKey: site.siteKey,
+          domain: site.domain,
+          customerCode: site.owner === 'Customer owned' ? 'CUSTOMER' : 'BOSS',
+          profileKey: `PXY_${String(site.siteKey || site.domain).toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`,
+          provider: 'manual',
+          proxyType: site.language === 'ko' ? 'datacenter' : 'datacenter',
+          region: site.language === 'ko' ? 'KR' : 'US',
+          egressPolicy: 'wp_publish_only',
+          credentialRef: 'N8N_CREDENTIAL_REQUIRED',
+          status: 'planned',
+          lastVerifiedAt: '',
+          notes: 'N8N HTTP Request 노드에서 이 프로필 키를 기준으로 운영 접속 경로를 선택',
+        }));
+  const proxyActiveCount = proxyAssignments.filter((row) => row.status === 'active').length;
+  const proxyNeedsCheckCount = proxyPlanningRows.filter((row) =>
+    ['planned', 'verify_required', 'failed'].includes(row.status),
+  ).length;
   const googleSitemaps = dashboard.sitemapSubmissions.filter((row) => row.searchEngine === 'google');
   const googleSubmittedSitemaps = googleSitemaps.filter((row) => ['submitted', 'verified'].includes(row.status));
   const googleReadySitemaps = googleSitemaps.filter((row) => ['ready', 'failed'].includes(row.status));
@@ -1024,6 +1050,7 @@ function App() {
           <a href="#portal-admin"><ClipboardCheck size={18} />포털 관리</a>
           <a href="#realtime"><Activity size={18} />실시간 관제</a>
           <a href="#settlements"><WalletCards size={18} />정산/추천</a>
+          <a href="#proxy"><ServerCog size={18} />프록시 격리</a>
           <a href="#tax"><ClipboardCheck size={18} />세액 안내</a>
           <a href="#notifications"><Bell size={18} />알림센터</a>
           <a href="#n8n"><Play size={18} />N8N 실행</a>
@@ -2572,6 +2599,86 @@ function App() {
                 정가 500만원 및 이벤트 300만원은 내부 정책 기준입니다. 실제 고객 고지에는 수익, 애드센스 승인,
                 트래픽, 순위를 보장하지 않으며, 2단계 추천 수당은 법무 검토 전까지 비활성으로 유지합니다.
               </p>
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="proxy">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">proxy isolation</p>
+                <h2>도메인별 운영 접속 경로</h2>
+              </div>
+              <span className="status-pill planned">N8N 연동 준비</span>
+            </div>
+            <div className="proxy-readiness-grid">
+              <article className="delivery-card">
+                <strong>{proxyPlanningRows.length}</strong>
+                <span>관리 대상 프로필</span>
+                <p>사이트별 발행/점검 접속 경로를 프로필 키로 분리합니다. 비밀번호와 토큰은 DB에 저장하지 않습니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{proxyActiveCount}</strong>
+                <span>활성 확인 완료</span>
+                <p>실제 프록시 연결 확인이 끝난 프로필만 N8N 발행 워크플로우에서 사용하도록 둡니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{proxyNeedsCheckCount}</strong>
+                <span>배정/검증 필요</span>
+                <p>planned, verify_required, failed 상태는 자동 발행 전에 운영자가 확인해야 합니다.</p>
+              </article>
+            </div>
+            <div className="ops-table proxy-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>도메인</span>
+                <span>프로필</span>
+                <span>유형/지역</span>
+                <span>N8N Credential</span>
+                <span>정책</span>
+                <span>상태</span>
+              </div>
+              {proxyPlanningRows.map((row) => (
+                <div className="ops-row" role="row" key={`${row.domain}-${row.profileKey}`}>
+                  <div>
+                    <strong>{row.domain}</strong>
+                    <small>{row.siteKey} · {row.customerCode}</small>
+                  </div>
+                  <span>{row.profileKey}</span>
+                  <span>{row.proxyType} · {row.region}</span>
+                  <span>{row.credentialRef}</span>
+                  <span>{row.egressPolicy}</span>
+                  <StatusPill value={row.status} />
+                </div>
+              ))}
+            </div>
+            <div className="proxy-rule-grid">
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>저장 기준</strong>
+                  <p>SiteOps DB에는 프로필 키와 상태만 저장합니다. proxy_user, proxy_pass, 토큰은 N8N Credential 또는 서버 환경변수에 둡니다.</p>
+                </div>
+              </article>
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>발행 기준</strong>
+                  <p>N8N은 글 발행 전 site_key로 프록시 프로필을 조회하고, active가 아니면 자동 발행을 보류합니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>고객 공개 금지</strong>
+                  <p>프록시, 서버, IP, 접속 경로 정보는 내부 보안/운영 기록입니다. Wordfriends 고객 화면에는 노출하지 않습니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>표현 기준</strong>
+                  <p>프록시는 운영 격리와 감사 추적 목적입니다. 정책 회피, 승인 보장, 안전 보장 표현으로 설명하지 않습니다.</p>
+                </div>
+              </article>
             </div>
           </article>
 
