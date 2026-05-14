@@ -787,7 +787,7 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
   );
 
   if (responseError) {
-    return sendJson(req, res, 502, {
+    return sendJson(req, res, 200, {
       ok: false,
       error: `Email send failed: ${responseError}`,
       question: updated.rows[0],

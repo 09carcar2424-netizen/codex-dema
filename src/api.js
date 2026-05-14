@@ -89,7 +89,9 @@ export async function saveWordfriendsQuestionReply(questionId, payload, apiBaseU
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || error.error || 'Question reply request failed');
+    const requestError = new Error(error.detail || error.error || 'Question reply request failed');
+    requestError.payload = error;
+    throw requestError;
   }
 
   return response.json();

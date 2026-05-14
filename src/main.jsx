@@ -392,6 +392,7 @@ function App() {
         responseStatus,
         status: responseStatus === 'sent' ? 'answered' : draft.status,
       });
+      const resultError = result.ok === false ? result.error : '';
       const savedQuestion = normalizeSavedQuestionReply(question, result.question, draft, responseStatus);
       setQuestionReplyDrafts((current) => ({
         ...current,
@@ -421,6 +422,15 @@ function App() {
             : '답변 초안을 저장했습니다.',
         },
       }));
+      if (resultError) {
+        setQuestionReplySaveState((current) => ({
+          ...current,
+          [question.id]: {
+            status: 'saved',
+            message: `기록은 저장했습니다. 외부 발송만 실패했습니다: ${resultError}`,
+          },
+        }));
+      }
       if (responseStatus === 'sent') {
         reloadDashboard();
       }
