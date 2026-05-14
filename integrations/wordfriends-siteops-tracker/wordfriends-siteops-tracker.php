@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.2.4
+ * Version: 0.2.5
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.2.4';
+const WORDFRIENDS_SITEOPS_VERSION = '0.2.5';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -576,7 +576,7 @@ function wordfriends_siteops_logout_shortcode($atts = []) {
     ], $atts, 'wordfriends_logout');
 
     if (!is_user_logged_in()) {
-        return '<div class="wordfriends-auth"><h2>로그아웃 상태입니다.</h2><p>고객 계정으로 다시 이용하려면 로그인해 주세요.</p><a class="wordfriends-button wordfriends-button-secondary" href="' . esc_url(home_url('/login/')) . '">로그인</a></div>';
+        return '<div class="wordfriends-auth"><h2>로그아웃 상태입니다.</h2><p>고객 계정으로 다시 이용하려면 상단의 로그인 메뉴를 이용해 주세요.</p></div>';
     }
 
     $user = wp_get_current_user();
