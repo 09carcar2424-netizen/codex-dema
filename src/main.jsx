@@ -61,6 +61,9 @@ const fallbackDashboard = {
   sitemapSubmissions: sitemapRows,
   domainCandidates: [],
   proxyAssignments: [],
+  runtimeProfiles: [],
+  healthAlerts: [],
+  trustPlans: [],
   portalRealtime: {
     activeVisitors5m: 0,
     signupStartedToday: 0,
@@ -330,6 +333,9 @@ function App() {
           sitemapSubmissions: data.sitemapSubmissions?.length ? data.sitemapSubmissions : sitemapRows,
           domainCandidates: data.domainCandidates || [],
           proxyAssignments: data.proxyAssignments || [],
+          runtimeProfiles: data.runtimeProfiles || [],
+          healthAlerts: data.healthAlerts || [],
+          trustPlans: data.trustPlans || [],
           portalRealtime: data.portalRealtime || fallbackDashboard.portalRealtime,
         });
         setApiState({
@@ -549,6 +555,79 @@ function App() {
   const proxyNeedsCheckCount = proxyPlanningRows.filter((row) =>
     ['planned', 'verify_required', 'failed'].includes(row.status),
   ).length;
+  const runtimeProfileRows = dashboard.runtimeProfiles?.length
+    ? dashboard.runtimeProfiles
+    : proxyPlanningRows.slice(0, 8).map((row) => ({
+        siteKey: row.siteKey,
+        domain: row.domain,
+        requestProfileKey: `REQ_${String(row.siteKey || row.domain).toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`,
+        userAgentLabel: 'siteops-editorial-default',
+        publishWindowStart: 9,
+        publishWindowEnd: 21,
+        maxPostsPerDay: 1,
+        styleProfile: 'balanced_editorial',
+        qualityGate: 'review_first',
+        status: 'planned',
+        notes: 'N8N은 이 프로필을 읽고 발행 시간, 스타일, 검수 기준을 적용',
+      }));
+  const healthAlertRows = dashboard.healthAlerts?.length
+    ? dashboard.healthAlerts
+    : [
+        {
+          id: 'alert-template-ctr',
+          siteKey: 'template',
+          domain: 'Search Console 연결 후',
+          alertType: 'ctr_drop',
+          severity: 'warning',
+          status: 'planned',
+          metricName: 'CTR',
+          currentValue: null,
+          baselineValue: null,
+          thresholdValue: -30,
+          title: 'CTR 급락 감지',
+          message: '최근 7일 CTR이 기준 대비 30% 이상 하락하면 Red Alert로 표시',
+          source: 'search_console',
+          detectedAt: '연동 대기',
+        },
+        {
+          id: 'alert-template-ads',
+          siteKey: 'template',
+          domain: 'AdSense 연결 후',
+          alertType: 'ads_serving_issue',
+          severity: 'critical',
+          status: 'planned',
+          metricName: 'ads_serving',
+          currentValue: null,
+          baselineValue: null,
+          thresholdValue: null,
+          title: '광고 송출 이상',
+          message: '고객 제공 자료 또는 API 연동값 기준으로 광고 송출 중단 의심 시 내부 알림',
+          source: 'adsense',
+          detectedAt: '연동 대기',
+        },
+      ];
+  const trustPlanRows = dashboard.trustPlans?.length
+    ? dashboard.trustPlans
+    : dashboard.domainInventory
+        .filter((row) => ['watch', 'safe_candidate', 'unrated'].includes(row.finalGrade || 'unrated'))
+        .slice(0, 8)
+        .map((row) => ({
+          id: `trust-${row.domain}`,
+          siteKey: row.domain,
+          domain: row.domain,
+          planStage: row.finalGrade === 'safe_candidate' ? 'content_build' : 'incubating',
+          trustScore: row.overallScore || 0,
+          contentTarget: 30,
+          indexedTarget: 10,
+          authorityOutboundTarget: 5,
+          outboundPolicy: 'editorial_reference_only',
+          nextAction: row.ymylRiskLevel === 'high' ? 'YMYL 검수 기준 강화 후 콘텐츠 발행' : '기초 콘텐츠와 공신력 출처 인용 계획 수립',
+          status: 'active',
+          lastReviewedAt: '',
+          notes: row.memo,
+        }));
+  const criticalHealthAlerts = healthAlertRows.filter((row) => row.severity === 'critical' && row.status !== 'resolved');
+  const openHealthAlerts = healthAlertRows.filter((row) => ['open', 'planned', 'acknowledged'].includes(row.status));
   const googleSitemaps = dashboard.sitemapSubmissions.filter((row) => row.searchEngine === 'google');
   const googleSubmittedSitemaps = googleSitemaps.filter((row) => ['submitted', 'verified'].includes(row.status));
   const googleReadySitemaps = googleSitemaps.filter((row) => ['ready', 'failed'].includes(row.status));
@@ -1051,6 +1130,8 @@ function App() {
           <a href="#realtime"><Activity size={18} />실시간 관제</a>
           <a href="#settlements"><WalletCards size={18} />정산/추천</a>
           <a href="#proxy"><ServerCog size={18} />프록시 격리</a>
+          <a href="#red-alert"><AlertTriangle size={18} />Red Alert</a>
+          <a href="#trust-score"><ShieldCheck size={18} />Trust Score</a>
           <a href="#tax"><ClipboardCheck size={18} />세액 안내</a>
           <a href="#notifications"><Bell size={18} />알림센터</a>
           <a href="#n8n"><Play size={18} />N8N 실행</a>
@@ -2677,6 +2758,136 @@ function App() {
                 <div>
                   <strong>표현 기준</strong>
                   <p>프록시는 운영 격리와 감사 추적 목적입니다. 정책 회피, 승인 보장, 안전 보장 표현으로 설명하지 않습니다.</p>
+                </div>
+              </article>
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="red-alert">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">site health alerts</p>
+                <h2>Red Alert 이상 감지</h2>
+              </div>
+              <span className={`status-pill ${criticalHealthAlerts.length ? 'critical' : 'planned'}`}>
+                {criticalHealthAlerts.length ? '즉시 확인' : '연동 준비'}
+              </span>
+            </div>
+            <div className="alert-summary-grid">
+              <article className="delivery-card">
+                <strong>{openHealthAlerts.length}</strong>
+                <span>열린 알림</span>
+                <p>CTR, 노출, 광고 송출, WordPress 발행 실패를 내부 운영자가 먼저 확인하도록 모읍니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>{criticalHealthAlerts.length}</strong>
+                <span>긴급 알림</span>
+                <p>고객에게 노출하기 전에 BOSS 내부에서 원인 확인과 조치 메모를 남기는 기준입니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>API</strong>
+                <span>Search Console / AdSense</span>
+                <p>Search Console은 자동 연동 우선, AdSense는 고객 제공 자료 또는 공식 연동 가능 범위에서 처리합니다.</p>
+              </article>
+            </div>
+            <div className="ops-table alert-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>도메인</span>
+                <span>알림</span>
+                <span>지표</span>
+                <span>출처</span>
+                <span>상태</span>
+                <span>감지</span>
+              </div>
+              {healthAlertRows.map((row) => (
+                <div className="ops-row" role="row" key={row.id}>
+                  <div>
+                    <strong>{row.domain || row.siteKey}</strong>
+                    <small>{row.siteKey}</small>
+                  </div>
+                  <div>
+                    <strong>{row.title}</strong>
+                    <small>{row.message}</small>
+                  </div>
+                  <span>{row.metricName || row.alertType}</span>
+                  <span>{row.source}</span>
+                  <StatusPill value={row.status} />
+                  <small>{row.detectedAt}</small>
+                </div>
+              ))}
+            </div>
+            <div className="tax-notice">
+              <AlertTriangle size={20} />
+              <p>
+                Red Alert는 수익을 보장하기 위한 장치가 아니라 운영 이상을 빨리 발견하기 위한 내부 관제입니다.
+                고객 화면에는 확정된 조치 결과만 필요한 범위로 공유합니다.
+              </p>
+            </div>
+          </article>
+
+          <article className="panel wide-panel" id="trust-score">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">incubation trust plan</p>
+                <h2>도메인 Trust Score 빌드업</h2>
+              </div>
+              <span className="status-pill active">재활용/신규 공통</span>
+            </div>
+            <div className="trust-summary-grid">
+              <article className="delivery-card">
+                <strong>{trustPlanRows.length}</strong>
+                <span>인큐베이션 대상</span>
+                <p>살릴 수 있는 도메인은 천천히 콘텐츠, 색인, 출처 인용, 검수 기록을 쌓아 재평가합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>30</strong>
+                <span>기초 콘텐츠 목표</span>
+                <p>도메인별 주제 일관성을 먼저 만들고, 자동 발행은 검수 기준을 통과한 뒤 확대합니다.</p>
+              </article>
+              <article className="delivery-card">
+                <strong>5</strong>
+                <span>권위 출처 인용 목표</span>
+                <p>위키백과, 공공기관, 학회, 공식 문서 등 자연스러운 참고 링크만 편집 기준으로 사용합니다.</p>
+              </article>
+            </div>
+            <div className="ops-table trust-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>도메인</span>
+                <span>단계</span>
+                <span>Trust</span>
+                <span>목표</span>
+                <span>다음 액션</span>
+                <span>상태</span>
+              </div>
+              {trustPlanRows.map((row) => (
+                <div className="ops-row" role="row" key={row.id || row.domain}>
+                  <div>
+                    <strong>{row.domain}</strong>
+                    <small>{row.siteKey}</small>
+                  </div>
+                  <StatusPill value={row.planStage} />
+                  <strong>{row.trustScore}</strong>
+                  <span>
+                    글 {row.contentTarget} · 색인 {row.indexedTarget} · 권위출처 {row.authorityOutboundTarget}
+                  </span>
+                  <span>{row.nextAction || row.notes || '다음 검수 기준 수립'}</span>
+                  <StatusPill value={row.status} />
+                </div>
+              ))}
+            </div>
+            <div className="proxy-rule-grid">
+              <article className="policy-box">
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>출처 링크 기준</strong>
+                  <p>아웃바운드 링크는 신뢰 보강을 위한 편집 참고자료입니다. 기계적 링크 삽입이나 상호 링크 자동화로 쓰지 않습니다.</p>
+                </div>
+              </article>
+              <article className="policy-box warning-policy">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>자동 발행 제한</strong>
+                  <p>YMYL, 상표권, 스팸 이력, 고객 공개 가능 여부가 정리되지 않은 도메인은 자동 발행과 고객 매각을 보류합니다.</p>
                 </div>
               </article>
             </div>

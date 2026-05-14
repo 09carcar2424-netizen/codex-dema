@@ -192,6 +192,25 @@ CREATE TABLE IF NOT EXISTS site_proxy_assignments (
   CHECK (status IN ('planned', 'active', 'verify_required', 'failed', 'disabled'))
 );
 
+CREATE TABLE IF NOT EXISTS site_runtime_profiles (
+  site_id UUID PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,
+  request_profile_key TEXT NOT NULL UNIQUE,
+  user_agent_label TEXT NOT NULL DEFAULT 'siteops-default',
+  publish_window_start SMALLINT NOT NULL DEFAULT 9,
+  publish_window_end SMALLINT NOT NULL DEFAULT 21,
+  max_posts_per_day INTEGER NOT NULL DEFAULT 1,
+  style_profile TEXT NOT NULL DEFAULT 'balanced_editorial',
+  quality_gate TEXT NOT NULL DEFAULT 'review_first',
+  status TEXT NOT NULL DEFAULT 'planned',
+  notes TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (publish_window_start BETWEEN 0 AND 23),
+  CHECK (publish_window_end BETWEEN 0 AND 23),
+  CHECK (max_posts_per_day BETWEEN 0 AND 24),
+  CHECK (quality_gate IN ('review_first', 'auto_draft_only', 'manual_only', 'disabled')),
+  CHECK (status IN ('planned', 'active', 'verify_required', 'disabled'))
+);
+
 CREATE TABLE IF NOT EXISTS site_ai_settings (
   site_id UUID PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,
   automation_enabled BOOLEAN NOT NULL DEFAULT false,
@@ -516,6 +535,48 @@ CREATE TABLE IF NOT EXISTS policy_reviews (
   CHECK (status IN ('pending', 'pass', 'fail', 'not_applicable'))
 );
 
+CREATE TABLE IF NOT EXISTS site_health_alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
+  alert_type TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'warning',
+  status TEXT NOT NULL DEFAULT 'open',
+  metric_name TEXT,
+  current_value NUMERIC(14, 4),
+  baseline_value NUMERIC(14, 4),
+  threshold_value NUMERIC(14, 4),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'manual',
+  detected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolved_at TIMESTAMPTZ,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  CHECK (alert_type IN ('ctr_drop', 'impression_drop', 'ads_serving_issue', 'search_console_error', 'wp_publish_error', 'proxy_verify_failed', 'manual')),
+  CHECK (severity IN ('info', 'warning', 'critical')),
+  CHECK (status IN ('open', 'acknowledged', 'resolved', 'ignored')),
+  CHECK (source IN ('manual', 'search_console', 'adsense', 'wordpress', 'n8n', 'proxy'))
+);
+
+CREATE TABLE IF NOT EXISTS site_trust_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+  plan_stage TEXT NOT NULL DEFAULT 'incubating',
+  trust_score INTEGER NOT NULL DEFAULT 0,
+  content_target INTEGER NOT NULL DEFAULT 30,
+  indexed_target INTEGER NOT NULL DEFAULT 10,
+  authority_outbound_target INTEGER NOT NULL DEFAULT 5,
+  outbound_policy TEXT NOT NULL DEFAULT 'editorial_reference_only',
+  next_action TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  last_reviewed_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (plan_stage IN ('incubating', 'content_build', 'index_watch', 'monetization_review', 'ready_for_offer', 'paused')),
+  CHECK (trust_score BETWEEN 0 AND 100),
+  CHECK (status IN ('active', 'paused', 'completed', 'rejected'))
+);
+
 CREATE TABLE IF NOT EXISTS notification_preferences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
@@ -692,6 +753,11 @@ CREATE INDEX IF NOT EXISTS idx_portal_questions_customer ON portal_question_thre
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
 CREATE INDEX IF NOT EXISTS idx_site_proxy_assignments_site ON site_proxy_assignments(site_id);
 CREATE INDEX IF NOT EXISTS idx_site_proxy_assignments_status ON site_proxy_assignments(status);
+CREATE INDEX IF NOT EXISTS idx_site_runtime_profiles_status ON site_runtime_profiles(status);
+CREATE INDEX IF NOT EXISTS idx_site_health_alerts_status ON site_health_alerts(status);
+CREATE INDEX IF NOT EXISTS idx_site_health_alerts_severity ON site_health_alerts(severity);
+CREATE INDEX IF NOT EXISTS idx_site_trust_plans_status ON site_trust_plans(status);
+CREATE INDEX IF NOT EXISTS idx_site_trust_plans_stage ON site_trust_plans(plan_stage);
 CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);
 CREATE INDEX IF NOT EXISTS idx_referral_rewards_status ON referral_rewards(status);
 CREATE INDEX IF NOT EXISTS idx_withholding_estimates_customer ON withholding_estimates(customer_id);

@@ -1141,6 +1141,35 @@ h2 {
   margin-top: 16px;
 }
 
+.alert-summary-grid,
+.trust-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.alert-table,
+.trust-table {
+  margin-top: 18px;
+}
+
+.alert-table .ops-row {
+  grid-template-columns: minmax(170px, 0.75fr) minmax(320px, 1.35fr) minmax(120px, 0.5fr) minmax(120px, 0.45fr) minmax(110px, 0.45fr) minmax(120px, 0.45fr);
+}
+
+.trust-table .ops-row {
+  grid-template-columns: minmax(180px, 0.8fr) minmax(120px, 0.45fr) minmax(80px, 0.3fr) minmax(210px, 0.85fr) minmax(320px, 1.35fr) minmax(110px, 0.45fr);
+}
+
+.alert-table .ops-row > span,
+.trust-table .ops-row > span,
+.alert-table .ops-row > small {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .portal-rule-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2013,6 +2042,8 @@ h2 {
   .portal-rule-grid,
   .proxy-readiness-grid,
   .proxy-rule-grid,
+  .alert-summary-grid,
+  .trust-summary-grid,
   .revenue-policy-grid,
   .realtime-card-grid,
   .site-filter-grid,
@@ -2043,6 +2074,8 @@ h2 {
 
   .validation-table .ops-row,
   .proxy-table .ops-row,
+  .alert-table .ops-row,
+  .trust-table .ops-row,
   .policy-ledger-row {
     grid-template-columns: 1fr;
   }
@@ -2066,6 +2099,8 @@ h2 {
   .queue-table .ops-row,
   .customer-table .ops-row,
   .proxy-table .ops-row,
+  .alert-table .ops-row,
+  .trust-table .ops-row,
   .sitemap-table .ops-row,
   .tax-table .ops-row {
     grid-template-columns: 1fr;

@@ -543,6 +543,96 @@ async function createWordfriendsQuestion(req, res) {
   });
 }
 
+async function getN8nSiteRuntime(req, res, url) {
+  const siteKey = String(url.searchParams.get('siteKey') || url.searchParams.get('site_key') || '').trim();
+
+  if (!siteKey) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'siteKey is required.',
+    });
+  }
+
+  const result = await query(
+    `
+      select s.site_key, s.domain, s.status as site_status, s.portfolio_status,
+        s.risk_level, s.guardrail_level, wc.wp_base_url, wc.wp_credential_ref,
+        wc.status as wp_connection_status,
+        spa.proxy_profile_key, spa.proxy_provider, spa.proxy_type, spa.proxy_region,
+        spa.egress_policy, spa.credential_ref as proxy_credential_ref,
+        spa.status as proxy_status,
+        srp.request_profile_key, srp.user_agent_label, srp.publish_window_start,
+        srp.publish_window_end, srp.max_posts_per_day, srp.style_profile,
+        srp.quality_gate, srp.status as runtime_status,
+        stp.plan_stage, stp.trust_score, stp.status as trust_status
+      from sites s
+      left join wordpress_connections wc on wc.site_id = s.id
+      left join site_proxy_assignments spa on spa.site_id = s.id
+      left join site_runtime_profiles srp on srp.site_id = s.id
+      left join site_trust_plans stp on stp.site_id = s.id
+      where s.site_key = $1
+      limit 1
+    `,
+    [siteKey],
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Site not found.',
+    });
+  }
+
+  const blockers = [];
+  if (row.site_status !== 'active') blockers.push('site_not_active');
+  if (['high_risk_hold'].includes(row.portfolio_status)) blockers.push('portfolio_hold');
+  if (['high', 'critical'].includes(row.risk_level)) blockers.push('risk_hold');
+  if (!row.wp_base_url || row.wp_connection_status === 'failed') blockers.push('wp_not_verified');
+  if (row.proxy_status && row.proxy_status !== 'active') blockers.push('proxy_not_active');
+  if (row.runtime_status && row.runtime_status !== 'active') blockers.push('runtime_profile_not_active');
+  if (row.quality_gate === 'manual_only' || row.quality_gate === 'disabled') blockers.push('manual_quality_gate');
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    canPublish: blockers.length === 0,
+    blockers,
+    site: {
+      siteKey: row.site_key,
+      domain: row.domain,
+      portfolioStatus: row.portfolio_status,
+      riskLevel: row.risk_level,
+      guardrailLevel: row.guardrail_level,
+      wpBaseUrl: row.wp_base_url,
+      wpCredentialRef: row.wp_credential_ref,
+    },
+    proxy: {
+      profileKey: row.proxy_profile_key,
+      provider: row.proxy_provider,
+      type: row.proxy_type,
+      region: row.proxy_region,
+      egressPolicy: row.egress_policy,
+      credentialRef: row.proxy_credential_ref,
+      status: row.proxy_status || 'not_assigned',
+    },
+    runtimeProfile: {
+      requestProfileKey: row.request_profile_key,
+      userAgentLabel: row.user_agent_label,
+      publishWindowStart: row.publish_window_start,
+      publishWindowEnd: row.publish_window_end,
+      maxPostsPerDay: row.max_posts_per_day,
+      styleProfile: row.style_profile,
+      qualityGate: row.quality_gate || 'review_first',
+      status: row.runtime_status || 'not_configured',
+    },
+    trustPlan: {
+      stage: row.plan_stage,
+      trustScore: row.trust_score,
+      status: row.trust_status,
+    },
+  });
+}
+
 function getPublicBaseUrl(req) {
   const configured = process.env.SITEOPS_PUBLIC_URL || '';
   if (configured) return configured.replace(/\/+$/, '');
@@ -889,6 +979,67 @@ async function getDashboardData() {
     limit 100
   `);
 
+  const runtimeProfiles = await queryOptional(`
+    select s.site_key, s.domain, srp.request_profile_key, srp.user_agent_label,
+      srp.publish_window_start, srp.publish_window_end, srp.max_posts_per_day,
+      srp.style_profile, srp.quality_gate, srp.status, srp.notes,
+      to_char(srp.updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
+    from site_runtime_profiles srp
+    join sites s on s.id = srp.site_id
+    order by
+      case srp.status
+        when 'verify_required' then 1
+        when 'planned' then 2
+        when 'active' then 3
+        when 'disabled' then 4
+        else 5
+      end,
+      s.domain
+    limit 100
+  `);
+
+  const healthAlerts = await queryOptional(`
+    select sha.id::text, s.site_key, s.domain, sha.alert_type, sha.severity,
+      sha.status, sha.metric_name, sha.current_value, sha.baseline_value,
+      sha.threshold_value, sha.title, sha.message, sha.source,
+      to_char(sha.detected_at, 'YYYY-MM-DD HH24:MI') as detected_at
+    from site_health_alerts sha
+    left join sites s on s.id = sha.site_id
+    order by
+      case sha.severity
+        when 'critical' then 1
+        when 'warning' then 2
+        else 3
+      end,
+      case sha.status
+        when 'open' then 1
+        when 'acknowledged' then 2
+        else 3
+      end,
+      sha.detected_at desc
+    limit 100
+  `);
+
+  const trustPlans = await queryOptional(`
+    select stp.id::text, s.site_key, s.domain, stp.plan_stage, stp.trust_score,
+      stp.content_target, stp.indexed_target, stp.authority_outbound_target,
+      stp.outbound_policy, stp.next_action, stp.status,
+      to_char(stp.last_reviewed_at, 'YYYY-MM-DD HH24:MI') as last_reviewed_at,
+      stp.notes
+    from site_trust_plans stp
+    join sites s on s.id = stp.site_id
+    order by
+      case stp.status
+        when 'active' then 1
+        when 'paused' then 2
+        when 'completed' then 3
+        else 4
+      end,
+      stp.trust_score desc,
+      s.domain
+    limit 100
+  `);
+
   const portalRealtimeStats = await queryOptional(`
     select
       count(distinct coalesce(session_id, id::text)) filter (where occurred_at >= now() - interval '5 minutes')::int as active_5m,
@@ -1056,6 +1207,51 @@ async function getDashboardData() {
       lastVerifiedAt: row.last_verified_at,
       notes: row.notes,
     })),
+    runtimeProfiles: runtimeProfiles.rows.map((row) => ({
+      siteKey: row.site_key,
+      domain: row.domain,
+      requestProfileKey: row.request_profile_key,
+      userAgentLabel: row.user_agent_label,
+      publishWindowStart: row.publish_window_start,
+      publishWindowEnd: row.publish_window_end,
+      maxPostsPerDay: row.max_posts_per_day,
+      styleProfile: row.style_profile,
+      qualityGate: row.quality_gate,
+      status: row.status,
+      notes: row.notes,
+      updatedAt: row.updated_at,
+    })),
+    healthAlerts: healthAlerts.rows.map((row) => ({
+      id: row.id,
+      siteKey: row.site_key,
+      domain: row.domain,
+      alertType: row.alert_type,
+      severity: row.severity,
+      status: row.status,
+      metricName: row.metric_name,
+      currentValue: row.current_value,
+      baselineValue: row.baseline_value,
+      thresholdValue: row.threshold_value,
+      title: row.title,
+      message: row.message,
+      source: row.source,
+      detectedAt: row.detected_at,
+    })),
+    trustPlans: trustPlans.rows.map((row) => ({
+      id: row.id,
+      siteKey: row.site_key,
+      domain: row.domain,
+      planStage: row.plan_stage,
+      trustScore: row.trust_score,
+      contentTarget: row.content_target,
+      indexedTarget: row.indexed_target,
+      authorityOutboundTarget: row.authority_outbound_target,
+      outboundPolicy: row.outbound_policy,
+      nextAction: row.next_action,
+      status: row.status,
+      lastReviewedAt: row.last_reviewed_at,
+      notes: row.notes,
+    })),
     portalRealtime: {
       activeVisitors5m: Number(realtimeRow.active_5m || 0),
       signupStartedToday: Number(realtimeRow.signup_started_today || 0),
@@ -1125,6 +1321,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/dashboard') {
       return sendJson(req, res, 200, await getDashboardData());
+    }
+
+    if (url.pathname === '/api/n8n/site-runtime') {
+      return getN8nSiteRuntime(req, res, url);
     }
 
     if (url.pathname === '/api/notifications' && req.method === 'POST') {
