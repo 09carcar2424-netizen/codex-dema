@@ -355,6 +355,19 @@ function App() {
     }
   );
 
+  const normalizeSavedQuestionReply = (question, savedQuestion, draft, responseStatus) => ({
+    ...question,
+    status: savedQuestion?.status || (responseStatus === 'sent' ? 'answered' : draft.status),
+    responseChannel: savedQuestion?.responseChannel || savedQuestion?.response_channel || draft.responseChannel,
+    responseStatus: savedQuestion?.responseStatus || savedQuestion?.response_status || responseStatus || draft.responseStatus,
+    responseMessage: savedQuestion?.responseMessage || savedQuestion?.response_message || draft.responseMessage,
+    responseNote: savedQuestion?.responseNote || savedQuestion?.response_note || draft.responseNote,
+    responseError: savedQuestion?.responseError || savedQuestion?.response_error || '',
+    answerSummary: savedQuestion?.answerSummary || savedQuestion?.answer_summary || draft.responseNote || question.answerSummary,
+    respondedAt: savedQuestion?.respondedAt || savedQuestion?.responded_at || question.respondedAt,
+    updatedAt: savedQuestion?.updatedAt || savedQuestion?.updated_at || new Date().toISOString(),
+  });
+
   const updateQuestionReplyDraft = (question, field, value) => {
     setQuestionReplyDrafts((current) => ({
       ...current,
@@ -374,11 +387,31 @@ function App() {
     }));
 
     try {
-      await saveWordfriendsQuestionReply(question.id, {
+      const result = await saveWordfriendsQuestionReply(question.id, {
         ...draft,
         responseStatus,
         status: responseStatus === 'sent' ? 'answered' : draft.status,
       });
+      const savedQuestion = normalizeSavedQuestionReply(question, result.question, draft, responseStatus);
+      setQuestionReplyDrafts((current) => ({
+        ...current,
+        [question.id]: {
+          responseChannel: savedQuestion.responseChannel || emptyQuestionReplyForm.responseChannel,
+          responseStatus: savedQuestion.responseStatus || emptyQuestionReplyForm.responseStatus,
+          status: savedQuestion.status || emptyQuestionReplyForm.status,
+          responseMessage: savedQuestion.responseMessage || '',
+          responseNote: savedQuestion.responseNote || savedQuestion.answerSummary || '',
+        },
+      }));
+      setDashboard((current) => ({
+        ...current,
+        portalRealtime: {
+          ...current.portalRealtime,
+          questions: (current.portalRealtime.questions || []).map((row) => (
+            row.id === question.id ? savedQuestion : row
+          )),
+        },
+      }));
       setQuestionReplySaveState((current) => ({
         ...current,
         [question.id]: {
@@ -388,7 +421,9 @@ function App() {
             : '답변 초안을 저장했습니다.',
         },
       }));
-      reloadDashboard();
+      if (responseStatus === 'sent') {
+        reloadDashboard();
+      }
     } catch (error) {
       setQuestionReplySaveState((current) => ({
         ...current,
@@ -1765,7 +1800,15 @@ function App() {
                     >
                       <strong>{question.customerCode}</strong>
                       <span>{question.category}</span>
-                      <span>{question.question}</span>
+                      <span>
+                        {question.question}
+                        {(question.responseMessage || question.responseStatus === 'draft') ? (
+                          <em className="reply-draft-chip">초안 있음</em>
+                        ) : null}
+                        {question.responseStatus === 'sent' ? (
+                          <em className="reply-sent-chip">답변 기록됨</em>
+                        ) : null}
+                      </span>
                       <StatusPill value={question.status} />
                       <span>{formatSeoulDateTime(question.updatedAt)}</span>
                     </button>
@@ -1779,6 +1822,14 @@ function App() {
                           <strong>처리 메모</strong>
                           <p>{question.answerSummary || '담당자 검토 대기'}</p>
                         </div>
+                        {(question.responseMessage || question.responseNote || question.responseError) ? (
+                          <div className="saved-reply-preview">
+                            <strong>저장된 답변</strong>
+                            {question.responseMessage ? <p>{question.responseMessage}</p> : null}
+                            {question.responseNote ? <p>내부 메모: {question.responseNote}</p> : null}
+                            {question.responseError ? <p>발송 오류: {question.responseError}</p> : null}
+                          </div>
+                        ) : null}
                         <form
                           className="question-reply-box"
                           onSubmit={(event) => {

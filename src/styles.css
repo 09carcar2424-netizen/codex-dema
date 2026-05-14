@@ -2199,6 +2199,42 @@ h2 {
   color: var(--text-muted);
 }
 
+.reply-draft-chip,
+.reply-sent-chip {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.reply-draft-chip {
+  color: #0f5132;
+  background: #d7f8ea;
+}
+
+.reply-sent-chip {
+  color: #0b3d5c;
+  background: #d7ecff;
+}
+
+.saved-reply-preview {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(45, 212, 191, 0.34);
+  border-radius: 8px;
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.saved-reply-preview strong,
+.saved-reply-preview p {
+  margin: 0;
+}
+
 .save-state {
   margin: 0;
   color: var(--text-muted);
