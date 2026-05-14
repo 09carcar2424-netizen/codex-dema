@@ -47,8 +47,12 @@ function qualityGateFor(site) {
   return 'auto_draft_only';
 }
 
+function categoryBasisFor(site) {
+  return site.site_concept || site.monetize_mode || site.guardrail_level || 'general';
+}
+
 function styleProfileFor(site) {
-  const category = site.category_slug || site.monetize_mode || 'general';
+  const category = categoryBasisFor(site);
   const language = site.language_code || 'ko';
   return `${language}_${keyPart(category) || 'general'}_editorial`;
 }
@@ -99,7 +103,7 @@ async function main() {
     await client.query('begin');
 
     const { rows: sites } = await client.query(`
-      select id, site_key, domain, language_code, category_slug, portfolio_status,
+      select id, site_key, domain, language_code, site_concept, portfolio_status,
         risk_level, guardrail_level, approval_status, monetize_mode, dr_score,
         is_customer_portal, is_internal_infra
       from sites
@@ -177,7 +181,7 @@ async function main() {
         [
           site.id,
           `runtime_${siteKey}`,
-          `siteops-${site.language_code || 'ko'}-${keyPart(site.category_slug || site.monetize_mode || 'general') || 'general'}`,
+          `siteops-${site.language_code || 'ko'}-${keyPart(categoryBasisFor(site)) || 'general'}`,
           site.guardrail_level === 'ymyl' || site.guardrail_level === 'high' ? 1 : 2,
           styleProfileFor(site),
           qualityGateFor(site),
