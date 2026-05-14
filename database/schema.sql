@@ -77,6 +77,7 @@ ALTER TABLE portal_question_threads
   ADD COLUMN IF NOT EXISTS response_status TEXT NOT NULL DEFAULT 'not_started',
   ADD COLUMN IF NOT EXISTS response_message TEXT,
   ADD COLUMN IF NOT EXISTS response_note TEXT,
+  ADD COLUMN IF NOT EXISTS response_error TEXT,
   ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS referral_relationships (

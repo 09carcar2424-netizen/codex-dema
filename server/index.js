@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import fs from 'node:fs/promises';
 import http from 'node:http';
+import net from 'node:net';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import tls from 'node:tls';
 import { fileURLToPath } from 'node:url';
 import { URL } from 'node:url';
 import { checkDatabase, query } from './db.js';
@@ -139,6 +141,150 @@ function getRequestClientMeta(req) {
     referer: req.headers.referer || '',
     forwardedFor: req.headers['x-forwarded-for'] || '',
   };
+}
+
+function isSmtpConfigured() {
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
+}
+
+function extractEmailAddress(text) {
+  const match = String(text || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match ? match[0] : '';
+}
+
+function encodeMailHeader(value) {
+  return String(value || '').replace(/[\r\n]+/g, ' ').trim();
+}
+
+function escapeSmtpBody(value) {
+  return String(value || '')
+    .replace(/\r?\n/g, '\r\n')
+    .split('\r\n')
+    .map((line) => (line.startsWith('.') ? `.${line}` : line))
+    .join('\r\n');
+}
+
+function parseSmtpCode(line) {
+  const match = String(line || '').match(/^(\d{3})/);
+  return match ? Number(match[1]) : 0;
+}
+
+function waitForSmtpResponse(socket, expectedCodes) {
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('SMTP response timeout.'));
+    }, 15000);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      socket.off('data', handleData);
+      socket.off('error', handleError);
+    };
+
+    const handleError = (error) => {
+      cleanup();
+      reject(error);
+    };
+
+    const handleData = (chunk) => {
+      buffer += chunk.toString('utf8');
+      const lines = buffer.split(/\r?\n/).filter(Boolean);
+      const lastLine = lines[lines.length - 1] || '';
+
+      if (!/^\d{3} /.test(lastLine)) return;
+
+      const code = parseSmtpCode(lastLine);
+      cleanup();
+
+      if (expectedCodes.includes(code)) {
+        resolve(buffer.trim());
+      } else {
+        reject(new Error(`SMTP error ${code}: ${buffer.trim()}`));
+      }
+    };
+
+    socket.on('data', handleData);
+    socket.on('error', handleError);
+  });
+}
+
+async function smtpCommand(socket, command, expectedCodes) {
+  socket.write(`${command}\r\n`);
+  return waitForSmtpResponse(socket, expectedCodes);
+}
+
+async function connectSmtpSocket() {
+  const hostName = process.env.SMTP_HOST;
+  const smtpPort = Number(process.env.SMTP_PORT || 587);
+  const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || smtpPort === 465;
+
+  const socket = secure
+    ? tls.connect({ host: hostName, port: smtpPort, servername: hostName })
+    : net.connect({ host: hostName, port: smtpPort });
+
+  await new Promise((resolve, reject) => {
+    socket.once(secure ? 'secureConnect' : 'connect', resolve);
+    socket.once('error', reject);
+  });
+
+  await waitForSmtpResponse(socket, [220]);
+  await smtpCommand(socket, `EHLO ${process.env.SMTP_HELO_DOMAIN || 'siteops.09car.co.kr'}`, [250]);
+
+  if (!secure) {
+    await smtpCommand(socket, 'STARTTLS', [220]);
+    const upgraded = tls.connect({ socket, servername: hostName });
+    await new Promise((resolve, reject) => {
+      upgraded.once('secureConnect', resolve);
+      upgraded.once('error', reject);
+    });
+    await smtpCommand(upgraded, `EHLO ${process.env.SMTP_HELO_DOMAIN || 'siteops.09car.co.kr'}`, [250]);
+    return upgraded;
+  }
+
+  return socket;
+}
+
+async function sendEmailViaSmtp({ to, subject, text }) {
+  if (!isSmtpConfigured()) {
+    throw new Error('SMTP is not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM.');
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const socket = await connectSmtpSocket();
+
+  try {
+    await smtpCommand(socket, 'AUTH LOGIN', [334]);
+    await smtpCommand(socket, Buffer.from(process.env.SMTP_USER || '').toString('base64'), [334]);
+    await smtpCommand(socket, Buffer.from(process.env.SMTP_PASSWORD || '').toString('base64'), [235]);
+    await smtpCommand(socket, `MAIL FROM:<${from}>`, [250]);
+    await smtpCommand(socket, `RCPT TO:<${to}>`, [250, 251]);
+    await smtpCommand(socket, 'DATA', [354]);
+
+    const messageId = `${Date.now()}.${crypto.randomBytes(8).toString('hex')}@siteops.09car.co.kr`;
+    const body = [
+      `From: ${encodeMailHeader(process.env.SMTP_FROM_NAME || 'Wordfriends')} <${from}>`,
+      `To: <${to}>`,
+      `Subject: ${encodeMailHeader(subject)}`,
+      `Message-ID: <${messageId}>`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      escapeSmtpBody(text),
+      '.',
+      '',
+    ].join('\r\n');
+
+    socket.write(body);
+    await waitForSmtpResponse(socket, [250]);
+    await smtpCommand(socket, 'QUIT', [221]);
+
+    return { messageId, to };
+  } finally {
+    socket.end();
+  }
 }
 
 function hasValidEventToken(req) {
@@ -551,7 +697,7 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
     ['not_started', 'draft', 'queued', 'sent', 'failed'],
     'draft',
   );
-  const nextStatus = normalizeChoice(body.status, ['open', 'ai_draft', 'human_review', 'answered', 'closed', 'blocked'], 'human_review');
+  let nextStatus = normalizeChoice(body.status, ['open', 'ai_draft', 'human_review', 'answered', 'closed', 'blocked'], 'human_review');
   const message = String(body.responseMessage || body.response_message || '').trim();
   const note = String(body.responseNote || body.response_note || '').trim();
 
@@ -562,6 +708,64 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
     });
   }
 
+  const existing = await query(
+    `
+      select id::text, category, status, question, response_channel, response_status,
+        response_message, response_note, answer_summary, responded_at, updated_at
+      from portal_question_threads
+      where id = $1
+    `,
+    [questionId],
+  );
+
+  if (!existing.rowCount) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Question was not found.',
+    });
+  }
+
+  let effectiveResponseStatus = responseStatus;
+  let responseError = null;
+
+  if (channel === 'email' && responseStatus === 'sent') {
+    if (!message) {
+      return sendJson(req, res, 400, {
+        ok: false,
+        error: 'Response message is required before sending email.',
+      });
+    }
+
+    const recipientEmail = extractEmailAddress(existing.rows[0].question);
+
+    if (!recipientEmail) {
+      return sendJson(req, res, 400, {
+        ok: false,
+        error: 'No recipient email was found in the question.',
+      });
+    }
+
+    try {
+      await sendEmailViaSmtp({
+        to: recipientEmail,
+        subject: '[Wordfriends] 문의 답변 안내',
+        text: [
+          message,
+          '',
+          '---',
+          '본 메일은 Wordfriends 문의 답변으로 발송되었습니다.',
+          '수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황과 검토 결과를 기준으로 안내드립니다.',
+        ].join('\n'),
+      });
+      nextStatus = 'answered';
+      effectiveResponseStatus = 'sent';
+    } catch (error) {
+      responseError = error.message;
+      effectiveResponseStatus = 'failed';
+      nextStatus = 'human_review';
+    }
+  }
+
   const updated = await query(
     `
       update portal_question_threads
@@ -570,21 +774,23 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
         response_status = $3,
         response_message = nullif($4, ''),
         response_note = nullif($5, ''),
+        response_error = nullif($7, ''),
         answer_summary = coalesce(nullif($5, ''), nullif($4, ''), answer_summary),
         status = $6,
         responded_at = case when $3 in ('queued', 'sent') then coalesce(responded_at, now()) else responded_at end,
         updated_at = now()
       where id = $1
       returning id::text, category, status, response_channel, response_status,
-        response_message, response_note, answer_summary, responded_at, updated_at
+        response_message, response_note, response_error, answer_summary, responded_at, updated_at
     `,
-    [questionId, channel, responseStatus, message, note, nextStatus],
+    [questionId, channel, effectiveResponseStatus, message, note, nextStatus, responseError],
   );
 
-  if (!updated.rowCount) {
-    return sendJson(req, res, 404, {
+  if (responseError) {
+    return sendJson(req, res, 502, {
       ok: false,
-      error: 'Question was not found.',
+      error: `Email send failed: ${responseError}`,
+      question: updated.rows[0],
     });
   }
 
@@ -1126,7 +1332,7 @@ async function getDashboardData() {
     select pqt.id::text, coalesce(c.customer_code, 'NO_CUSTOMER') as customer_code,
       pqt.category, pqt.status, pqt.ai_allowed, pqt.human_review_required,
       pqt.question, pqt.answer_summary, pqt.response_channel, pqt.response_status,
-      pqt.response_message, pqt.response_note, pqt.responded_at,
+      pqt.response_message, pqt.response_note, pqt.response_error, pqt.responded_at,
       pqt.updated_at
     from portal_question_threads pqt
     left join customers c on c.id = pqt.customer_id
@@ -1360,6 +1566,7 @@ async function getDashboardData() {
         responseStatus: row.response_status,
         responseMessage: row.response_message,
         responseNote: row.response_note,
+        responseError: row.response_error,
         respondedAt: row.responded_at,
         updatedAt: row.updated_at,
       })),
