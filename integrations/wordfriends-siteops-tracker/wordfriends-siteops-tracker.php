@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.3.7
+ * Version: 0.3.8
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.3.7';
+const WORDFRIENDS_SITEOPS_VERSION = '0.3.8';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -517,16 +517,35 @@ function wordfriends_siteops_handle_auth_posts() {
             $contact_note = implode("\n", $contact_lines) . "\n\n";
         }
 
+        $session_id = isset($_COOKIE['wordfriends_session_id']) ? sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])) : '';
+        $dedupe_key = 'wordfriends_question_' . md5(wp_json_encode([
+            'category' => $category,
+            'question' => $question,
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'userId' => get_current_user_id(),
+            'sessionId' => $session_id,
+        ]));
+
+        if (get_transient($dedupe_key)) {
+            $GLOBALS['wordfriends_question_message'] = '문의가 접수되었습니다. 담당자가 확인 후 안내드리겠습니다.';
+            return;
+        }
+
+        set_transient($dedupe_key, 1, 2 * MINUTE_IN_SECONDS);
+
         $result = wordfriends_siteops_send('/api/wordfriends/questions', [
             'question' => $contact_note . $question,
             'category' => $category,
             'customerCode' => wordfriends_siteops_customer_code(),
-            'sessionId' => isset($_COOKIE['wordfriends_session_id']) ? sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])) : '',
+            'sessionId' => $session_id,
             'pagePath' => isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '',
             'answerSummary' => is_user_logged_in() ? 'Wordfriends 로그인 고객 문의' : 'Wordfriends 비로그인 상담 문의',
         ]);
 
         if (is_wp_error($result)) {
+            delete_transient($dedupe_key);
             $GLOBALS['wordfriends_question_error'] = '문의 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
             return;
         }
@@ -534,6 +553,7 @@ function wordfriends_siteops_handle_auth_posts() {
         $response_code = wp_remote_retrieve_response_code($result);
 
         if ($response_code < 200 || $response_code >= 300) {
+            delete_transient($dedupe_key);
             $GLOBALS['wordfriends_question_error'] = '문의 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
             return;
         }
