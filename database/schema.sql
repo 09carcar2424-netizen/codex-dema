@@ -756,6 +756,7 @@ CREATE INDEX IF NOT EXISTS idx_site_proxy_assignments_status ON site_proxy_assig
 CREATE INDEX IF NOT EXISTS idx_site_runtime_profiles_status ON site_runtime_profiles(status);
 CREATE INDEX IF NOT EXISTS idx_site_health_alerts_status ON site_health_alerts(status);
 CREATE INDEX IF NOT EXISTS idx_site_health_alerts_severity ON site_health_alerts(severity);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_site_trust_plans_site_unique ON site_trust_plans(site_id);
 CREATE INDEX IF NOT EXISTS idx_site_trust_plans_status ON site_trust_plans(status);
 CREATE INDEX IF NOT EXISTS idx_site_trust_plans_stage ON site_trust_plans(plan_stage);
 CREATE INDEX IF NOT EXISTS idx_referral_relationships_referrer ON referral_relationships(referrer_customer_id);

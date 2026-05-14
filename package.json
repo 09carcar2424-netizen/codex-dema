@@ -15,6 +15,7 @@
     "import:domains": "node scripts/import-domain-portfolio.mjs",
     "sync:domain-inventory": "node scripts/sync-domain-inventory.mjs",
     "sync:sitemaps": "node scripts/sync-sitemap-submissions.mjs",
+    "sync:siteops-readiness": "node scripts/sync-siteops-readiness.mjs",
     "submit:sitemaps:google": "node scripts/submit-google-sitemaps.mjs"
   },
   "dependencies": {

@@ -53,9 +53,15 @@ textarea {
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
   background: var(--sidebar-bg);
   color: #f7fbfc;
   padding: 24px;
+  scrollbar-gutter: stable;
 }
 
 .brand {
