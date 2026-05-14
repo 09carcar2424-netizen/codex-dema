@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.2.6
+ * Version: 0.2.7
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.2.6';
+const WORDFRIENDS_SITEOPS_VERSION = '0.2.7';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -575,12 +575,22 @@ function wordfriends_siteops_logout_shortcode($atts = []) {
         'redirect' => home_url('/login/'),
     ], $atts, 'wordfriends_logout');
 
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wordfriends_logout_action'])) {
+        if (isset($_POST['wordfriends_logout_nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['wordfriends_logout_nonce'])), 'wordfriends_customer_logout')) {
+            $redirect = isset($_POST['wordfriends_redirect']) ? esc_url_raw(wp_unslash($_POST['wordfriends_redirect'])) : wordfriends_siteops_login_page_url();
+            wp_logout();
+            wp_safe_redirect($redirect ?: wordfriends_siteops_login_page_url());
+            exit;
+        }
+    }
+
     if (!is_user_logged_in()) {
         return '<div class="wordfriends-auth"><h2>로그아웃 상태입니다.</h2><p>고객 계정으로 다시 이용하려면 상단의 로그인 메뉴를 이용해 주세요.</p></div>';
     }
 
     $user = wp_get_current_user();
     $redirect = esc_url_raw($atts['redirect']);
+    return '<div class="wordfriends-auth"><h2>로그아웃</h2><p>' . esc_html($user->display_name ?: $user->user_login) . ' 계정으로 로그인되어 있습니다.</p><form method="post"><input type="hidden" name="wordfriends_logout_action" value="1" /><input type="hidden" name="wordfriends_redirect" value="' . esc_url($redirect ?: home_url('/login/')) . '" />' . wp_nonce_field('wordfriends_customer_logout', 'wordfriends_logout_nonce', true, false) . '<button class="wordfriends-button wordfriends-button-secondary" type="submit">로그아웃</button></form></div>';
     $logout_url = wordfriends_siteops_customer_logout_url($redirect ?: home_url('/login/'));
 
     return '<div class="wordfriends-auth"><h2>로그아웃</h2><p>' . esc_html($user->display_name ?: $user->user_login) . ' 계정으로 로그인되어 있습니다.</p><a class="wordfriends-button wordfriends-button-secondary" href="' . esc_url($logout_url) . '">로그아웃</a></div>';
