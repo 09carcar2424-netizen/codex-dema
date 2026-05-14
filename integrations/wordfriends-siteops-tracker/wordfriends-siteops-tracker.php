@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.3.2
+ * Version: 0.3.4
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.3.2';
+const WORDFRIENDS_SITEOPS_VERSION = '0.3.4';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -905,6 +905,19 @@ function wordfriends_siteops_redirect_default_wp_login() {
     }
 
     $action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
+    $admin_bypass = isset($_GET['wordfriends_admin']) && sanitize_key(wp_unslash($_GET['wordfriends_admin'])) === '1';
+    $redirect_to = isset($_GET['redirect_to']) ? rawurldecode(wp_unslash($_GET['redirect_to'])) : '';
+    $admin_path = wp_parse_url(admin_url(), PHP_URL_PATH) ?: '/wp-admin/';
+    $redirect_path = $redirect_to ? (wp_parse_url($redirect_to, PHP_URL_PATH) ?: '') : '';
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? rawurldecode(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+
+    if ($admin_bypass || strpos($redirect_to, 'wp-admin') !== false || strpos($request_uri, 'wp-admin') !== false) {
+        return;
+    }
+
+    if ($redirect_path && strpos(trailingslashit($redirect_path), trailingslashit($admin_path)) === 0) {
+        return;
+    }
 
     if ($action && !in_array($action, ['login', 'logout'], true)) {
         return;
