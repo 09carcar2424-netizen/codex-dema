@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.3.0
+ * Version: 0.3.1
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.3.0';
+const WORDFRIENDS_SITEOPS_VERSION = '0.3.1';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -107,7 +107,7 @@ function wordfriends_siteops_enqueue_tracker() {
         'sessionId' => sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])),
         'customerCode' => wordfriends_siteops_customer_code(),
         'loginUrl' => wordfriends_siteops_login_page_url(),
-        'logoutUrl' => home_url('/logout/'),
+        'logoutUrl' => wordfriends_siteops_logout_page_url(),
     ]);
 
     wp_add_inline_script('wordfriends-siteops-tracker', <<<'JS'
@@ -616,17 +616,53 @@ function wordfriends_siteops_logout_shortcode($atts = []) {
 add_shortcode('wordfriends_logout', 'wordfriends_siteops_logout_shortcode');
 
 function wordfriends_siteops_customer_home_url() {
-    return home_url('/login/');
+    return wordfriends_siteops_login_page_url();
+}
+
+function wordfriends_siteops_portal_page_url($shortcode, $fallback_path, $slugs = []) {
+    static $cache = [];
+
+    $cache_key = $shortcode . '|' . $fallback_path;
+
+    if (isset($cache[$cache_key])) {
+        return $cache[$cache_key];
+    }
+
+    foreach ($slugs as $slug) {
+        $page = get_page_by_path($slug);
+
+        if ($page && $page->post_status === 'publish') {
+            $cache[$cache_key] = get_permalink($page);
+            return $cache[$cache_key];
+        }
+    }
+
+    $pages = get_posts([
+        'post_type' => 'page',
+        'post_status' => 'publish',
+        'posts_per_page' => 80,
+        'fields' => 'ids',
+    ]);
+
+    foreach ($pages as $page_id) {
+        $content = get_post_field('post_content', $page_id);
+
+        if ($content && has_shortcode($content, $shortcode)) {
+            $cache[$cache_key] = get_permalink($page_id);
+            return $cache[$cache_key];
+        }
+    }
+
+    $cache[$cache_key] = home_url($fallback_path);
+    return $cache[$cache_key];
 }
 
 function wordfriends_siteops_login_page_url() {
-    return home_url('/login/');
+    return wordfriends_siteops_portal_page_url('wordfriends_login', '/login/', ['login', '로그인']);
 }
 
 function wordfriends_siteops_logout_page_url() {
-    $permalink = get_permalink();
-
-    return $permalink ? $permalink : home_url('/logout/');
+    return wordfriends_siteops_portal_page_url('wordfriends_logout', '/logout/', ['logout', '로그아웃']);
 }
 
 function wordfriends_siteops_customer_logout_url($redirect = '') {
@@ -695,6 +731,40 @@ function wordfriends_siteops_customer_login_redirect($redirect_to, $requested_re
     return $redirect_to;
 }
 add_filter('login_redirect', 'wordfriends_siteops_customer_login_redirect', 10, 3);
+
+function wordfriends_siteops_front_login_url($login_url, $redirect = '', $force_reauth = false) {
+    if (is_admin()) {
+        return $login_url;
+    }
+
+    return wordfriends_siteops_login_page_url();
+}
+add_filter('login_url', 'wordfriends_siteops_front_login_url', 10, 3);
+
+function wordfriends_siteops_front_logout_url($logout_url, $redirect = '') {
+    if (is_admin()) {
+        return $logout_url;
+    }
+
+    return wordfriends_siteops_logout_page_url();
+}
+add_filter('logout_url', 'wordfriends_siteops_front_logout_url', 10, 2);
+
+function wordfriends_siteops_redirect_default_wp_login() {
+    if (is_user_logged_in() || strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+        return;
+    }
+
+    $action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
+
+    if ($action && !in_array($action, ['login', 'logout'], true)) {
+        return;
+    }
+
+    wp_safe_redirect(wordfriends_siteops_login_page_url());
+    exit;
+}
+add_action('login_init', 'wordfriends_siteops_redirect_default_wp_login');
 
 function wordfriends_siteops_ajax_event() {
     check_ajax_referer('wordfriends_siteops_event', 'nonce');
