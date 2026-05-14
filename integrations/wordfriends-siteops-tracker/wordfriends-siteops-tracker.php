@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.3.5
+ * Version: 0.3.7
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.3.5';
+const WORDFRIENDS_SITEOPS_VERSION = '0.3.7';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -267,6 +267,7 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-auth input[type="text"],
       .wordfriends-auth input[type="email"],
+      .wordfriends-auth input[type="tel"],
       .wordfriends-auth input[type="password"],
       .wordfriends-auth select,
       .wordfriends-auth textarea {
@@ -346,6 +347,11 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-auth-small {
         color: #697985;
         font-size: 13px;
+      }
+      .wordfriends-optional {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
       }
     ');
 }
@@ -484,6 +490,7 @@ function wordfriends_siteops_handle_auth_posts() {
         $question = sanitize_textarea_field(wp_unslash($_POST['wordfriends_question_body'] ?? ''));
         $name = sanitize_text_field(wp_unslash($_POST['wordfriends_question_name'] ?? ''));
         $email = sanitize_email(wp_unslash($_POST['wordfriends_question_email'] ?? ''));
+        $phone = sanitize_text_field(wp_unslash($_POST['wordfriends_question_phone'] ?? ''));
 
         if (mb_strlen($question) < 3) {
             $GLOBALS['wordfriends_question_error'] = '문의 내용을 입력해 주세요.';
@@ -498,7 +505,16 @@ function wordfriends_siteops_handle_auth_posts() {
         $contact_note = '';
 
         if (!is_user_logged_in()) {
-            $contact_note = "문의자: {$name} / {$email}\n\n";
+            $contact_lines = [
+                "문의자: {$name}",
+                "이메일: {$email}",
+            ];
+
+            if ($phone) {
+                $contact_lines[] = "전화번호: {$phone}";
+            }
+
+            $contact_note = implode("\n", $contact_lines) . "\n\n";
         }
 
         $result = wordfriends_siteops_send('/api/wordfriends/questions', [
@@ -778,6 +794,10 @@ function wordfriends_siteops_question_shortcode($atts = []) {
             <label>
               이메일
               <input type="email" name="wordfriends_question_email" autocomplete="email" required />
+            </label>
+            <label>
+              전화번호 <span class="wordfriends-optional">(선택)</span>
+              <input type="tel" name="wordfriends_question_phone" autocomplete="tel" inputmode="tel" placeholder="010-0000-0000" />
             </label>
           <?php else : ?>
             <p class="wordfriends-auth-small"><?php echo esc_html($user->display_name ?: $user->user_login); ?> 계정으로 문의가 접수됩니다.</p>
