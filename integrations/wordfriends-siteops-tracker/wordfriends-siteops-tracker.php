@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.2.0';
+const WORDFRIENDS_SITEOPS_VERSION = '0.2.1';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -247,6 +247,14 @@ function wordfriends_siteops_portal_styles() {
         color: #fff;
         cursor: pointer;
         font-weight: 800;
+      }
+      .wordfriends-button.wordfriends-button-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 160px;
+        text-decoration: none;
+        background: #17212b;
       }
       .wordfriends-auth-notice {
         margin-bottom: 16px;
@@ -561,6 +569,23 @@ function wordfriends_siteops_login_shortcode($atts = []) {
     return ob_get_clean();
 }
 add_shortcode('wordfriends_login', 'wordfriends_siteops_login_shortcode');
+
+function wordfriends_siteops_logout_shortcode($atts = []) {
+    $atts = shortcode_atts([
+        'redirect' => home_url('/login/'),
+    ], $atts, 'wordfriends_logout');
+
+    if (!is_user_logged_in()) {
+        return '<div class="wordfriends-auth"><h2>로그아웃 상태입니다.</h2><p>고객 계정으로 다시 이용하려면 로그인해 주세요.</p><a class="wordfriends-button wordfriends-button-secondary" href="' . esc_url(home_url('/login/')) . '">로그인</a></div>';
+    }
+
+    $user = wp_get_current_user();
+    $redirect = esc_url_raw($atts['redirect']);
+    $logout_url = wp_logout_url($redirect ?: home_url('/login/'));
+
+    return '<div class="wordfriends-auth"><h2>로그아웃</h2><p>' . esc_html($user->display_name ?: $user->user_login) . ' 계정으로 로그인되어 있습니다.</p><a class="wordfriends-button wordfriends-button-secondary" href="' . esc_url($logout_url) . '">로그아웃</a></div>';
+}
+add_shortcode('wordfriends_logout', 'wordfriends_siteops_logout_shortcode');
 
 function wordfriends_siteops_ajax_event() {
     check_ajax_referer('wordfriends_siteops_event', 'nonce');
