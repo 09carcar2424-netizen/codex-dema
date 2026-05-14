@@ -1315,6 +1315,40 @@ h2 {
   font-size: 13px;
 }
 
+.renewal-controls {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(190px, 0.8fr) auto minmax(130px, 0.5fr);
+  align-items: end;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-soft);
+}
+
+.renewal-controls label {
+  display: grid;
+  gap: 6px;
+}
+
+.renewal-controls label span,
+.renewal-controls > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.renewal-controls select {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-bg);
+  color: var(--text);
+  font: inherit;
+}
+
 .renewal-table {
   margin-top: 14px;
 }
@@ -2085,6 +2119,7 @@ h2 {
   .audit-source-grid,
   .reuse-summary,
   .renewal-summary-grid,
+  .renewal-controls,
   .compose-row,
   .portal-grid,
   .portal-rule-grid,

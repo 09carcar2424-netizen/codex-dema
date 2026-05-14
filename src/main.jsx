@@ -250,6 +250,8 @@ function App() {
   const [sitemapEngineFilter, setSitemapEngineFilter] = useState('all');
   const [sitemapStatusFilter, setSitemapStatusFilter] = useState('all');
   const [sitemapPage, setSitemapPage] = useState(1);
+  const [renewalDecisionFilter, setRenewalDecisionFilter] = useState('all');
+  const [renewalSort, setRenewalSort] = useState('risk_first');
   const [apiEndpointInput, setApiEndpointInput] = useState(() => getApiBaseUrl());
   const [apiReloadToken, setApiReloadToken] = useState(0);
   const [dashboard, setDashboard] = useState(fallbackDashboard);
@@ -632,6 +634,30 @@ function App() {
   const renewalDoNotRenewCount = renewalDecisionRows.filter((row) => row.renewalDecision === 'do_not_renew').length;
   const renewalReviewCount = renewalDecisionRows.filter((row) => ['manual_review', 'hold'].includes(row.renewalDecision)).length;
   const renewalReadyCount = renewalDecisionRows.filter((row) => row.renewalDecision === 'renew').length;
+  const renewalDecisionOptions = ['all', 'renew', 'manual_review', 'hold', 'do_not_renew'];
+  const renewalDecisionOrder = {
+    do_not_renew: 1,
+    hold: 2,
+    manual_review: 3,
+    renew: 4,
+  };
+  const visibleRenewalRows = renewalDecisionRows
+    .filter((row) => renewalDecisionFilter === 'all' || row.renewalDecision === renewalDecisionFilter)
+    .sort((a, b) => {
+      if (renewalSort === 'domain_asc') return a.domain.localeCompare(b.domain);
+      if (renewalSort === 'decision_asc') {
+        const decisionDiff = (renewalDecisionOrder[a.renewalDecision] || 9) - (renewalDecisionOrder[b.renewalDecision] || 9);
+        if (decisionDiff !== 0) return decisionDiff;
+        return a.domain.localeCompare(b.domain);
+      }
+      if (renewalSort === 'automation_blocked') {
+        const automationDiff = Number(a.automationAllowed) - Number(b.automationAllowed);
+        if (automationDiff !== 0) return automationDiff;
+      }
+      const riskDiff = (renewalDecisionOrder[a.renewalDecision] || 9) - (renewalDecisionOrder[b.renewalDecision] || 9);
+      if (riskDiff !== 0) return riskDiff;
+      return a.domain.localeCompare(b.domain);
+    });
   const criticalHealthAlerts = healthAlertRows.filter((row) => row.severity === 'critical' && row.status !== 'resolved');
   const openHealthAlerts = healthAlertRows.filter((row) => ['open', 'planned', 'acknowledged'].includes(row.status));
   const googleSitemaps = dashboard.sitemapSubmissions.filter((row) => row.searchEngine === 'google');
@@ -2395,6 +2421,38 @@ function App() {
                 <span>do not renew candidates</span>
               </div>
             </div>
+            <div className="renewal-controls" aria-label="Domain renewal filters">
+              <label>
+                <span>Decision</span>
+                <select value={renewalDecisionFilter} onChange={(event) => setRenewalDecisionFilter(event.target.value)}>
+                  {renewalDecisionOptions.map((decision) => (
+                    <option value={decision} key={decision}>
+                      {decision === 'all' ? 'all decisions' : decision}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Sort</span>
+                <select value={renewalSort} onChange={(event) => setRenewalSort(event.target.value)}>
+                  <option value="risk_first">risk first</option>
+                  <option value="decision_asc">decision order</option>
+                  <option value="automation_blocked">automation blocked first</option>
+                  <option value="domain_asc">domain A-Z</option>
+                </select>
+              </label>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => {
+                  setRenewalDecisionFilter('all');
+                  setRenewalSort('risk_first');
+                }}
+              >
+                Reset
+              </button>
+              <span>{visibleRenewalRows.length} / {renewalDecisionRows.length} domains</span>
+            </div>
             <div className="ops-table renewal-table" role="table">
               <div className="ops-row ops-head" role="row">
                 <span>Domain</span>
@@ -2403,7 +2461,7 @@ function App() {
                 <span>Automation</span>
                 <span>Next action</span>
               </div>
-              {renewalDecisionRows.slice(0, 18).map((row) => (
+              {visibleRenewalRows.slice(0, 30).map((row) => (
                 <div className="ops-row" role="row" key={row.domain}>
                   <strong>{row.domain}</strong>
                   <StatusPill value={row.renewalDecision} />
