@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.3.4
+ * Version: 0.3.5
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.3.4';
+const WORDFRIENDS_SITEOPS_VERSION = '0.3.5';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -108,6 +108,7 @@ function wordfriends_siteops_enqueue_tracker() {
         'customerCode' => wordfriends_siteops_customer_code(),
         'loginUrl' => wordfriends_siteops_login_page_url(),
         'logoutUrl' => wordfriends_siteops_logout_page_url(),
+        'inquiryUrl' => wordfriends_siteops_question_page_url(),
     ]);
 
     wp_add_inline_script('wordfriends-siteops-tracker', <<<'JS'
@@ -184,6 +185,45 @@ function wordfriends_siteops_enqueue_tracker() {
       }
     }
   }, true);
+})();
+JS);
+    wp_add_inline_script('wordfriends-siteops-tracker', <<<'JS'
+(function () {
+  if (!window.WordfriendsSiteOps || !WordfriendsSiteOps.inquiryUrl) return;
+
+  function ensureInquiryLink() {
+    var nav = document.querySelector('header nav, .wp-block-navigation, nav');
+    if (!nav) return;
+
+    var hasInquiry = Array.prototype.some.call(nav.querySelectorAll('a'), function (link) {
+      return (link.textContent || '').replace(/\s+/g, '').trim() === '\ubb38\uc758';
+    });
+    if (hasInquiry) return;
+
+    var lastLink = nav.querySelector('a:last-of-type');
+    if (!lastLink || !lastLink.parentNode) return;
+
+    var link = lastLink.cloneNode(false);
+    link.href = WordfriendsSiteOps.inquiryUrl;
+    link.textContent = '\ubb38\uc758';
+    link.removeAttribute('aria-current');
+
+    if (lastLink.parentElement && lastLink.parentElement.tagName && lastLink.parentElement.tagName.toLowerCase() === 'li') {
+      var item = lastLink.parentElement.cloneNode(false);
+      item.appendChild(link);
+      lastLink.parentElement.parentNode.appendChild(item);
+      return;
+    }
+
+    lastLink.parentNode.appendChild(document.createTextNode(' '));
+    lastLink.parentNode.appendChild(link);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureInquiryLink);
+  } else {
+    ensureInquiryLink();
+  }
 })();
 JS);
 }
@@ -812,6 +852,10 @@ function wordfriends_siteops_login_page_url() {
 
 function wordfriends_siteops_logout_page_url() {
     return wordfriends_siteops_portal_page_url('wordfriends_logout', '/logout/', ['logout', '로그아웃']);
+}
+
+function wordfriends_siteops_question_page_url() {
+    return wordfriends_siteops_portal_page_url('wordfriends_question', '/contact/', ['contact', 'inquiry']);
 }
 
 function wordfriends_siteops_customer_logout_url($redirect = '') {
