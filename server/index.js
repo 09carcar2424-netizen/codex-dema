@@ -1075,7 +1075,7 @@ async function getDashboardData() {
     select pqt.id::text, coalesce(c.customer_code, 'NO_CUSTOMER') as customer_code,
       pqt.category, pqt.status, pqt.ai_allowed, pqt.human_review_required,
       pqt.question, pqt.answer_summary,
-      to_char(pqt.updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
+      pqt.updated_at
     from portal_question_threads pqt
     left join customers c on c.id = pqt.customer_id
     order by

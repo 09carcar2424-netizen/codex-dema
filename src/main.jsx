@@ -107,6 +107,27 @@ const INVENTORY_PAGE_SIZE = 20;
 const SITEMAP_PAGE_SIZE = 20;
 const REALTIME_REFRESH_MS = 30000;
 
+function formatSeoulDateTime(value) {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
 const defaultDiscoveryForm = {
   category: 'health',
   keywords: 'bio, care, journal, korea',
@@ -260,6 +281,7 @@ function App() {
   const [notificationSaveState, setNotificationSaveState] = useState({ status: 'idle', message: '' });
   const [discoveryForm, setDiscoveryForm] = useState(defaultDiscoveryForm);
   const [candidateSaveState, setCandidateSaveState] = useState({ status: 'idle', message: '' });
+  const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -1664,15 +1686,44 @@ function App() {
                 <span>상태</span>
                 <span>갱신</span>
               </div>
-              {portalRealtime.questions.slice(0, 8).map((question) => (
-                <div className="ops-row" role="row" key={question.id}>
-                  <strong>{question.customerCode}</strong>
-                  <span>{question.category}</span>
-                  <span>{question.question}</span>
-                  <StatusPill value={question.status} />
-                  <span>{question.updatedAt}</span>
-                </div>
-              ))}
+              {portalRealtime.questions.slice(0, 8).map((question) => {
+                const expanded = expandedQuestionId === question.id;
+
+                return (
+                  <div className="derived-question-item" key={question.id}>
+                    <button
+                      className="ops-row derived-question-row"
+                      type="button"
+                      role="row"
+                      aria-expanded={expanded}
+                      onClick={() => setExpandedQuestionId(expanded ? null : question.id)}
+                    >
+                      <strong>{question.customerCode}</strong>
+                      <span>{question.category}</span>
+                      <span>{question.question}</span>
+                      <StatusPill value={question.status} />
+                      <span>{formatSeoulDateTime(question.updatedAt)}</span>
+                    </button>
+                    {expanded ? (
+                      <div className="derived-question-detail">
+                        <div>
+                          <strong>문의 원문</strong>
+                          <p>{question.question}</p>
+                        </div>
+                        <div>
+                          <strong>처리 메모</strong>
+                          <p>{question.answerSummary || '담당자 검토 대기'}</p>
+                        </div>
+                        <div className="derived-question-meta">
+                          <span>상태: {question.status}</span>
+                          <span>분류: {question.category}</span>
+                          <span>갱신: {formatSeoulDateTime(question.updatedAt)}</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
             {portalRealtime.questions.length === 0 ? (
               <div className="empty-state">
