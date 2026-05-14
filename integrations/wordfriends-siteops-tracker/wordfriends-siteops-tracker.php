@@ -217,11 +217,26 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-check {
         display: flex;
-        align-items: flex-start;
-        gap: 9px;
+        align-items: center;
+        gap: 12px;
+        min-height: 42px;
+        border-radius: 8px;
+        padding: 6px 2px;
         color: #394955;
         font-size: 14px;
         font-weight: 500;
+        cursor: pointer;
+      }
+      .wordfriends-check input[type="checkbox"] {
+        flex: 0 0 20px;
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        accent-color: #1f8a70;
+        cursor: pointer;
+      }
+      .wordfriends-check span {
+        line-height: 1.5;
       }
       .wordfriends-button {
         min-height: 46px;
