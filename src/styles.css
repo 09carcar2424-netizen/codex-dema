@@ -2148,6 +2148,70 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.question-reply-box {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+}
+
+.question-reply-box label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.question-reply-box input,
+.question-reply-box select,
+.question-reply-box textarea {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--panel-soft);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.question-reply-box textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.reply-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.reply-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.reply-actions small {
+  color: var(--text-muted);
+}
+
+.save-state {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.save-state.saved {
+  color: var(--accent);
+}
+
+.save-state.error {
+  color: #d94f4f;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;

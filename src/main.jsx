@@ -27,6 +27,7 @@ import {
   getApiBaseUrl,
   saveApiBaseUrl,
   saveDomainCandidates,
+  saveWordfriendsQuestionReply,
 } from './api.js';
 import {
   contentQueueRows,
@@ -88,6 +89,14 @@ const emptyNotificationForm = {
   title: '',
   message: '',
   marketingMessage: false,
+};
+
+const emptyQuestionReplyForm = {
+  responseChannel: 'manual',
+  responseStatus: 'draft',
+  status: 'human_review',
+  responseMessage: '',
+  responseNote: '',
 };
 
 const siteStatusFilters = [
@@ -282,6 +291,8 @@ function App() {
   const [discoveryForm, setDiscoveryForm] = useState(defaultDiscoveryForm);
   const [candidateSaveState, setCandidateSaveState] = useState({ status: 'idle', message: '' });
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
+  const [questionReplyDrafts, setQuestionReplyDrafts] = useState({});
+  const [questionReplySaveState, setQuestionReplySaveState] = useState({});
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -331,6 +342,58 @@ function App() {
       reloadDashboard();
     } catch (error) {
       setNotificationSaveState({ status: 'error', message: `저장 실패: ${error.message}` });
+    }
+  };
+
+  const getQuestionReplyDraft = (question) => (
+    questionReplyDrafts[question.id] || {
+      responseChannel: question.responseChannel || emptyQuestionReplyForm.responseChannel,
+      responseStatus: question.responseStatus === 'sent' ? 'sent' : emptyQuestionReplyForm.responseStatus,
+      status: question.status === 'answered' ? 'answered' : emptyQuestionReplyForm.status,
+      responseMessage: question.responseMessage || '',
+      responseNote: question.responseNote || question.answerSummary || '',
+    }
+  );
+
+  const updateQuestionReplyDraft = (question, field, value) => {
+    setQuestionReplyDrafts((current) => ({
+      ...current,
+      [question.id]: {
+        ...getQuestionReplyDraft(question),
+        ...current[question.id],
+        [field]: value,
+      },
+    }));
+  };
+
+  const submitQuestionReply = async (question, responseStatus) => {
+    const draft = getQuestionReplyDraft(question);
+    setQuestionReplySaveState((current) => ({
+      ...current,
+      [question.id]: { status: 'saving', message: '답변 상태를 저장하는 중입니다.' },
+    }));
+
+    try {
+      await saveWordfriendsQuestionReply(question.id, {
+        ...draft,
+        responseStatus,
+        status: responseStatus === 'sent' ? 'answered' : draft.status,
+      });
+      setQuestionReplySaveState((current) => ({
+        ...current,
+        [question.id]: {
+          status: 'saved',
+          message: responseStatus === 'sent'
+            ? '처리 완료로 저장했습니다. 실제 외부 발송 연동은 다음 단계에서 붙입니다.'
+            : '답변 초안을 저장했습니다.',
+        },
+      }));
+      reloadDashboard();
+    } catch (error) {
+      setQuestionReplySaveState((current) => ({
+        ...current,
+        [question.id]: { status: 'error', message: `저장 실패: ${error.message}` },
+      }));
     }
   };
 
@@ -1688,6 +1751,8 @@ function App() {
               </div>
               {portalRealtime.questions.slice(0, 8).map((question) => {
                 const expanded = expandedQuestionId === question.id;
+                const replyDraft = getQuestionReplyDraft(question);
+                const replyState = questionReplySaveState[question.id] || { status: 'idle', message: '' };
 
                 return (
                   <div className="derived-question-item" key={question.id}>
@@ -1714,9 +1779,80 @@ function App() {
                           <strong>처리 메모</strong>
                           <p>{question.answerSummary || '담당자 검토 대기'}</p>
                         </div>
+                        <form
+                          className="question-reply-box"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            submitQuestionReply(question, replyDraft.responseStatus || 'draft');
+                          }}
+                        >
+                          <div className="reply-grid">
+                            <label>
+                              연락 채널
+                              <select
+                                value={replyDraft.responseChannel}
+                                onChange={(event) => updateQuestionReplyDraft(question, 'responseChannel', event.target.value)}
+                              >
+                                <option value="manual">수동 연락</option>
+                                <option value="email">이메일</option>
+                                <option value="sms">문자</option>
+                                <option value="kakao">카카오 알림톡</option>
+                                <option value="telegram">텔레그램</option>
+                              </select>
+                            </label>
+                            <label>
+                              처리 상태
+                              <select
+                                value={replyDraft.status}
+                                onChange={(event) => updateQuestionReplyDraft(question, 'status', event.target.value)}
+                              >
+                                <option value="human_review">사람 검토</option>
+                                <option value="open">접수</option>
+                                <option value="answered">답변 완료</option>
+                                <option value="closed">종료</option>
+                                <option value="blocked">차단</option>
+                              </select>
+                            </label>
+                          </div>
+                          <label>
+                            답변 내용
+                            <textarea
+                              rows={4}
+                              value={replyDraft.responseMessage}
+                              onChange={(event) => updateQuestionReplyDraft(question, 'responseMessage', event.target.value)}
+                              placeholder="고객에게 안내할 답변을 작성하세요. 실제 외부 발송은 다음 단계에서 채널 API와 연결합니다."
+                            />
+                          </label>
+                          <label>
+                            내부 메모
+                            <input
+                              type="text"
+                              value={replyDraft.responseNote}
+                              onChange={(event) => updateQuestionReplyDraft(question, 'responseNote', event.target.value)}
+                              placeholder="예: 정산 자료 확인 후 이메일 안내 예정"
+                            />
+                          </label>
+                          <div className="reply-actions">
+                            <button className="secondary-action" type="submit">
+                              답변 초안 저장
+                            </button>
+                            <button
+                              className="primary-action"
+                              type="button"
+                              onClick={() => submitQuestionReply(question, 'sent')}
+                            >
+                              처리 완료 기록
+                            </button>
+                            <small>외부 발송 전까지는 기록만 저장됩니다.</small>
+                          </div>
+                          {replyState.message ? (
+                            <p className={`save-state ${replyState.status}`}>{replyState.message}</p>
+                          ) : null}
+                        </form>
                         <div className="derived-question-meta">
                           <span>상태: {question.status}</span>
                           <span>분류: {question.category}</span>
+                          <span>응답: {question.responseChannel || 'manual'} / {question.responseStatus || 'not_started'}</span>
                           <span>갱신: {formatSeoulDateTime(question.updatedAt)}</span>
                         </div>
                       </div>

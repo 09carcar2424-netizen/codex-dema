@@ -72,6 +72,13 @@ CREATE TABLE IF NOT EXISTS portal_question_threads (
   CHECK (status IN ('open', 'ai_draft', 'human_review', 'answered', 'closed', 'blocked'))
 );
 
+ALTER TABLE portal_question_threads
+  ADD COLUMN IF NOT EXISTS response_channel TEXT NOT NULL DEFAULT 'manual',
+  ADD COLUMN IF NOT EXISTS response_status TEXT NOT NULL DEFAULT 'not_started',
+  ADD COLUMN IF NOT EXISTS response_message TEXT,
+  ADD COLUMN IF NOT EXISTS response_note TEXT,
+  ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS referral_relationships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   referrer_customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,

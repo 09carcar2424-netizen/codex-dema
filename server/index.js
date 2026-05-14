@@ -543,6 +543,57 @@ async function createWordfriendsQuestion(req, res) {
   });
 }
 
+async function updateWordfriendsQuestionReply(req, res, questionId) {
+  const body = await readJsonBody(req);
+  const channel = normalizeChoice(body.responseChannel || body.response_channel, ['manual', 'email', 'sms', 'kakao', 'telegram'], 'manual');
+  const responseStatus = normalizeChoice(
+    body.responseStatus || body.response_status,
+    ['not_started', 'draft', 'queued', 'sent', 'failed'],
+    'draft',
+  );
+  const nextStatus = normalizeChoice(body.status, ['open', 'ai_draft', 'human_review', 'answered', 'closed', 'blocked'], 'human_review');
+  const message = String(body.responseMessage || body.response_message || '').trim();
+  const note = String(body.responseNote || body.response_note || '').trim();
+
+  if (!message && !note) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'Response message or note is required.',
+    });
+  }
+
+  const updated = await query(
+    `
+      update portal_question_threads
+      set
+        response_channel = $2,
+        response_status = $3,
+        response_message = nullif($4, ''),
+        response_note = nullif($5, ''),
+        answer_summary = coalesce(nullif($5, ''), nullif($4, ''), answer_summary),
+        status = $6,
+        responded_at = case when $3 in ('queued', 'sent') then coalesce(responded_at, now()) else responded_at end,
+        updated_at = now()
+      where id = $1
+      returning id::text, category, status, response_channel, response_status,
+        response_message, response_note, answer_summary, responded_at, updated_at
+    `,
+    [questionId, channel, responseStatus, message, note, nextStatus],
+  );
+
+  if (!updated.rowCount) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Question was not found.',
+    });
+  }
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    question: updated.rows[0],
+  });
+}
+
 async function getN8nSiteRuntime(req, res, url) {
   const siteKey = String(url.searchParams.get('siteKey') || url.searchParams.get('site_key') || '').trim();
 
@@ -1074,7 +1125,8 @@ async function getDashboardData() {
   const portalQuestions = await queryOptional(`
     select pqt.id::text, coalesce(c.customer_code, 'NO_CUSTOMER') as customer_code,
       pqt.category, pqt.status, pqt.ai_allowed, pqt.human_review_required,
-      pqt.question, pqt.answer_summary,
+      pqt.question, pqt.answer_summary, pqt.response_channel, pqt.response_status,
+      pqt.response_message, pqt.response_note, pqt.responded_at,
       pqt.updated_at
     from portal_question_threads pqt
     left join customers c on c.id = pqt.customer_id
@@ -1304,6 +1356,11 @@ async function getDashboardData() {
         humanReviewRequired: row.human_review_required,
         question: row.question,
         answerSummary: row.answer_summary,
+        responseChannel: row.response_channel,
+        responseStatus: row.response_status,
+        responseMessage: row.response_message,
+        responseNote: row.response_note,
+        respondedAt: row.responded_at,
         updatedAt: row.updated_at,
       })),
     },
@@ -1353,6 +1410,11 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/dashboard') {
       return sendJson(req, res, 200, await getDashboardData());
+    }
+
+    const questionReplyMatch = url.pathname.match(/^\/api\/wordfriends\/questions\/([^/]+)\/reply$/);
+    if (questionReplyMatch && req.method === 'POST') {
+      return updateWordfriendsQuestionReply(req, res, questionReplyMatch[1]);
     }
 
     if (url.pathname === '/api/n8n/site-runtime') {

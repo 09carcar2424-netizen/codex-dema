@@ -72,3 +72,25 @@ export async function saveDomainCandidates(payload, apiBaseUrl = getApiBaseUrl()
 
   return response.json();
 }
+
+export async function saveWordfriendsQuestionReply(questionId, payload, apiBaseUrl = getApiBaseUrl()) {
+  const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
+  const replyUrl = normalizedBaseUrl
+    ? `${normalizedBaseUrl}/api/wordfriends/questions/${questionId}/reply`
+    : `/api/wordfriends/questions/${questionId}/reply`;
+  const response = await fetch(replyUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || error.error || 'Question reply request failed');
+  }
+
+  return response.json();
+}
