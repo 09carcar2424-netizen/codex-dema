@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: BOSS SiteOps
  */
 
@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
+const WORDFRIENDS_SITEOPS_VERSION = '0.2.0';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -43,6 +44,16 @@ function wordfriends_siteops_customer_code() {
     }
 
     return 'WP-' . $user_id;
+}
+
+function wordfriends_siteops_customer_code_for_user($user_id) {
+    $customer_code = get_user_meta($user_id, 'customer_code', true);
+
+    if ($customer_code) {
+        return sanitize_text_field($customer_code);
+    }
+
+    return 'WP-' . absint($user_id);
 }
 
 function wordfriends_siteops_send($path, $payload) {
@@ -88,7 +99,7 @@ function wordfriends_siteops_enqueue_tracker() {
         $_COOKIE['wordfriends_session_id'] = $session_id;
     }
 
-    wp_register_script('wordfriends-siteops-tracker', false, [], '0.1.0', true);
+    wp_register_script('wordfriends-siteops-tracker', false, [], WORDFRIENDS_SITEOPS_VERSION, true);
     wp_enqueue_script('wordfriends-siteops-tracker');
     wp_localize_script('wordfriends-siteops-tracker', 'WordfriendsSiteOps', [
         'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -158,6 +169,384 @@ JS);
 }
 add_action('wp_enqueue_scripts', 'wordfriends_siteops_enqueue_tracker');
 
+function wordfriends_siteops_portal_styles() {
+    if (is_admin()) {
+        return;
+    }
+
+    wp_register_style('wordfriends-siteops-portal', false, [], WORDFRIENDS_SITEOPS_VERSION);
+    wp_enqueue_style('wordfriends-siteops-portal');
+    wp_add_inline_style('wordfriends-siteops-portal', '
+      .wordfriends-auth {
+        max-width: 520px;
+        border: 1px solid #d9e2e7;
+        border-radius: 8px;
+        padding: 24px;
+        background: #fff;
+        color: #17212b;
+      }
+      .wordfriends-auth h2 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+      .wordfriends-auth p {
+        margin: 0 0 16px;
+        color: #5b6872;
+        line-height: 1.6;
+      }
+      .wordfriends-auth form,
+      .wordfriends-fieldset {
+        display: grid;
+        gap: 14px;
+      }
+      .wordfriends-auth label {
+        display: grid;
+        gap: 6px;
+        font-weight: 700;
+      }
+      .wordfriends-auth input[type="text"],
+      .wordfriends-auth input[type="email"],
+      .wordfriends-auth input[type="password"] {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid #c7d4dc;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font: inherit;
+      }
+      .wordfriends-check {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        color: #394955;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .wordfriends-button {
+        min-height: 46px;
+        border: 0;
+        border-radius: 8px;
+        padding: 0 18px;
+        background: #1f8a70;
+        color: #fff;
+        cursor: pointer;
+        font-weight: 800;
+      }
+      .wordfriends-auth-notice {
+        margin-bottom: 16px;
+        border-radius: 8px;
+        padding: 12px;
+        background: #eef6ff;
+        color: #173a59;
+      }
+      .wordfriends-auth-error {
+        margin-bottom: 16px;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff1f0;
+        color: #8a1f17;
+      }
+      .wordfriends-auth-small {
+        color: #697985;
+        font-size: 13px;
+      }
+    ');
+}
+add_action('wp_enqueue_scripts', 'wordfriends_siteops_portal_styles');
+
+function wordfriends_siteops_redirect_url($atts) {
+    $redirect = isset($atts['redirect']) ? esc_url_raw($atts['redirect']) : '';
+
+    if ($redirect) {
+        return $redirect;
+    }
+
+    return remove_query_arg(['wordfriends_signup', 'wordfriends_login']);
+}
+
+function wordfriends_siteops_handle_auth_posts() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        return;
+    }
+
+    if (isset($_POST['wordfriends_signup_action'])) {
+        $_POST['wordfriends_signup_action_processed'] = '1';
+        $GLOBALS['wordfriends_signup_message'] = '';
+        $GLOBALS['wordfriends_signup_error'] = '';
+
+        if (!isset($_POST['wordfriends_signup_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['wordfriends_signup_nonce'])), 'wordfriends_signup')) {
+            $GLOBALS['wordfriends_signup_error'] = '보안 확인에 실패했습니다. 새로고침 후 다시 시도해 주세요.';
+            return;
+        }
+
+        $name = sanitize_text_field(wp_unslash($_POST['wordfriends_name'] ?? ''));
+        $email = sanitize_email(wp_unslash($_POST['wordfriends_email'] ?? ''));
+        $password = (string) ($_POST['wordfriends_password'] ?? '');
+        $agree = isset($_POST['wordfriends_agree']);
+
+        if (!$name || !$email || !$password) {
+            $GLOBALS['wordfriends_signup_error'] = '이름, 이메일, 비밀번호를 모두 입력해 주세요.';
+            return;
+        }
+
+        if (!$agree) {
+            $GLOBALS['wordfriends_signup_error'] = '약관과 개인정보처리방침 동의가 필요합니다.';
+            return;
+        }
+
+        if (!is_email($email)) {
+            $GLOBALS['wordfriends_signup_error'] = '이메일 형식을 확인해 주세요.';
+            return;
+        }
+
+        if (email_exists($email)) {
+            $GLOBALS['wordfriends_signup_error'] = '이미 등록된 이메일입니다. 로그인 화면을 이용해 주세요.';
+            return;
+        }
+
+        $user_id = wp_create_user($email, $password, $email);
+
+        if (is_wp_error($user_id)) {
+            $GLOBALS['wordfriends_signup_error'] = $user_id->get_error_message();
+            return;
+        }
+
+        wp_update_user([
+            'ID' => $user_id,
+            'display_name' => $name,
+            'first_name' => $name,
+        ]);
+
+        $user = new WP_User($user_id);
+        $user->set_role('subscriber');
+
+        $customer_code = 'WF-' . str_pad((string) $user_id, 6, '0', STR_PAD_LEFT);
+        update_user_meta($user_id, 'customer_code', $customer_code);
+        update_user_meta($user_id, 'wordfriends_signup_source', 'shortcode');
+
+        wordfriends_siteops_send('/api/wordfriends/events', [
+            'eventType' => 'signup_completed',
+            'customerCode' => $customer_code,
+            'sessionId' => isset($_COOKIE['wordfriends_session_id']) ? sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])) : '',
+            'pagePath' => isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '',
+            'payload' => [
+                'wpUserId' => $user_id,
+                'emailHash' => wp_hash($email),
+            ],
+        ]);
+
+        wp_new_user_notification($user_id, null, 'admin');
+        $GLOBALS['wordfriends_signup_message'] = '가입이 완료되었습니다. 이제 로그인해 주세요.';
+        return;
+    }
+
+    if (isset($_POST['wordfriends_login_action'])) {
+        $_POST['wordfriends_login_action_processed'] = '1';
+        $GLOBALS['wordfriends_login_error'] = '';
+
+        if (!isset($_POST['wordfriends_login_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['wordfriends_login_nonce'])), 'wordfriends_login')) {
+            $GLOBALS['wordfriends_login_error'] = '보안 확인에 실패했습니다. 새로고침 후 다시 시도해 주세요.';
+            return;
+        }
+
+        $credentials = [
+            'user_login' => sanitize_user(wp_unslash($_POST['wordfriends_login_email'] ?? '')),
+            'user_password' => (string) ($_POST['wordfriends_login_password'] ?? ''),
+            'remember' => isset($_POST['wordfriends_remember']),
+        ];
+
+        $user = wp_signon($credentials, is_ssl());
+
+        if (is_wp_error($user)) {
+            $GLOBALS['wordfriends_login_error'] = '이메일 또는 비밀번호를 확인해 주세요.';
+            return;
+        }
+
+        $redirect = isset($_POST['wordfriends_redirect']) ? esc_url_raw(wp_unslash($_POST['wordfriends_redirect'])) : home_url('/');
+        wp_safe_redirect($redirect ?: home_url('/'));
+        exit;
+    }
+}
+add_action('init', 'wordfriends_siteops_handle_auth_posts');
+
+function wordfriends_siteops_signup_shortcode($atts = []) {
+    $atts = shortcode_atts([
+        'redirect' => '',
+        'title' => 'Wordfriends 시작하기',
+        'subtitle' => '고객 소유 사이트 운영대행 상담과 계약 진행을 위한 계정을 만듭니다.',
+    ], $atts, 'wordfriends_signup');
+
+    if (is_user_logged_in()) {
+        return '<div class="wordfriends-auth"><h2>이미 로그인되어 있습니다.</h2><p>내 사이트 현황과 계약 진행 화면은 순차적으로 연결됩니다.</p></div>';
+    }
+
+    $message = $GLOBALS['wordfriends_signup_message'] ?? '';
+    $error = $GLOBALS['wordfriends_signup_error'] ?? '';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wordfriends_signup_action']) && empty($_POST['wordfriends_signup_action_processed'])) {
+        if (!isset($_POST['wordfriends_signup_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['wordfriends_signup_nonce'])), 'wordfriends_signup')) {
+            $error = '보안 확인에 실패했습니다. 새로고침 후 다시 시도해 주세요.';
+        } else {
+            $name = sanitize_text_field(wp_unslash($_POST['wordfriends_name'] ?? ''));
+            $email = sanitize_email(wp_unslash($_POST['wordfriends_email'] ?? ''));
+            $password = (string) ($_POST['wordfriends_password'] ?? '');
+            $agree = isset($_POST['wordfriends_agree']);
+
+            if (!$name || !$email || !$password) {
+                $error = '이름, 이메일, 비밀번호를 모두 입력해 주세요.';
+            } elseif (!$agree) {
+                $error = '약관과 개인정보처리방침 동의가 필요합니다.';
+            } elseif (!is_email($email)) {
+                $error = '이메일 형식을 확인해 주세요.';
+            } elseif (email_exists($email)) {
+                $error = '이미 등록된 이메일입니다. 로그인 화면을 이용해 주세요.';
+            } else {
+                $user_id = wp_create_user($email, $password, $email);
+
+                if (is_wp_error($user_id)) {
+                    $error = $user_id->get_error_message();
+                } else {
+                    wp_update_user([
+                        'ID' => $user_id,
+                        'display_name' => $name,
+                        'first_name' => $name,
+                    ]);
+
+                    $user = new WP_User($user_id);
+                    $user->set_role('subscriber');
+
+                    $customer_code = 'WF-' . str_pad((string) $user_id, 6, '0', STR_PAD_LEFT);
+                    update_user_meta($user_id, 'customer_code', $customer_code);
+                    update_user_meta($user_id, 'wordfriends_signup_source', 'shortcode');
+
+                    wordfriends_siteops_send('/api/wordfriends/events', [
+                        'eventType' => 'signup_completed',
+                        'customerCode' => $customer_code,
+                        'sessionId' => isset($_COOKIE['wordfriends_session_id']) ? sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])) : '',
+                        'pagePath' => isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '',
+                        'payload' => [
+                            'wpUserId' => $user_id,
+                            'emailHash' => wp_hash($email),
+                        ],
+                    ]);
+
+                    wp_new_user_notification($user_id, null, 'admin');
+                    $message = '가입이 완료되었습니다. 이제 로그인해 주세요.';
+                }
+            }
+        }
+    }
+
+    ob_start();
+    ?>
+    <section class="wordfriends-auth">
+      <h2><?php echo esc_html($atts['title']); ?></h2>
+      <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php if ($message) : ?>
+        <div class="wordfriends-auth-notice"><?php echo esc_html($message); ?></div>
+      <?php endif; ?>
+      <?php if ($error) : ?>
+        <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
+      <?php endif; ?>
+      <form method="post" data-siteops-event="signup_started">
+        <?php wp_nonce_field('wordfriends_signup', 'wordfriends_signup_nonce'); ?>
+        <input type="hidden" name="wordfriends_signup_action" value="1" />
+        <div class="wordfriends-fieldset">
+          <label>
+            이름
+            <input type="text" name="wordfriends_name" autocomplete="name" required />
+          </label>
+          <label>
+            이메일
+            <input type="email" name="wordfriends_email" autocomplete="email" required />
+          </label>
+          <label>
+            비밀번호
+            <input type="password" name="wordfriends_password" autocomplete="new-password" required minlength="8" />
+          </label>
+          <label class="wordfriends-check">
+            <input type="checkbox" name="wordfriends_agree" value="1" required />
+            <span>서비스 이용약관과 개인정보처리방침에 동의합니다.</span>
+          </label>
+        </div>
+        <button class="wordfriends-button" type="submit">회원가입</button>
+      </form>
+      <p class="wordfriends-auth-small">수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황은 고객 계정 기준으로 안내됩니다.</p>
+    </section>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('wordfriends_signup', 'wordfriends_siteops_signup_shortcode');
+
+function wordfriends_siteops_login_shortcode($atts = []) {
+    $atts = shortcode_atts([
+        'redirect' => '',
+        'title' => 'Wordfriends 로그인',
+        'subtitle' => '계약, 내 사이트 현황, 정산 안내를 확인하기 위한 고객 로그인입니다.',
+    ], $atts, 'wordfriends_login');
+
+    if (is_user_logged_in()) {
+        return '<div class="wordfriends-auth"><h2>로그인되어 있습니다.</h2><p>고객용 대시보드가 준비되는 대로 이 계정에 연결됩니다.</p></div>';
+    }
+
+    $error = $GLOBALS['wordfriends_login_error'] ?? '';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wordfriends_login_action']) && empty($_POST['wordfriends_login_action_processed'])) {
+        if (!isset($_POST['wordfriends_login_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['wordfriends_login_nonce'])), 'wordfriends_login')) {
+            $error = '보안 확인에 실패했습니다. 새로고침 후 다시 시도해 주세요.';
+        } else {
+            $credentials = [
+                'user_login' => sanitize_user(wp_unslash($_POST['wordfriends_login_email'] ?? '')),
+                'user_password' => (string) ($_POST['wordfriends_login_password'] ?? ''),
+                'remember' => isset($_POST['wordfriends_remember']),
+            ];
+
+            $user = wp_signon($credentials, is_ssl());
+
+            if (is_wp_error($user)) {
+                $error = '이메일 또는 비밀번호를 확인해 주세요.';
+            } else {
+                wp_safe_redirect(wordfriends_siteops_redirect_url($atts));
+                exit;
+            }
+        }
+    }
+
+    ob_start();
+    ?>
+    <section class="wordfriends-auth">
+      <h2><?php echo esc_html($atts['title']); ?></h2>
+      <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php if ($error) : ?>
+        <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
+      <?php endif; ?>
+      <form method="post" data-siteops-event="login_started">
+        <?php wp_nonce_field('wordfriends_login', 'wordfriends_login_nonce'); ?>
+        <input type="hidden" name="wordfriends_login_action" value="1" />
+        <input type="hidden" name="wordfriends_redirect" value="<?php echo esc_url(wordfriends_siteops_redirect_url($atts)); ?>" />
+        <div class="wordfriends-fieldset">
+          <label>
+            이메일
+            <input type="email" name="wordfriends_login_email" autocomplete="email" required />
+          </label>
+          <label>
+            비밀번호
+            <input type="password" name="wordfriends_login_password" autocomplete="current-password" required />
+          </label>
+          <label class="wordfriends-check">
+            <input type="checkbox" name="wordfriends_remember" value="1" />
+            <span>로그인 상태 유지</span>
+          </label>
+        </div>
+        <button class="wordfriends-button" type="submit">로그인</button>
+      </form>
+    </section>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('wordfriends_login', 'wordfriends_siteops_login_shortcode');
+
 function wordfriends_siteops_ajax_event() {
     check_ajax_referer('wordfriends_siteops_event', 'nonce');
 
@@ -216,7 +605,7 @@ add_action('wp_ajax_nopriv_wordfriends_siteops_question', 'wordfriends_siteops_a
 
 function wordfriends_siteops_track_login($user_login, $user) {
     wordfriends_siteops_track_event('login', [
-        'customerCode' => get_user_meta($user->ID, 'customer_code', true) ?: 'WP-' . $user->ID,
+        'customerCode' => wordfriends_siteops_customer_code_for_user($user->ID),
         'payload' => [
             'wpUserId' => $user->ID,
             'login' => $user_login,

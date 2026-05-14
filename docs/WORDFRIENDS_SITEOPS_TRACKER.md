@@ -63,7 +63,35 @@ The plugin sends:
 
 - `page_view` on public page load
 - `login` on WordPress login
+- `signup_started` when the Wordfriends signup shortcode form is submitted
+- `signup_completed` after the Wordfriends signup shortcode creates a WordPress user
 - `question_submitted` when a form has `data-siteops-question-form`
+
+## Customer Shortcodes
+
+Create WordPress pages and place these shortcodes in the page body.
+
+Signup page:
+
+```text
+[wordfriends_signup]
+```
+
+Login page:
+
+```text
+[wordfriends_login]
+```
+
+Optional redirect after login:
+
+```text
+[wordfriends_login redirect="https://wordfriends.co.kr/my-site/"]
+```
+
+The signup shortcode creates a WordPress `subscriber` user, stores a `customer_code` user meta value like `WF-000123`, and sends signup progress events to SiteOps from the server side.
+
+Customer-facing copy must not promise revenue, AdSense approval, search ranking, or traffic.
 
 ## Mark Signup and Contract Forms
 
