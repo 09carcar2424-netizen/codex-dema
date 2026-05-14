@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.2.7
+ * Version: 0.2.9
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.2.7';
+const WORDFRIENDS_SITEOPS_VERSION = '0.2.9';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -588,12 +588,10 @@ function wordfriends_siteops_logout_shortcode($atts = []) {
         return '<div class="wordfriends-auth"><h2>로그아웃 상태입니다.</h2><p>고객 계정으로 다시 이용하려면 상단의 로그인 메뉴를 이용해 주세요.</p></div>';
     }
 
-    $user = wp_get_current_user();
     $redirect = esc_url_raw($atts['redirect']);
-    return '<div class="wordfriends-auth"><h2>로그아웃</h2><p>' . esc_html($user->display_name ?: $user->user_login) . ' 계정으로 로그인되어 있습니다.</p><form method="post"><input type="hidden" name="wordfriends_logout_action" value="1" /><input type="hidden" name="wordfriends_redirect" value="' . esc_url($redirect ?: home_url('/login/')) . '" />' . wp_nonce_field('wordfriends_customer_logout', 'wordfriends_logout_nonce', true, false) . '<button class="wordfriends-button wordfriends-button-secondary" type="submit">로그아웃</button></form></div>';
-    $logout_url = wordfriends_siteops_customer_logout_url($redirect ?: home_url('/login/'));
+    $form_id = 'wordfriends-auto-logout-' . wp_generate_uuid4();
 
-    return '<div class="wordfriends-auth"><h2>로그아웃</h2><p>' . esc_html($user->display_name ?: $user->user_login) . ' 계정으로 로그인되어 있습니다.</p><a class="wordfriends-button wordfriends-button-secondary" href="' . esc_url($logout_url) . '">로그아웃</a></div>';
+    return '<div class="wordfriends-auth"><h2>로그아웃 처리 중입니다.</h2><p>잠시만 기다려 주세요. 로그인 화면으로 이동합니다.</p><form id="' . esc_attr($form_id) . '" method="post" style="display:none"><input type="hidden" name="wordfriends_logout_action" value="1" /><input type="hidden" name="wordfriends_redirect" value="' . esc_url($redirect ?: home_url('/login/')) . '" />' . wp_nonce_field('wordfriends_customer_logout', 'wordfriends_logout_nonce', true, false) . '</form><script>(function(){var form=document.getElementById("' . esc_js($form_id) . '");if(form){form.submit();}}());</script></div>';
 }
 add_shortcode('wordfriends_logout', 'wordfriends_siteops_logout_shortcode');
 
