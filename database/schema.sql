@@ -720,6 +720,24 @@ CREATE TABLE IF NOT EXISTS domain_audits (
   CHECK (final_grade IN ('unrated', 'safe_candidate', 'watch', 'hold', 'reject'))
 );
 
+CREATE TABLE IF NOT EXISTS domain_renewal_decisions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID REFERENCES sites(id) ON DELETE SET NULL,
+  inventory_id UUID REFERENCES domain_inventory(id) ON DELETE SET NULL,
+  domain TEXT NOT NULL UNIQUE,
+  renewal_decision TEXT NOT NULL DEFAULT 'manual_review',
+  decision_reason TEXT NOT NULL DEFAULT 'manual_review_required',
+  evidence_required BOOLEAN NOT NULL DEFAULT true,
+  customer_exposure_allowed BOOLEAN NOT NULL DEFAULT false,
+  automation_allowed BOOLEAN NOT NULL DEFAULT false,
+  next_action TEXT,
+  decided_by TEXT NOT NULL DEFAULT 'system',
+  decided_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (renewal_decision IN ('renew', 'manual_review', 'do_not_renew', 'hold')),
+  CHECK (decision_reason IN ('safe_operating_asset', 'quarantine_review', 'spam_risk', 'manual_review_required', 'discard_candidate', 'customer_owned'))
+);
+
 CREATE TABLE IF NOT EXISTS domain_candidates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   domain TEXT NOT NULL UNIQUE,
@@ -779,5 +797,7 @@ CREATE INDEX IF NOT EXISTS idx_domain_inventory_status ON domain_inventory(inven
 CREATE INDEX IF NOT EXISTS idx_domain_inventory_offer ON domain_inventory(offer_status);
 CREATE INDEX IF NOT EXISTS idx_domain_audits_inventory ON domain_audits(inventory_id);
 CREATE INDEX IF NOT EXISTS idx_domain_audits_grade ON domain_audits(final_grade);
+CREATE INDEX IF NOT EXISTS idx_domain_renewal_decisions_decision ON domain_renewal_decisions(renewal_decision);
+CREATE INDEX IF NOT EXISTS idx_domain_renewal_decisions_domain ON domain_renewal_decisions(domain);
 CREATE INDEX IF NOT EXISTS idx_domain_candidates_audit ON domain_candidates(audit_status);
 CREATE INDEX IF NOT EXISTS idx_domain_candidates_purchase ON domain_candidates(purchase_status);

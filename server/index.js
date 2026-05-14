@@ -1040,6 +1040,25 @@ async function getDashboardData() {
     limit 100
   `);
 
+  const renewalDecisions = await queryOptional(`
+    select drd.id::text, s.site_key, drd.domain, drd.renewal_decision,
+      drd.decision_reason, drd.evidence_required, drd.customer_exposure_allowed,
+      drd.automation_allowed, drd.next_action, drd.decided_by,
+      to_char(drd.decided_at, 'YYYY-MM-DD HH24:MI') as decided_at
+    from domain_renewal_decisions drd
+    left join sites s on s.id = drd.site_id
+    order by
+      case drd.renewal_decision
+        when 'do_not_renew' then 1
+        when 'hold' then 2
+        when 'manual_review' then 3
+        when 'renew' then 4
+        else 5
+      end,
+      drd.domain
+    limit 100
+  `);
+
   const portalRealtimeStats = await queryOptional(`
     select
       count(distinct coalesce(session_id, id::text)) filter (where occurred_at >= now() - interval '5 minutes')::int as active_5m,
@@ -1251,6 +1270,19 @@ async function getDashboardData() {
       status: row.status,
       lastReviewedAt: row.last_reviewed_at,
       notes: row.notes,
+    })),
+    renewalDecisions: renewalDecisions.rows.map((row) => ({
+      id: row.id,
+      siteKey: row.site_key,
+      domain: row.domain,
+      renewalDecision: row.renewal_decision,
+      decisionReason: row.decision_reason,
+      evidenceRequired: row.evidence_required,
+      customerExposureAllowed: row.customer_exposure_allowed,
+      automationAllowed: row.automation_allowed,
+      nextAction: row.next_action,
+      decidedBy: row.decided_by,
+      decidedAt: row.decided_at,
     })),
     portalRealtime: {
       activeVisitors5m: Number(realtimeRow.active_5m || 0),

@@ -1288,6 +1288,47 @@ h2 {
   margin-top: 18px;
 }
 
+.renewal-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.renewal-summary-grid div {
+  display: grid;
+  gap: 6px;
+  min-height: 82px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 13px;
+  background: var(--panel-soft);
+}
+
+.renewal-summary-grid strong {
+  color: var(--text);
+  font-size: 24px;
+}
+
+.renewal-summary-grid span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.renewal-table {
+  margin-top: 14px;
+}
+
+.renewal-table .ops-row {
+  grid-template-columns: minmax(180px, 0.8fr) minmax(130px, 0.55fr) minmax(160px, 0.65fr) minmax(110px, 0.45fr) minmax(320px, 1.3fr);
+}
+
+.renewal-table .ops-row > span {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .audit-source-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2043,6 +2084,7 @@ h2 {
   .discovery-strategy-grid,
   .audit-source-grid,
   .reuse-summary,
+  .renewal-summary-grid,
   .compose-row,
   .portal-grid,
   .portal-rule-grid,
@@ -2082,6 +2124,7 @@ h2 {
   .proxy-table .ops-row,
   .alert-table .ops-row,
   .trust-table .ops-row,
+  .renewal-table .ops-row,
   .policy-ledger-row {
     grid-template-columns: 1fr;
   }
@@ -2107,6 +2150,7 @@ h2 {
   .proxy-table .ops-row,
   .alert-table .ops-row,
   .trust-table .ops-row,
+  .renewal-table .ops-row,
   .sitemap-table .ops-row,
   .tax-table .ops-row {
     grid-template-columns: 1fr;

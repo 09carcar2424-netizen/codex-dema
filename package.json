@@ -14,6 +14,7 @@
     "db:schema": "psql \"$DATABASE_URL\" -f database/schema.sql",
     "import:domains": "node scripts/import-domain-portfolio.mjs",
     "sync:domain-inventory": "node scripts/sync-domain-inventory.mjs",
+    "sync:domain-renewals": "node scripts/sync-domain-renewal-decisions.mjs",
     "sync:sitemaps": "node scripts/sync-sitemap-submissions.mjs",
     "sync:siteops-readiness": "node scripts/sync-siteops-readiness.mjs",
     "report:siteops-readiness": "node scripts/report-siteops-readiness.mjs",

@@ -64,6 +64,7 @@ const fallbackDashboard = {
   runtimeProfiles: [],
   healthAlerts: [],
   trustPlans: [],
+  renewalDecisions: [],
   portalRealtime: {
     activeVisitors5m: 0,
     signupStartedToday: 0,
@@ -336,6 +337,7 @@ function App() {
           runtimeProfiles: data.runtimeProfiles || [],
           healthAlerts: data.healthAlerts || [],
           trustPlans: data.trustPlans || [],
+          renewalDecisions: data.renewalDecisions || [],
           portalRealtime: data.portalRealtime || fallbackDashboard.portalRealtime,
         });
         setApiState({
@@ -626,6 +628,10 @@ function App() {
           lastReviewedAt: '',
           notes: row.memo,
         }));
+  const renewalDecisionRows = dashboard.renewalDecisions || [];
+  const renewalDoNotRenewCount = renewalDecisionRows.filter((row) => row.renewalDecision === 'do_not_renew').length;
+  const renewalReviewCount = renewalDecisionRows.filter((row) => ['manual_review', 'hold'].includes(row.renewalDecision)).length;
+  const renewalReadyCount = renewalDecisionRows.filter((row) => row.renewalDecision === 'renew').length;
   const criticalHealthAlerts = healthAlertRows.filter((row) => row.severity === 'critical' && row.status !== 'resolved');
   const openHealthAlerts = healthAlertRows.filter((row) => ['open', 'planned', 'acknowledged'].includes(row.status));
   const googleSitemaps = dashboard.sitemapSubmissions.filter((row) => row.searchEngine === 'google');
@@ -2370,6 +2376,42 @@ function App() {
                 <span>A/B/C/D/Reject 등급 연동</span>
                 <p>고위험 또는 회생 가치 낮은 도메인은 자동 갱신하지 않고 수동 확인 대상으로 둡니다.</p>
               </article>
+            </div>
+            <div className="renewal-summary-grid">
+              <div>
+                <strong>{renewalDecisionRows.length}</strong>
+                <span>renewal decisions</span>
+              </div>
+              <div>
+                <strong>{renewalReadyCount}</strong>
+                <span>renew unless issue</span>
+              </div>
+              <div>
+                <strong>{renewalReviewCount}</strong>
+                <span>manual review / hold</span>
+              </div>
+              <div>
+                <strong>{renewalDoNotRenewCount}</strong>
+                <span>do not renew candidates</span>
+              </div>
+            </div>
+            <div className="ops-table renewal-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>Domain</span>
+                <span>Decision</span>
+                <span>Reason</span>
+                <span>Automation</span>
+                <span>Next action</span>
+              </div>
+              {renewalDecisionRows.slice(0, 18).map((row) => (
+                <div className="ops-row" role="row" key={row.domain}>
+                  <strong>{row.domain}</strong>
+                  <StatusPill value={row.renewalDecision} />
+                  <span>{row.decisionReason}</span>
+                  <span>{row.automationAllowed ? 'allowed' : 'blocked'}</span>
+                  <span>{row.nextAction}</span>
+                </div>
+              ))}
             </div>
           </article>
 
