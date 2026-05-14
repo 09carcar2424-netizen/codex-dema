@@ -74,9 +74,9 @@ try {
   const totals = await client.query(`
     select
       count(*)::int as total_sites,
-      count(*) filter (where status in ('active', 'draft', 'paused'))::int as sync_eligible,
-      count(*) filter (where status = 'archived')::int as archived,
-      count(*) filter (where portfolio_status = 'high_risk_hold')::int as high_risk_hold,
+      count(*) filter (where s.status in ('active', 'draft', 'paused'))::int as sync_eligible,
+      count(*) filter (where s.status = 'archived')::int as archived,
+      count(*) filter (where s.portfolio_status = 'high_risk_hold')::int as high_risk_hold,
       count(spa.id)::int as proxy_rows,
       count(srp.site_id)::int as runtime_rows,
       count(stp.id)::int as trust_rows
