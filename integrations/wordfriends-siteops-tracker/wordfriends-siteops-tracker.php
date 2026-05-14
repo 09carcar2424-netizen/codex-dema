@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.2.9
+ * Version: 0.3.0
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.2.9';
+const WORDFRIENDS_SITEOPS_VERSION = '0.3.0';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -106,6 +106,8 @@ function wordfriends_siteops_enqueue_tracker() {
         'nonce' => wp_create_nonce('wordfriends_siteops_event'),
         'sessionId' => sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])),
         'customerCode' => wordfriends_siteops_customer_code(),
+        'loginUrl' => wordfriends_siteops_login_page_url(),
+        'logoutUrl' => home_url('/logout/'),
     ]);
 
     wp_add_inline_script('wordfriends-siteops-tracker', <<<'JS'
@@ -147,6 +149,24 @@ function wordfriends_siteops_enqueue_tracker() {
   };
 
   window.WordfriendsTrack.event('page_view');
+
+  function normalizePortalLinks() {
+    document.querySelectorAll('a').forEach(function (link) {
+      var label = (link.textContent || '').replace(/\s+/g, '').trim();
+      if (label === '로그인' && WordfriendsSiteOps.loginUrl) {
+        link.href = WordfriendsSiteOps.loginUrl;
+      }
+      if (label === '로그아웃' && WordfriendsSiteOps.logoutUrl) {
+        link.href = WordfriendsSiteOps.logoutUrl;
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', normalizePortalLinks);
+  } else {
+    normalizePortalLinks();
+  }
 
   document.addEventListener('submit', function (event) {
     var form = event.target;
