@@ -355,6 +355,18 @@ function App() {
     }
   );
 
+  const getQuestionQuickAction = (question) => {
+    if (question.status === 'answered' || question.responseStatus === 'sent') {
+      return { label: '완료됨', tone: 'done' };
+    }
+
+    if (question.responseMessage || question.responseStatus === 'draft') {
+      return { label: '초안 확인', tone: 'draft' };
+    }
+
+    return { label: '처리하기', tone: 'open' };
+  };
+
   const normalizeSavedQuestionReply = (question, savedQuestion, draft, responseStatus) => ({
     ...question,
     status: savedQuestion?.status || (responseStatus === 'sent' ? 'answered' : draft.status),
@@ -1793,20 +1805,28 @@ function App() {
                 <span>질문</span>
                 <span>상태</span>
                 <span>갱신</span>
+                <span>처리</span>
               </div>
               {portalRealtime.questions.slice(0, 8).map((question) => {
                 const expanded = expandedQuestionId === question.id;
                 const replyDraft = getQuestionReplyDraft(question);
                 const replyState = questionReplySaveState[question.id] || { status: 'idle', message: '' };
+                const quickAction = getQuestionQuickAction(question);
 
                 return (
                   <div className="derived-question-item" key={question.id}>
-                    <button
+                    <div
                       className="ops-row derived-question-row"
-                      type="button"
                       role="row"
+                      tabIndex={0}
                       aria-expanded={expanded}
                       onClick={() => setExpandedQuestionId(expanded ? null : question.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setExpandedQuestionId(expanded ? null : question.id);
+                        }
+                      }}
                     >
                       <strong>{question.customerCode}</strong>
                       <span>{question.category}</span>
@@ -1821,7 +1841,19 @@ function App() {
                       </span>
                       <StatusPill value={question.status} />
                       <span>{formatSeoulDateTime(question.updatedAt)}</span>
-                    </button>
+                      <span className="derived-question-action-cell">
+                        <button
+                          className={`question-quick-action ${quickAction.tone}`}
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setExpandedQuestionId(question.id);
+                          }}
+                        >
+                          {quickAction.label}
+                        </button>
+                      </span>
+                    </div>
                     {expanded ? (
                       <div className="derived-question-detail">
                         <div>
