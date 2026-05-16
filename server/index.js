@@ -2499,6 +2499,18 @@ async function getDashboardData() {
     from portal_question_threads pqt
     left join customers c on c.id = pqt.customer_id
       or (pqt.customer_id is null and pqt.requester_customer_code is not null and c.customer_code = pqt.requester_customer_code)
+      or (
+        pqt.customer_id is null
+        and pqt.requester_customer_code is null
+        and (
+          (pqt.requester_email is not null and lower(c.contact_email) = lower(pqt.requester_email))
+          or (
+            pqt.requester_email is null
+            and c.contact_email is not null
+            and lower(pqt.question) like '%' || lower(c.contact_email) || '%'
+          )
+        )
+      )
     where pqt.status <> 'closed'
     order by
       case pqt.status
