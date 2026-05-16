@@ -2037,10 +2037,33 @@ async function getDashboardData() {
         limit 100
       `),
       query(`
-        select customer_code as code, display_name as name, contract_status,
-          0 as sites, 'UNKNOWN' as adsense_status, 'NONE' as settlement_status
-        from customers
-        order by created_at desc
+        select
+          c.customer_code as code,
+          c.display_name as name,
+          c.contact_email,
+          c.contract_status,
+          count(distinct s.id)::int as sites,
+          coalesce(
+            max(ads.application_status) filter (where ads.application_status = 'approved'),
+            max(ads.application_status) filter (where ads.application_status = 'submitted'),
+            max(ads.application_status) filter (where ads.application_status = 'paused'),
+            max(ads.application_status) filter (where ads.application_status = 'rejected'),
+            max(ads.application_status) filter (where ads.application_status = 'not_started'),
+            'UNKNOWN'
+          ) as adsense_status,
+          coalesce(
+            max(rs.status) filter (where rs.status = 'paid'),
+            max(rs.status) filter (where rs.status = 'invoiced'),
+            max(rs.status) filter (where rs.status = 'confirmed'),
+            max(rs.status) filter (where rs.status = 'draft'),
+            'NONE'
+          ) as settlement_status
+        from customers c
+        left join sites s on s.customer_id = c.id
+        left join adsense_status ads on ads.site_id = s.id
+        left join revenue_settlements rs on rs.customer_id = c.id
+        group by c.id
+        order by c.created_at desc
         limit 100
       `),
       query(`
@@ -2358,6 +2381,7 @@ async function getDashboardData() {
     customers: customers.rows.map((row) => ({
       code: row.code,
       name: row.name,
+      contactEmail: row.contact_email,
       contractStatus: row.contract_status?.toUpperCase(),
       sites: Number(row.sites || 0),
       adsenseStatus: row.adsense_status,

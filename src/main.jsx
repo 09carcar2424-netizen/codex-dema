@@ -594,20 +594,21 @@ function App() {
     fetchDashboardData(apiBaseUrl)
       .then((data) => {
         if (!active) return;
+        const apiSource = data.source || 'postgres';
         setDashboard({
-          source: data.source || 'postgres',
-          sites: data.sites?.length ? data.sites : siteRows,
-          customers: data.customers?.length ? data.customers : customerRows,
-          contentQueue: data.contentQueue?.length ? data.contentQueue : contentQueueRows,
-          wpSetup: data.wpSetup?.length ? data.wpSetup : wpSetupRows,
-          workflows: data.workflows?.length ? data.workflows : workflowRows,
-          runLogs: data.runLogs?.length ? data.runLogs : runLogRows,
-          settlements: data.settlements?.length ? data.settlements : settlementRows,
-          referrals: data.referrals?.length ? data.referrals : referralRows,
-          taxEstimates: data.taxEstimates?.length ? data.taxEstimates : taxEstimateRows,
-          notifications: data.notifications?.length ? data.notifications : notificationRows,
-          domainInventory: data.domainInventory?.length ? data.domainInventory : domainInventoryRows,
-          sitemapSubmissions: data.sitemapSubmissions?.length ? data.sitemapSubmissions : sitemapRows,
+          source: apiSource,
+          sites: data.sites?.length ? data.sites : apiSource === 'postgres' ? [] : siteRows,
+          customers: data.customers?.length ? data.customers : apiSource === 'postgres' ? [] : customerRows,
+          contentQueue: data.contentQueue?.length ? data.contentQueue : apiSource === 'postgres' ? [] : contentQueueRows,
+          wpSetup: data.wpSetup?.length ? data.wpSetup : apiSource === 'postgres' ? [] : wpSetupRows,
+          workflows: data.workflows?.length ? data.workflows : apiSource === 'postgres' ? [] : workflowRows,
+          runLogs: data.runLogs?.length ? data.runLogs : apiSource === 'postgres' ? [] : runLogRows,
+          settlements: data.settlements?.length ? data.settlements : apiSource === 'postgres' ? [] : settlementRows,
+          referrals: data.referrals?.length ? data.referrals : apiSource === 'postgres' ? [] : referralRows,
+          taxEstimates: data.taxEstimates?.length ? data.taxEstimates : apiSource === 'postgres' ? [] : taxEstimateRows,
+          notifications: data.notifications?.length ? data.notifications : apiSource === 'postgres' ? [] : notificationRows,
+          domainInventory: data.domainInventory?.length ? data.domainInventory : apiSource === 'postgres' ? [] : domainInventoryRows,
+          sitemapSubmissions: data.sitemapSubmissions?.length ? data.sitemapSubmissions : apiSource === 'postgres' ? [] : sitemapRows,
           domainCandidates: data.domainCandidates || [],
           proxyAssignments: data.proxyAssignments || [],
           runtimeProfiles: data.runtimeProfiles || [],
@@ -690,7 +691,8 @@ function App() {
       note: '정산, 세금, AdSense, 정책성 질문은 사람 검토로 전환',
     },
   ];
-  const portalCustomers = dashboard.customers.filter((customer) =>
+  const hasLiveDashboard = dashboard.source === 'postgres';
+  const portalCustomers = (hasLiveDashboard ? dashboard.customers : []).filter((customer) =>
     ['ACTIVE', 'LEAD', 'PENDING', 'SUBMITTED'].includes(String(customer.contractStatus || '').toUpperCase()),
   );
   const portalReportableSites = dashboard.sites.filter((site) =>
@@ -707,6 +709,7 @@ function App() {
   const portalSubmittedSitemaps = dashboard.sitemapSubmissions.filter((row) =>
     row.searchEngine === 'google' && ['submitted', 'verified'].includes(row.status),
   );
+  const portalStatus = portalCustomers.length || contractRequests.length || portalQuestions.length ? 'ACTIVE' : 'READY';
   const portalPrograms = [
     {
       name: '회원가입 / 로그인',
@@ -718,7 +721,7 @@ function App() {
     {
       name: '전자계약 / 정책 동의',
       status: 'MVP 1',
-      metric: `${dashboard.customers.filter((customer) => customer.contractStatus === 'ACTIVE').length}건`,
+      metric: `${contractRequests.length}건`,
       wordfriends: '전자계약서, 이용약관, 개인정보처리방침, 정책 버전 동의',
       siteops: '계약 버전, 동의 일시, 정책 변경 이력, 재동의 필요 여부',
     },
@@ -739,7 +742,7 @@ function App() {
     {
       name: '문의 / AI 상담',
       status: 'MVP 2',
-      metric: `${customerNotifications.length}건`,
+      metric: `${portalQuestions.length}건`,
       wordfriends: '문의 접수, AI 초안, 담당자 답변, 공지 확인',
       siteops: '정책/세무/수익 관련 질문 자동 차단, 사람 검토 큐, 내부 알림',
     },
@@ -1794,9 +1797,9 @@ function App() {
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">wordfriends.co.kr</p>
-                <h2>고객 포털 계획</h2>
+                <h2>고객 포털 운영 현황</h2>
               </div>
-              <StatusPill value={portalSummary.status} />
+              <StatusPill value={portalStatus} />
             </div>
             <div className="portal-grid">
               <div>
@@ -1817,11 +1820,11 @@ function App() {
                 <span>애드센스</span>
                 <span>정산</span>
               </div>
-              {dashboard.customers.map((customer) => (
+              {portalCustomers.map((customer) => (
                 <div className="ops-row" role="row" key={customer.code}>
                   <div>
                     <strong>{customer.name}</strong>
-                    <small>{customer.code}</small>
+                    <small>{customer.code}{customer.contactEmail ? ` · ${customer.contactEmail}` : ''}</small>
                   </div>
                   <StatusPill value={customer.contractStatus} />
                   <span>{customer.sites}개</span>
@@ -1830,6 +1833,11 @@ function App() {
                 </div>
               ))}
             </div>
+            {portalCustomers.length === 0 ? (
+              <div className="empty-state">
+                아직 고객 포털에 연결된 고객 데이터가 없습니다. 회원가입, 계약 요청, 문의가 접수되면 이곳에 실제 고객 기준으로 표시됩니다.
+              </div>
+            ) : null}
           </article>
 
           <article className="panel wide-panel" id="portal-admin">
