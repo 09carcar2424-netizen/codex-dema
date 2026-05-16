@@ -127,6 +127,18 @@ closed
 canceled
 ```
 
+## Customer Timeline
+
+The WordPress plugin can show customer-safe activity and notification timeline through:
+
+```text
+GET /api/wordfriends/timeline?customerCode=WF-000123&email=customer@example.com
+```
+
+The endpoint is token-protected and intended only for server-to-server calls from WordPress.
+It combines public customer notifications, contract request updates, question status updates, and site status updates.
+It does not expose internal notes, credentials, SMTP errors, admin-only alerts, or hidden risk details.
+
 ## Customer Shortcodes
 
 Create WordPress pages and place these shortcodes in the page body.
@@ -185,6 +197,18 @@ Recommended page:
 정산/추천
 ```
 
+Timeline page:
+
+```text
+[wordfriends_timeline]
+```
+
+Recommended page:
+
+```text
+알림센터
+```
+
 Policy pages:
 
 ```text
@@ -211,6 +235,7 @@ Recommended slugs:
 contract-guide
 terms
 privacy-policy
+notifications
 ```
 
 The signup checkbox links to the terms and privacy pages automatically when these pages exist. The plugin also attempts to add policy links to the public footer when a footer element is present.

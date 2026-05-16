@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.4.3
+ * Version: 0.4.4
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.4.3';
+const WORDFRIENDS_SITEOPS_VERSION = '0.4.4';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -132,6 +132,7 @@ function wordfriends_siteops_enqueue_tracker() {
         'myQuestionsUrl' => wordfriends_siteops_my_questions_page_url(),
         'mySitesUrl' => wordfriends_siteops_my_sites_page_url(),
         'settlementReferralsUrl' => wordfriends_siteops_settlement_referrals_page_url(),
+        'timelineUrl' => wordfriends_siteops_timeline_page_url(),
         'contractGuideUrl' => wordfriends_siteops_contract_guide_page_url(),
         'termsUrl' => wordfriends_siteops_terms_page_url(),
         'privacyUrl' => wordfriends_siteops_privacy_page_url(),
@@ -250,6 +251,7 @@ JS);
     ensurePortalLink('\ub0b4 \uc0ac\uc774\ud2b8', WordfriendsSiteOps.mySitesUrl);
     ensurePortalLink('\ub0b4 \ubb38\uc758', WordfriendsSiteOps.myQuestionsUrl);
     ensurePortalLink('\uc815\uc0b0/\ucd94\ucc9c', WordfriendsSiteOps.settlementReferralsUrl);
+    ensurePortalLink('\uc54c\ub9bc\uc13c\ud130', WordfriendsSiteOps.timelineUrl);
     ensurePortalLink('\uc804\uc790\uacc4\uc57d', WordfriendsSiteOps.contractGuideUrl);
     ensurePortalLink('\ubb38\uc758', WordfriendsSiteOps.inquiryUrl);
   }
@@ -1528,6 +1530,73 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
 }
 add_shortcode('wordfriends_settlement_referrals', 'wordfriends_siteops_settlement_referrals_shortcode');
 
+function wordfriends_siteops_timeline_shortcode($atts = []) {
+    $atts = shortcode_atts([
+        'title' => '알림센터',
+        'subtitle' => '계약, 문의, 사이트 운영, 정산 관련 최근 진행 상황을 확인할 수 있습니다.',
+    ], $atts, 'wordfriends_timeline');
+
+    if (!is_user_logged_in()) {
+        return '<section class="wordfriends-auth"><h2>로그인이 필요합니다.</h2><p>알림센터는 로그인 후 확인할 수 있습니다.</p><a class="wordfriends-button wordfriends-button-secondary" href="' . esc_url(wordfriends_siteops_login_page_url()) . '">로그인</a></section>';
+    }
+
+    $user = wp_get_current_user();
+    $result = wordfriends_siteops_get('/api/wordfriends/timeline', [
+        'customerCode' => wordfriends_siteops_customer_code(),
+        'email' => $user->user_email,
+    ]);
+
+    $error = '';
+    $timeline = [];
+
+    if (is_wp_error($result)) {
+        $error = '알림을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 확인해 주세요.';
+    } else {
+        $response_code = wp_remote_retrieve_response_code($result);
+        $body = json_decode(wp_remote_retrieve_body($result), true);
+
+        if ($response_code < 200 || $response_code >= 300 || !is_array($body) || empty($body['ok'])) {
+            $error = '알림을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 확인해 주세요.';
+        } else {
+            $timeline = is_array($body['timeline'] ?? null) ? $body['timeline'] : [];
+        }
+    }
+
+    ob_start();
+    ?>
+    <section class="wordfriends-auth">
+      <h2><?php echo esc_html($atts['title']); ?></h2>
+      <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php if ($error) : ?>
+        <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
+      <?php elseif (!$timeline) : ?>
+        <div class="wordfriends-empty">
+          <strong>아직 표시할 알림이 없습니다.</strong>
+          <p class="wordfriends-auth-small">계약, 문의, 사이트 운영 상태가 갱신되면 이곳에 표시됩니다.</p>
+        </div>
+      <?php else : ?>
+        <div class="wordfriends-question-list">
+          <?php foreach ($timeline as $item) : ?>
+            <article class="wordfriends-question-card">
+              <header>
+                <h3><?php echo esc_html($item['title'] ?? '알림'); ?></h3>
+                <span class="wordfriends-question-status"><?php echo esc_html($item['statusLabel'] ?? '안내'); ?></span>
+              </header>
+              <p><?php echo nl2br(esc_html($item['message'] ?? '')); ?></p>
+              <p class="wordfriends-auth-small">
+                <?php echo esc_html($item['category'] ?? 'general'); ?> · <?php echo esc_html($item['occurredAt'] ?? ''); ?>
+              </p>
+            </article>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+      <p class="wordfriends-auth-small">수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황과 검토 결과를 기준으로 안내됩니다.</p>
+    </section>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('wordfriends_timeline', 'wordfriends_siteops_timeline_shortcode');
+
 function wordfriends_siteops_customer_home_url() {
     return wordfriends_siteops_my_sites_page_url();
 }
@@ -1592,6 +1661,10 @@ function wordfriends_siteops_my_sites_page_url() {
 
 function wordfriends_siteops_settlement_referrals_page_url() {
     return wordfriends_siteops_portal_page_url('wordfriends_settlement_referrals', '/settlement-referrals/', ['settlement-referrals', '정산-추천']);
+}
+
+function wordfriends_siteops_timeline_page_url() {
+    return wordfriends_siteops_portal_page_url('wordfriends_timeline', '/notifications/', ['notifications', '알림센터']);
 }
 
 function wordfriends_siteops_contract_guide_page_url() {

@@ -437,6 +437,19 @@ function mapContractRequest(row, { publicOnly = false } = {}) {
   return request;
 }
 
+function mapTimelineItem(row) {
+  return {
+    id: row.id,
+    type: row.item_type,
+    title: row.title,
+    message: row.message,
+    status: row.status,
+    statusLabel: row.status_label,
+    category: row.category,
+    occurredAt: row.occurred_at,
+  };
+}
+
 async function createWordfriendsContractRequest(req, res) {
   if (!requireEventToken(req, res)) return undefined;
 
@@ -571,6 +584,137 @@ async function listWordfriendsContractRequests(req, res, url) {
   return sendJson(req, res, 200, {
     ok: true,
     contractRequests: result.rows.map((row) => mapContractRequest(row, { publicOnly: true })),
+  });
+}
+
+async function listWordfriendsTimeline(req, res, url) {
+  if (!requireEventToken(req, res)) return undefined;
+
+  const customerCode = String(url.searchParams.get('customerCode') || url.searchParams.get('customer_code') || '')
+    .trim()
+    .slice(0, 80);
+  const email = normalizeEmail(url.searchParams.get('email'));
+
+  if (!customerCode && !email) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'customerCode or email is required.',
+    });
+  }
+
+  const result = await query(
+    `
+      with matched_customers as (
+        select id, customer_code
+        from customers
+        where
+          ($1 <> '' and customer_code = $1)
+          or ($2 <> '' and lower(contact_email) = $2)
+          or exists (
+            select 1
+            from customer_portal_accounts cpa
+            where cpa.customer_id = customers.id
+              and $2 <> ''
+              and lower(cpa.email) = $2
+          )
+      ),
+      timeline as (
+        select n.id::text as id,
+          'notification' as item_type,
+          n.title,
+          n.message,
+          n.send_status as status,
+          case n.severity
+            when 'critical' then '중요'
+            when 'warning' then '확인 필요'
+            when 'action_required' then '조치 필요'
+            else '안내'
+          end as status_label,
+          n.category,
+          n.created_at as occurred_at
+        from notifications n
+        where n.audience_type = 'customer'
+          and n.visibility = 'public_to_customer'
+          and n.marketing_message = false
+          and (n.customer_id is null or n.customer_id in (select id from matched_customers))
+
+        union all
+
+        select pcr.id::text,
+          'contract',
+          '전자계약 진행',
+          coalesce(pcr.public_message, '전자계약 요청 상태가 갱신되었습니다.'),
+          pcr.status,
+          case pcr.status
+            when 'requested' then '요청 접수'
+            when 'document_sent' then '계약서 발송'
+            when 'signed' then '서명 완료'
+            when 'setup_ready' then '세팅 대기'
+            when 'closed' then '종료'
+            when 'canceled' then '취소'
+            else '요청 접수'
+          end,
+          'contract',
+          coalesce(pcr.updated_at, pcr.requested_at)
+        from portal_contract_requests pcr
+        where
+          ($1 <> '' and (pcr.requester_customer_code = $1 or pcr.customer_id in (select id from matched_customers)))
+          or ($2 <> '' and lower(pcr.requester_email) = $2)
+
+        union all
+
+        select pqt.id::text,
+          'question',
+          '문의 처리',
+          case
+            when pqt.response_message is not null then pqt.response_message
+            else '문의가 접수되어 담당자가 확인 중입니다.'
+          end,
+          pqt.status,
+          case
+            when pqt.status = 'answered' or pqt.response_status = 'sent' then '답변 완료'
+            when pqt.status = 'human_review' then '사람 검토'
+            when pqt.status = 'blocked' then '확인 필요'
+            else '접수'
+          end,
+          pqt.category,
+          pqt.updated_at
+        from portal_question_threads pqt
+        where
+          ($1 <> '' and (pqt.requester_customer_code = $1 or pqt.customer_id in (select id from matched_customers)))
+          or ($2 <> '' and lower(pqt.requester_email) = $2)
+
+        union all
+
+        select s.id::text,
+          'site',
+          '사이트 현황',
+          concat(s.domain, ' 운영 상태가 갱신되었습니다.'),
+          s.status,
+          case s.status
+            when 'active' then '운영 중'
+            when 'paused' then '일시 중지'
+            when 'archived' then '보관'
+            else '준비 중'
+          end,
+          'domain',
+          s.updated_at
+        from sites s
+        where s.customer_id in (select id from matched_customers)
+          and s.is_internal_infra = false
+      )
+      select id, item_type, title, message, status, status_label, category,
+        to_char(occurred_at, 'YYYY-MM-DD HH24:MI') as occurred_at
+      from timeline
+      order by occurred_at desc
+      limit 40
+    `,
+    [customerCode, email],
+  );
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    timeline: result.rows.map(mapTimelineItem),
   });
 }
 
@@ -2324,6 +2468,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/wordfriends/contracts' && req.method === 'GET') {
       return listWordfriendsContractRequests(req, res, url);
+    }
+
+    if (url.pathname === '/api/wordfriends/timeline' && req.method === 'GET') {
+      return listWordfriendsTimeline(req, res, url);
     }
 
     if (url.pathname === '/api/wordfriends/sites' && req.method === 'GET') {
