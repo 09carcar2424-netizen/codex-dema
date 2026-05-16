@@ -97,6 +97,30 @@ export async function saveWordfriendsQuestionReply(questionId, payload, apiBaseU
   return response.json();
 }
 
+export async function archiveWordfriendsQuestions(questionIds, apiBaseUrl = getApiBaseUrl()) {
+  const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
+  const archiveUrl = normalizedBaseUrl
+    ? `${normalizedBaseUrl}/api/wordfriends/questions/archive`
+    : '/api/wordfriends/questions/archive';
+  const response = await fetch(archiveUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ questionIds }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const requestError = new Error(error.detail || error.error || 'Question archive request failed');
+    requestError.payload = error;
+    throw requestError;
+  }
+
+  return response.json();
+}
+
 export async function saveWordfriendsContractRequest(contractRequestId, payload, apiBaseUrl = getApiBaseUrl()) {
   const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
   const requestUrl = normalizedBaseUrl

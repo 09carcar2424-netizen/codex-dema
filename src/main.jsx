@@ -22,6 +22,7 @@ import {
   WalletCards,
 } from 'lucide-react';
 import {
+  archiveWordfriendsQuestions,
   createNotificationDraft,
   fetchDashboardData,
   getApiBaseUrl,
@@ -327,6 +328,8 @@ function App() {
   const [candidateSaveState, setCandidateSaveState] = useState({ status: 'idle', message: '' });
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [portalQuestionPage, setPortalQuestionPage] = useState(1);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [questionArchiveState, setQuestionArchiveState] = useState({ status: 'idle', message: '' });
   const [questionReplyDrafts, setQuestionReplyDrafts] = useState({});
   const [questionReplySaveState, setQuestionReplySaveState] = useState({});
   const [expandedContractId, setExpandedContractId] = useState(null);
@@ -429,6 +432,57 @@ function App() {
         [field]: value,
       },
     }));
+  };
+
+  const isArchivableQuestion = (question) => (
+    question.status === 'answered' || ['sent', 'recorded'].includes(question.responseStatus)
+  );
+
+  const toggleQuestionSelection = (questionId) => {
+    setSelectedQuestionIds((current) => (
+      current.includes(questionId)
+        ? current.filter((id) => id !== questionId)
+        : [...current, questionId]
+    ));
+  };
+
+  const toggleVisibleQuestionSelection = () => {
+    const visibleArchivableIds = pagedPortalQuestions
+      .filter(isArchivableQuestion)
+      .map((question) => question.id);
+    const allSelected = visibleArchivableIds.length > 0 &&
+      visibleArchivableIds.every((id) => selectedQuestionIds.includes(id));
+
+    setSelectedQuestionIds((current) => {
+      if (allSelected) {
+        return current.filter((id) => !visibleArchivableIds.includes(id));
+      }
+
+      return Array.from(new Set([...current, ...visibleArchivableIds]));
+    });
+  };
+
+  const archiveSelectedQuestions = async () => {
+    if (!selectedQuestionIds.length) return;
+
+    setQuestionArchiveState({ status: 'saving', message: '선택한 완료 문의를 보관 처리하는 중입니다.' });
+
+    try {
+      const result = await archiveWordfriendsQuestions(selectedQuestionIds);
+      const archivedIds = new Set(result.archivedIds || selectedQuestionIds);
+      setDashboard((current) => ({
+        ...current,
+        portalRealtime: {
+          ...current.portalRealtime,
+          questions: (current.portalRealtime.questions || []).filter((question) => !archivedIds.has(question.id)),
+        },
+      }));
+      setSelectedQuestionIds([]);
+      setQuestionArchiveState({ status: 'saved', message: `${archivedIds.size}건을 보관 처리했습니다.` });
+      reloadDashboard();
+    } catch (error) {
+      setQuestionArchiveState({ status: 'error', message: `보관 실패: ${error.message}` });
+    }
   };
 
   const submitQuestionReply = async (question, responseStatus) => {
@@ -663,6 +717,11 @@ function App() {
     (normalizedPortalQuestionPage - 1) * PORTAL_REALTIME_PAGE_SIZE,
     normalizedPortalQuestionPage * PORTAL_REALTIME_PAGE_SIZE,
   );
+  const visibleArchivableQuestionIds = pagedPortalQuestions
+    .filter(isArchivableQuestion)
+    .map((question) => question.id);
+  const allVisibleArchivableSelected = visibleArchivableQuestionIds.length > 0 &&
+    visibleArchivableQuestionIds.every((id) => selectedQuestionIds.includes(id));
   const realtimeCards = [
     { label: '실시간 접속', value: portalRealtime.activeVisitors5m, detail: '최근 5분 활성 세션' },
     { label: '가입 시작', value: portalRealtime.signupStartedToday, detail: '오늘 시작한 회원가입' },
@@ -2094,8 +2153,32 @@ function App() {
                 아직 접수된 계약 요청이 없습니다. Wordfriends 전자계약 페이지에서 요청이 접수되면 이곳에 표시됩니다.
               </div>
             ) : null}
+            <div className="bulk-action-bar">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={allVisibleArchivableSelected}
+                  disabled={!visibleArchivableQuestionIds.length}
+                  onChange={toggleVisibleQuestionSelection}
+                />
+                현재 페이지 완료 문의 선택
+              </label>
+              <button
+                className="secondary-action"
+                type="button"
+                disabled={!selectedQuestionIds.length || questionArchiveState.status === 'saving'}
+                onClick={archiveSelectedQuestions}
+              >
+                선택 보관
+              </button>
+              <small>답변 완료/발송 완료 문의만 보관할 수 있습니다. 기록은 삭제하지 않고 목록에서 숨깁니다.</small>
+            </div>
+            {questionArchiveState.message ? (
+              <p className={`save-state ${questionArchiveState.status}`}>{questionArchiveState.message}</p>
+            ) : null}
             <div className="ops-table derived-question-table" role="table">
               <div className="ops-row ops-head" role="row">
+                <span>선택</span>
                 <span>고객</span>
                 <span>분류</span>
                 <span>질문</span>
@@ -2108,6 +2191,7 @@ function App() {
                 const replyDraft = getQuestionReplyDraft(question);
                 const replyState = questionReplySaveState[question.id] || { status: 'idle', message: '' };
                 const quickAction = getQuestionQuickAction(question);
+                const archivable = isArchivableQuestion(question);
 
                 return (
                   <div className="derived-question-item" key={question.id}>
@@ -2124,6 +2208,16 @@ function App() {
                         }
                       }}
                     >
+                      <span>
+                        <input
+                          type="checkbox"
+                          checked={selectedQuestionIds.includes(question.id)}
+                          disabled={!archivable}
+                          onChange={() => toggleQuestionSelection(question.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          title={archivable ? '보관 선택' : '답변 완료 후 보관할 수 있습니다.'}
+                        />
+                      </span>
                       <strong>{question.customerCode}</strong>
                       <span>{question.category}</span>
                       <span>

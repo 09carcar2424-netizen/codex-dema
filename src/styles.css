@@ -1267,7 +1267,31 @@ h2 {
 }
 
 .derived-question-table .ops-row {
-  grid-template-columns: minmax(120px, 0.42fr) minmax(110px, 0.38fr) minmax(360px, 1.45fr) minmax(120px, 0.48fr) minmax(120px, 0.45fr) minmax(116px, 0.38fr);
+  grid-template-columns: 56px minmax(120px, 0.42fr) minmax(110px, 0.38fr) minmax(360px, 1.45fr) minmax(120px, 0.48fr) minmax(120px, 0.45fr) minmax(116px, 0.38fr);
+}
+
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bulk-action-bar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.bulk-action-bar small {
+  color: var(--text-muted);
 }
 
 .derived-question-row {

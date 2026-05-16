@@ -1729,6 +1729,51 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
   });
 }
 
+async function archiveWordfriendsQuestions(req, res) {
+  const body = await readJsonBody(req);
+  const questionIds = Array.isArray(body.questionIds)
+    ? body.questionIds
+        .map((id) => String(id || '').trim())
+        .filter((id) => /^[0-9a-f-]{36}$/i.test(id))
+        .slice(0, 100)
+    : [];
+
+  if (!questionIds.length) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'At least one valid question id is required.',
+    });
+  }
+
+  const result = await query(
+    `
+      update portal_question_threads
+      set
+        status = 'closed',
+        response_status = case
+          when response_status in ('sent', 'recorded') then response_status
+          else 'recorded'
+        end,
+        response_note = coalesce(response_note, 'Archived from SiteOps bulk action.'),
+        responded_at = coalesce(responded_at, now()),
+        updated_at = now()
+      where id = any($1::uuid[])
+        and (
+          status = 'answered'
+          or response_status in ('sent', 'recorded')
+        )
+      returning id::text
+    `,
+    [questionIds],
+  );
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    archivedIds: result.rows.map((row) => row.id),
+    archivedCount: result.rowCount,
+  });
+}
+
 async function updateWordfriendsContractRequest(req, res, contractRequestId) {
   const body = await readJsonBody(req);
   const status = normalizeChoice(
@@ -2454,6 +2499,7 @@ async function getDashboardData() {
     from portal_question_threads pqt
     left join customers c on c.id = pqt.customer_id
       or (pqt.customer_id is null and pqt.requester_customer_code is not null and c.customer_code = pqt.requester_customer_code)
+    where pqt.status <> 'closed'
     order by
       case pqt.status
         when 'human_review' then 1
@@ -2783,6 +2829,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/dashboard') {
       return sendJson(req, res, 200, await getDashboardData());
+    }
+
+    if (url.pathname === '/api/wordfriends/questions/archive' && req.method === 'POST') {
+      return archiveWordfriendsQuestions(req, res);
     }
 
     const questionReplyMatch = url.pathname.match(/^\/api\/wordfriends\/questions\/([^/]+)\/reply$/);
