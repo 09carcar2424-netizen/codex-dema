@@ -82,6 +82,27 @@ CREATE TABLE IF NOT EXISTS portal_contract_requests (
   CHECK (status IN ('requested', 'document_sent', 'signed', 'setup_ready', 'closed', 'canceled'))
 );
 
+ALTER TABLE portal_contract_requests
+  ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS requester_customer_code TEXT,
+  ADD COLUMN IF NOT EXISTS requester_name TEXT,
+  ADD COLUMN IF NOT EXISTS requester_email TEXT,
+  ADD COLUMN IF NOT EXISTS requester_phone TEXT,
+  ADD COLUMN IF NOT EXISTS desired_domain_count INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS contract_amount NUMERIC(14, 2),
+  ADD COLUMN IF NOT EXISTS payment_terms TEXT NOT NULL DEFAULT 'lump_sum',
+  ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'requested',
+  ADD COLUMN IF NOT EXISTS request_message TEXT,
+  ADD COLUMN IF NOT EXISTS public_message TEXT,
+  ADD COLUMN IF NOT EXISTS internal_note TEXT,
+  ADD COLUMN IF NOT EXISTS contract_document_url TEXT,
+  ADD COLUMN IF NOT EXISTS requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS sent_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS signed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS setup_ready_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS portal_question_threads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
