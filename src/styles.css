@@ -1294,6 +1294,57 @@ h2 {
   color: var(--text-muted);
 }
 
+.contract-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.contract-summary-grid article {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.contract-summary-grid small,
+.contract-summary-grid span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.contract-summary-grid strong,
+.contract-summary-grid a {
+  display: block;
+  margin: 4px 0;
+  color: var(--text);
+  font-weight: 900;
+}
+
+.contract-quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.contract-quick-actions button {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.contract-quick-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .derived-question-row {
   width: 100%;
   border: 0;

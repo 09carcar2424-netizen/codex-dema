@@ -581,8 +581,36 @@ function App() {
     }));
   };
 
+  const applyContractQuickStatus = (request, status) => {
+    const defaultMessages = {
+      document_sent: '전자계약서 링크를 발송했습니다. 내용을 확인하신 뒤 서명을 진행해 주세요.',
+      signed: '전자계약 서명이 확인되었습니다. 세팅 착수 전 계정 및 도메인 정보를 확인하겠습니다.',
+      setup_ready: '계약 확인이 완료되어 세팅 준비 단계로 전환되었습니다.',
+      closed: '계약 요청 처리가 종료되었습니다.',
+      canceled: '계약 요청이 취소 처리되었습니다.',
+    };
+
+    setContractRequestDrafts((current) => ({
+      ...current,
+      [request.id]: {
+        ...getContractRequestDraft(request),
+        ...current[request.id],
+        status,
+        publicMessage: current[request.id]?.publicMessage || defaultMessages[status] || '',
+      },
+    }));
+  };
+
   const submitContractRequestUpdate = async (request) => {
     const draft = getContractRequestDraft(request);
+    if (['document_sent', 'signed', 'setup_ready'].includes(draft.status) && !draft.contractDocumentUrl) {
+      setContractRequestSaveState((current) => ({
+        ...current,
+        [request.id]: { status: 'error', message: '계약서 발송 이후 상태로 저장하려면 계약서 링크가 필요합니다.' },
+      }));
+      return;
+    }
+
     setContractRequestSaveState((current) => ({
       ...current,
       [request.id]: { status: 'saving', message: '계약 상태를 저장하는 중입니다.' },
@@ -2023,6 +2051,8 @@ function App() {
                 const expanded = expandedContractId === request.id;
                 const draft = getContractRequestDraft(request);
                 const saveState = contractRequestSaveState[request.id] || { status: 'idle', message: '' };
+                const requiresContractUrl = ['document_sent', 'signed', 'setup_ready'].includes(draft.status);
+                const canSaveContract = !requiresContractUrl || Boolean(draft.contractDocumentUrl);
 
                 return (
                   <div className="derived-question-item" key={request.id}>
@@ -2058,6 +2088,32 @@ function App() {
                     </div>
                     {expanded ? (
                       <div className="derived-question-detail">
+                        <div className="contract-summary-grid">
+                          <article>
+                            <small>요청자</small>
+                            <strong>{request.requesterName || '-'}</strong>
+                            <span>{request.requesterEmail || '이메일 없음'}</span>
+                          </article>
+                          <article>
+                            <small>연락처</small>
+                            <strong>{request.requesterPhone || '-'}</strong>
+                            <span>{request.customerCode}</span>
+                          </article>
+                          <article>
+                            <small>계약 조건</small>
+                            <strong>{request.desiredDomainCount || 1}개 도메인</strong>
+                            <span>{request.paymentTerms === 'lump_sum' ? '일시납' : request.paymentTerms || '조건 미정'}</span>
+                          </article>
+                          <article>
+                            <small>계약서</small>
+                            {request.contractDocumentUrl ? (
+                              <a href={request.contractDocumentUrl} target="_blank" rel="noreferrer">링크 열기</a>
+                            ) : (
+                              <strong>미등록</strong>
+                            )}
+                            <span>{request.statusLabel || request.status}</span>
+                          </article>
+                        </div>
                         <div>
                           <strong>계약 요청 내용</strong>
                           <p>{request.requestMessage || '요청 메모 없음'}</p>
@@ -2094,6 +2150,15 @@ function App() {
                               />
                             </label>
                           </div>
+                          <div className="contract-quick-actions">
+                            <button type="button" onClick={() => applyContractQuickStatus(request, 'document_sent')}>계약서 발송 준비</button>
+                            <button type="button" onClick={() => applyContractQuickStatus(request, 'signed')}>서명 확인</button>
+                            <button type="button" onClick={() => applyContractQuickStatus(request, 'setup_ready')}>세팅 준비</button>
+                            <button type="button" onClick={() => applyContractQuickStatus(request, 'closed')}>종료 처리</button>
+                          </div>
+                          {requiresContractUrl && !draft.contractDocumentUrl ? (
+                            <p className="save-state error">계약서 발송, 서명 완료, 세팅 대기 상태는 계약서 링크 입력 후 저장할 수 있습니다.</p>
+                          ) : null}
                           <label>
                             고객 공개 메시지
                             <textarea
@@ -2113,7 +2178,7 @@ function App() {
                             />
                           </label>
                           <div className="reply-actions">
-                            <button className="primary-action" type="submit">
+                            <button className="primary-action" type="submit" disabled={!canSaveContract}>
                               계약 상태 저장
                             </button>
                             <small>내부 메모는 고객에게 노출되지 않습니다.</small>

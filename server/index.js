@@ -1785,10 +1785,10 @@ async function updateWordfriendsContractRequest(req, res, contractRequestId) {
   const internalNote = String(body.internalNote || body.internal_note || '').trim().slice(0, 2000);
   const contractDocumentUrl = String(body.contractDocumentUrl || body.contract_document_url || '').trim().slice(0, 1000);
 
-  if (status === 'document_sent' && !contractDocumentUrl) {
+  if (['document_sent', 'signed', 'setup_ready'].includes(status) && !contractDocumentUrl) {
     return sendJson(req, res, 400, {
       ok: false,
-      error: 'Contract document URL is required before marking the request as document_sent.',
+      error: 'Contract document URL is required before advancing the contract request.',
     });
   }
 
