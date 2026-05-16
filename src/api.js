@@ -53,6 +53,28 @@ export async function createNotificationDraft(payload, apiBaseUrl = getApiBaseUr
   return response.json();
 }
 
+export async function updateNotificationStatus(notificationId, payload, apiBaseUrl = getApiBaseUrl()) {
+  const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
+  const notificationUrl = normalizedBaseUrl
+    ? `${normalizedBaseUrl}/api/notifications/${notificationId}`
+    : `/api/notifications/${notificationId}`;
+  const response = await fetch(notificationUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || error.error || 'Notification update failed');
+  }
+
+  return response.json();
+}
+
 export async function saveDomainCandidates(payload, apiBaseUrl = getApiBaseUrl()) {
   const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
   const candidateUrl = normalizedBaseUrl ? `${normalizedBaseUrl}/api/domain-candidates` : '/api/domain-candidates';

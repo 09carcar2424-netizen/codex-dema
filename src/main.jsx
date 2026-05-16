@@ -30,6 +30,7 @@ import {
   saveDomainCandidates,
   saveWordfriendsContractRequest,
   saveWordfriendsQuestionReply,
+  updateNotificationStatus,
 } from './api.js';
 import {
   contentQueueRows,
@@ -91,6 +92,7 @@ const emptyNotificationForm = {
   channel: 'portal',
   title: '',
   message: '',
+  targetCustomerCode: '',
   marketingMessage: false,
   publishNow: true,
 };
@@ -325,6 +327,7 @@ function App() {
   const [apiState, setApiState] = useState({ status: 'sample', message: '샘플 데이터 사용 중' });
   const [notificationForm, setNotificationForm] = useState(emptyNotificationForm);
   const [notificationSaveState, setNotificationSaveState] = useState({ status: 'idle', message: '' });
+  const [notificationActionState, setNotificationActionState] = useState({});
   const [discoveryForm, setDiscoveryForm] = useState(defaultDiscoveryForm);
   const [candidateSaveState, setCandidateSaveState] = useState({ status: 'idle', message: '' });
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
@@ -379,6 +382,7 @@ function App() {
     try {
       await createNotificationDraft({
         ...notificationForm,
+        targetCustomerCode: notificationForm.targetCustomerCode.trim(),
         visibility: notificationForm.audienceType === 'customer' ? 'public_to_customer' : 'internal_only',
         sendStatus: notificationForm.publishNow ? 'sent' : 'draft',
       });
@@ -392,6 +396,37 @@ function App() {
       reloadDashboard();
     } catch (error) {
       setNotificationSaveState({ status: 'error', message: `저장 실패: ${error.message}` });
+    }
+  };
+
+  const changeNotificationStatus = async (notification, sendStatus) => {
+    setNotificationActionState((current) => ({
+      ...current,
+      [notification.id]: { status: 'saving', message: '알림 상태를 저장하는 중입니다.' },
+    }));
+
+    try {
+      const result = await updateNotificationStatus(notification.id, { sendStatus });
+      const savedNotification = result.notification || { ...notification, status: sendStatus };
+      setDashboard((current) => ({
+        ...current,
+        notifications: (current.notifications || []).map((row) => (
+          row.id === notification.id ? { ...row, ...savedNotification } : row
+        )),
+      }));
+      setNotificationActionState((current) => ({
+        ...current,
+        [notification.id]: {
+          status: 'saved',
+          message: sendStatus === 'canceled' ? '고객 화면에서 숨김 처리했습니다.' : '고객 알림센터에 공개했습니다.',
+        },
+      }));
+      reloadDashboard();
+    } catch (error) {
+      setNotificationActionState((current) => ({
+        ...current,
+        [notification.id]: { status: 'error', message: `알림 처리 실패: ${error.message}` },
+      }));
     }
   };
 
@@ -3880,6 +3915,18 @@ function App() {
                   required
                 />
               </label>
+              {notificationForm.audienceType === 'customer' ? (
+                <label>
+                  <span>특정 고객 코드</span>
+                  <input
+                    type="text"
+                    value={notificationForm.targetCustomerCode}
+                    onChange={(event) => updateNotificationForm('targetCustomerCode', event.target.value)}
+                    placeholder="비워두면 모든 고객에게 공개됩니다. 예: WF-000002"
+                    maxLength={80}
+                  />
+                </label>
+              ) : null}
               <div className="compose-footer">
                 <label className="inline-check">
                   <input
@@ -3915,9 +3962,32 @@ function App() {
                       <div>
                         <strong>{row.title}</strong>
                         <small>{row.message}</small>
+                        {row.customerCode ? <small>대상 고객: {row.customerCode}</small> : <small>대상 고객: 전체</small>}
                         <small>{row.channel} · {row.category} · 광고성 {row.marketing ? '동의 필요' : '아님'}</small>
                       </div>
-                      <StatusPill value={row.status} />
+                      <div className="notification-actions">
+                        <StatusPill value={row.status} />
+                        {row.status === 'draft' ? (
+                          <button
+                            type="button"
+                            className="secondary-action"
+                            disabled={notificationActionState[row.id]?.status === 'saving'}
+                            onClick={() => changeNotificationStatus(row, 'sent')}
+                          >
+                            공개
+                          </button>
+                        ) : null}
+                        {['ready', 'sent'].includes(row.status) ? (
+                          <button
+                            type="button"
+                            className="secondary-action"
+                            disabled={notificationActionState[row.id]?.status === 'saving'}
+                            onClick={() => changeNotificationStatus(row, 'canceled')}
+                          >
+                            숨김
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -3932,7 +4002,19 @@ function App() {
                         <small>{row.message}</small>
                         <small>{row.channel} · {row.category} · {row.severity}</small>
                       </div>
-                      <StatusPill value={row.severity} />
+                      <div className="notification-actions">
+                        <StatusPill value={row.status} />
+                        {row.status !== 'canceled' ? (
+                          <button
+                            type="button"
+                            className="secondary-action"
+                            disabled={notificationActionState[row.id]?.status === 'saving'}
+                            onClick={() => changeNotificationStatus(row, 'canceled')}
+                          >
+                            보관
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                 </div>

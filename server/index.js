@@ -444,6 +444,7 @@ function mapNotification(row) {
   return {
     id: row.id,
     audience: row.audience_type,
+    customerCode: row.customer_code || '',
     visibility: row.visibility,
     title: row.title,
     message: row.message,
@@ -452,6 +453,8 @@ function mapNotification(row) {
     severity: row.severity,
     status: row.send_status,
     marketing: row.marketing_message,
+    createdAt: row.created_at,
+    sentAt: row.sent_at,
   };
 }
 
@@ -836,18 +839,32 @@ async function createNotification(req, res) {
   const severity = normalizeChoice(body.severity, ['info', 'action_required', 'warning', 'critical'], 'info');
   const channel = normalizeChoice(body.channel, ['portal', 'sms', 'kakao', 'telegram', 'portal_sms', 'portal_telegram'], 'portal');
   const sendStatus = normalizeChoice(body.sendStatus || body.send_status, ['draft', 'ready', 'sent'], 'draft');
+  const targetCustomerCode = String(body.targetCustomerCode || body.customerCode || body.customer_code || '')
+    .trim()
+    .slice(0, 80);
+  const customerId = audienceType === 'customer' && targetCustomerCode
+    ? await findCustomerId(targetCustomerCode)
+    : null;
+
+  if (targetCustomerCode && !customerId) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Customer code was not found.',
+    });
+  }
 
   const result = await query(
     `
       insert into notifications (
-        audience_type, visibility, category, severity, title, message, channel,
+        customer_id, audience_type, visibility, category, severity, title, message, channel,
         marketing_message, opt_in_required, send_status, sent_at
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, case when $10 = 'sent' then now() else null end)
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, case when $11 = 'sent' then now() else null end)
       returning id::text, audience_type, visibility, title, message, channel,
-        category, severity, send_status, marketing_message
+        category, severity, send_status, marketing_message, created_at, sent_at
     `,
     [
+      customerId,
       audienceType,
       visibility,
       category,
@@ -861,7 +878,46 @@ async function createNotification(req, res) {
     ],
   );
 
-  return sendJson(req, res, 201, { ok: true, notification: mapNotification(result.rows[0]) });
+  return sendJson(req, res, 201, {
+    ok: true,
+    notification: mapNotification({ ...result.rows[0], customer_code: targetCustomerCode }),
+  });
+}
+
+async function updateNotification(req, res, notificationId) {
+  const body = await readJsonBody(req);
+  const sendStatus = normalizeChoice(body.sendStatus || body.send_status, ['draft', 'ready', 'sent', 'canceled'], '');
+
+  if (!sendStatus) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'sendStatus is required.',
+    });
+  }
+
+  const result = await queryOptionalParams(
+    `
+      update notifications n
+      set
+        send_status = $2,
+        sent_at = case when $2 = 'sent' and sent_at is null then now() else sent_at end,
+        updated_at = now()
+      where n.id = $1::uuid
+      returning n.id::text, n.audience_type, n.visibility, n.title, n.message, n.channel,
+        n.category, n.severity, n.send_status, n.marketing_message, n.created_at, n.sent_at,
+        (select c.customer_code from customers c where c.id = n.customer_id) as customer_code
+    `,
+    [notificationId, sendStatus],
+  );
+
+  if (!result.rows.length) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Notification was not found.',
+    });
+  }
+
+  return sendJson(req, res, 200, { ok: true, notification: mapNotification(result.rows[0]) });
 }
 
 function mapDomainCandidate(row) {
@@ -2293,17 +2349,20 @@ async function getDashboardData() {
     ]);
 
   const notifications = await queryOptional(`
-    select id::text, audience_type, visibility, title, message, channel,
-      category, severity, send_status, marketing_message
-    from notifications
+    select n.id::text, n.audience_type, n.visibility, n.title, n.message, n.channel,
+      n.category, n.severity, n.send_status, n.marketing_message, n.created_at, n.sent_at,
+      c.customer_code
+    from notifications n
+    left join customers c on c.id = n.customer_id
+    where n.send_status <> 'canceled'
     order by
-      case severity
+      case n.severity
         when 'critical' then 1
         when 'warning' then 2
         when 'action_required' then 3
         else 4
       end,
-      created_at desc
+      n.created_at desc
     limit 50
   `);
 
@@ -2626,6 +2685,7 @@ async function getDashboardData() {
     notifications: notifications.rows.map((row) => ({
       id: row.id,
       audience: row.audience_type,
+      customerCode: row.customer_code || '',
       visibility: row.visibility,
       title: row.title,
       message: row.message,
@@ -2634,6 +2694,8 @@ async function getDashboardData() {
       severity: row.severity,
       status: row.send_status,
       marketing: row.marketing_message,
+      createdAt: row.created_at,
+      sentAt: row.sent_at,
     })),
     domainInventory: domainInventory.rows.map((row) => ({
       domain: row.domain,
@@ -2866,6 +2928,11 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/notifications' && req.method === 'POST') {
       return createNotification(req, res);
+    }
+
+    const notificationMatch = url.pathname.match(/^\/api\/notifications\/([^/]+)$/);
+    if (notificationMatch && req.method === 'POST') {
+      return updateNotification(req, res, notificationMatch[1]);
     }
 
     if (url.pathname === '/api/domain-candidates' && req.method === 'POST') {
