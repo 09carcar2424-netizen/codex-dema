@@ -712,7 +712,7 @@ async function listWordfriendsTimeline(req, res, url) {
       title: '문의 처리',
       message: row.response_message || '문의가 접수되어 담당자가 확인 중입니다.',
       status: row.status,
-      status_label: row.status === 'answered' || row.response_status === 'sent'
+      status_label: row.status === 'answered' || ['sent', 'recorded'].includes(row.response_status)
         ? '답변 완료'
         : row.status === 'human_review'
           ? '사람 검토'
@@ -1092,7 +1092,7 @@ async function createWordfriendsQuestion(req, res) {
 }
 
 function mapPublicQuestion(row) {
-  const statusLabel = row.status === 'answered' || row.response_status === 'sent'
+  const statusLabel = row.status === 'answered' || ['sent', 'recorded'].includes(row.response_status)
     ? '답변 완료'
     : row.status === 'human_review'
       ? '사람 검토'
@@ -1504,7 +1504,7 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
   const channel = normalizeChoice(body.responseChannel || body.response_channel, ['manual', 'email', 'sms', 'kakao', 'telegram'], 'manual');
   const responseStatus = normalizeChoice(
     body.responseStatus || body.response_status,
-    ['not_started', 'draft', 'queued', 'sent', 'failed'],
+    ['not_started', 'draft', 'queued', 'sent', 'recorded', 'failed'],
     'draft',
   );
   let nextStatus = normalizeChoice(body.status, ['open', 'ai_draft', 'human_review', 'answered', 'closed', 'blocked'], 'human_review');
@@ -1550,6 +1550,11 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
 
   let effectiveResponseStatus = responseStatus;
   let responseError = null;
+
+  if (channel !== 'email' && responseStatus === 'sent') {
+    effectiveResponseStatus = 'recorded';
+    nextStatus = 'answered';
+  }
 
   if (channel === 'email' && responseStatus === 'sent') {
     if (!message) {
@@ -1603,7 +1608,7 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
           response_error = nullif($7, ''),
           answer_summary = coalesce(nullif($5, ''), nullif($4, ''), answer_summary),
           status = $6,
-          responded_at = case when $3 in ('queued', 'sent') then coalesce(responded_at, now()) else responded_at end,
+          responded_at = case when $3 in ('queued', 'sent', 'recorded') then coalesce(responded_at, now()) else responded_at end,
           updated_at = now()
         where id = $1
         returning id::text, category, status, response_channel, response_status,
@@ -1626,7 +1631,7 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
           response_note = nullif($5, ''),
           answer_summary = coalesce(nullif($5, ''), nullif($4, ''), answer_summary),
           status = $6,
-          responded_at = case when $3 in ('queued', 'sent') then coalesce(responded_at, now()) else responded_at end,
+          responded_at = case when $3 in ('queued', 'sent', 'recorded') then coalesce(responded_at, now()) else responded_at end,
           updated_at = now()
         where id = $1
         returning id::text, category, status, response_channel, response_status,

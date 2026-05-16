@@ -101,6 +101,23 @@ const emptyQuestionReplyForm = {
   responseNote: '',
 };
 
+const responseChannelLabels = {
+  manual: '수동 연락',
+  email: '이메일',
+  sms: '문자',
+  kakao: '카카오 알림',
+  telegram: '텔레그램',
+};
+
+const responseStatusLabels = {
+  not_started: '미처리',
+  draft: '초안',
+  queued: '발송 대기',
+  sent: '이메일 발송',
+  recorded: '수동 처리 완료',
+  failed: '발송 실패',
+};
+
 const emptyContractRequestForm = {
   status: 'requested',
   publicMessage: '',
@@ -168,6 +185,14 @@ function StatusPill({ value }) {
   const normalized = String(value || 'not_set').toLowerCase();
   const label = normalized === 'not_set' ? '미정' : value || '미정';
   return <span className={`status-pill ${normalized}`}>{label}</span>;
+}
+
+function getResponseChannelLabel(value) {
+  return responseChannelLabels[value] || value || '수동 연락';
+}
+
+function getResponseStatusLabel(value) {
+  return responseStatusLabels[value] || value || '미처리';
 }
 
 function summarizeSitemapMessage(row) {
@@ -363,7 +388,7 @@ function App() {
   const getQuestionReplyDraft = (question) => (
     questionReplyDrafts[question.id] || {
       responseChannel: question.responseChannel || emptyQuestionReplyForm.responseChannel,
-      responseStatus: question.responseStatus === 'sent' ? 'sent' : emptyQuestionReplyForm.responseStatus,
+      responseStatus: ['sent', 'recorded'].includes(question.responseStatus) ? question.responseStatus : emptyQuestionReplyForm.responseStatus,
       status: question.status === 'answered' ? 'answered' : emptyQuestionReplyForm.status,
       responseMessage: question.responseMessage || '',
       responseNote: question.responseNote || question.answerSummary || '',
@@ -371,7 +396,7 @@ function App() {
   );
 
   const getQuestionQuickAction = (question) => {
-    if (question.status === 'answered' || question.responseStatus === 'sent') {
+    if (question.status === 'answered' || ['sent', 'recorded'].includes(question.responseStatus)) {
       return { label: '완료됨', tone: 'done' };
     }
 
@@ -421,6 +446,8 @@ function App() {
       });
       const resultError = result.ok === false ? result.error : '';
       const savedQuestion = normalizeSavedQuestionReply(question, result.question, draft, responseStatus);
+      const sentEmail = savedQuestion.responseChannel === 'email' && savedQuestion.responseStatus === 'sent';
+      const recordedOnly = savedQuestion.responseChannel !== 'email' && savedQuestion.responseStatus === 'recorded';
       setQuestionReplyDrafts((current) => ({
         ...current,
         [question.id]: {
@@ -447,6 +474,17 @@ function App() {
           message: responseStatus === 'sent'
             ? '처리 완료로 저장했습니다. 실제 외부 발송 연동은 다음 단계에서 붙입니다.'
             : '답변 초안을 저장했습니다.',
+        },
+      }));
+      setQuestionReplySaveState((current) => ({
+        ...current,
+        [question.id]: {
+          status: 'saved',
+          message: sentEmail
+            ? '이메일 발송 및 처리 완료로 저장했습니다.'
+            : recordedOnly
+              ? '수동 처리 완료로 저장했습니다. 외부 메일은 발송하지 않았습니다.'
+              : '답변 초안을 저장했습니다.',
         },
       }));
       if (resultError) {
@@ -2077,7 +2115,10 @@ function App() {
                           <em className="reply-draft-chip">초안 있음</em>
                         ) : null}
                         {question.responseStatus === 'sent' ? (
-                          <em className="reply-sent-chip">답변 기록됨</em>
+                          <em className="reply-sent-chip">이메일 발송됨</em>
+                        ) : null}
+                        {question.responseStatus === 'recorded' ? (
+                          <em className="reply-sent-chip">수동 처리됨</em>
                         ) : null}
                       </span>
                       <StatusPill value={question.status} />
@@ -2186,7 +2227,7 @@ function App() {
                         <div className="derived-question-meta">
                           <span>상태: {question.status}</span>
                           <span>분류: {question.category}</span>
-                          <span>응답: {question.responseChannel || 'manual'} / {question.responseStatus || 'not_started'}</span>
+                          <span>응답: {getResponseChannelLabel(question.responseChannel)} / {getResponseStatusLabel(question.responseStatus)}</span>
                           <span>갱신: {formatSeoulDateTime(question.updatedAt)}</span>
                         </div>
                       </div>
