@@ -67,6 +67,66 @@ The plugin sends:
 - `signup_completed` after the Wordfriends signup shortcode creates a WordPress user
 - `question_submitted` when a form has `data-siteops-question-form`
 
+## Customer Question History
+
+The SiteOps API exposes a token-protected customer question lookup endpoint for the WordPress plugin:
+
+```text
+GET /api/wordfriends/questions?customerCode=WF-000123&email=customer@example.com
+```
+
+The endpoint is for server-to-server calls from WordPress and requires `X-SiteOps-Event-Token`.
+It returns only customer-safe fields such as category, status, question text, public response message, and timestamps.
+It does not return internal notes, send errors, backend status details, or admin-only metadata.
+
+## Customer Site Status
+
+The WordPress plugin can also show customer-safe site status through:
+
+```text
+GET /api/wordfriends/sites?customerCode=WF-000123&email=customer@example.com
+```
+
+This endpoint is token-protected and intended only for server-to-server calls from WordPress.
+It returns domain, public operation status, content queue counts, sitemap status, AdSense reference status, and settlement reference status.
+It does not return risk scores, internal memos, credentials, proxy details, revenue guarantees, traffic promises, or AdSense approval guarantees.
+
+## Customer Settlement And Referrals
+
+The WordPress plugin can show customer-safe settlement and referral information through:
+
+```text
+GET /api/wordfriends/settlement-referrals?customerCode=WF-000123&email=customer@example.com
+```
+
+This endpoint is token-protected and intended only for server-to-server calls from WordPress.
+It returns recent settlement reference states, one-step referral reward states, the active referral code, and tax reference labels.
+It does not return internal revenue-share notes, legal/tax review notes, multi-level referral structures, or guarantee language.
+
+## Customer Contract Requests
+
+The WordPress plugin can submit and show customer-safe electronic contract requests through:
+
+```text
+POST /api/wordfriends/contracts
+GET /api/wordfriends/contracts?customerCode=WF-000123&email=customer@example.com
+```
+
+The endpoint is token-protected and intended only for server-to-server calls from WordPress.
+It stores the requester's contact details, desired domain count, public contract status, public message, and optional contract document URL.
+Customer responses never include internal notes.
+
+Admin status values:
+
+```text
+requested
+document_sent
+signed
+setup_ready
+closed
+canceled
+```
+
 ## Customer Shortcodes
 
 Create WordPress pages and place these shortcodes in the page body.
@@ -89,9 +149,86 @@ Optional redirect after login:
 [wordfriends_login redirect="https://wordfriends.co.kr/my-site/"]
 ```
 
+My questions page:
+
+```text
+[wordfriends_my_questions]
+```
+
+Recommended page:
+
+```text
+내 문의
+```
+
+My sites page:
+
+```text
+[wordfriends_my_sites]
+```
+
+Recommended page:
+
+```text
+내 사이트
+```
+
+Settlement/referrals page:
+
+```text
+[wordfriends_settlement_referrals]
+```
+
+Recommended page:
+
+```text
+정산/추천
+```
+
+Policy pages:
+
+```text
+전자계약 안내
+이용약관
+개인정보처리방침
+```
+
+Contract request form:
+
+```text
+[wordfriends_contract_request]
+```
+
+Recommended placement:
+
+```text
+전자계약 안내
+```
+
+Recommended slugs:
+
+```text
+contract-guide
+terms
+privacy-policy
+```
+
+The signup checkbox links to the terms and privacy pages automatically when these pages exist. The plugin also attempts to add policy links to the public footer when a footer element is present.
+
 The signup shortcode creates a WordPress `subscriber` user, stores a `customer_code` user meta value like `WF-000123`, and sends signup progress events to SiteOps from the server side.
 
 Customer-facing copy must not promise revenue, AdSense approval, search ranking, or traffic.
+
+## Database Change
+
+Apply `database/schema.sql` on the SiteOps server after deploying this version. The customer question history screen relies on these public lookup columns on `portal_question_threads`:
+
+- `requester_customer_code`
+- `requester_email`
+- `requester_name`
+- `requester_phone`
+
+The electronic contract request screen relies on `portal_contract_requests`.
 
 ## Mark Signup and Contract Forms
 

@@ -56,6 +56,32 @@ CREATE TABLE IF NOT EXISTS portal_activity_events (
   ))
 );
 
+CREATE TABLE IF NOT EXISTS portal_contract_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  requester_customer_code TEXT,
+  requester_name TEXT NOT NULL,
+  requester_email TEXT NOT NULL,
+  requester_phone TEXT,
+  desired_domain_count INTEGER NOT NULL DEFAULT 1,
+  contract_amount NUMERIC(14, 2),
+  payment_terms TEXT NOT NULL DEFAULT 'lump_sum',
+  status TEXT NOT NULL DEFAULT 'requested',
+  request_message TEXT,
+  public_message TEXT,
+  internal_note TEXT,
+  contract_document_url TEXT,
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  sent_at TIMESTAMPTZ,
+  signed_at TIMESTAMPTZ,
+  setup_ready_at TIMESTAMPTZ,
+  closed_at TIMESTAMPTZ,
+  CHECK (desired_domain_count BETWEEN 1 AND 100),
+  CHECK (payment_terms IN ('lump_sum', 'custom')),
+  CHECK (status IN ('requested', 'document_sent', 'signed', 'setup_ready', 'closed', 'canceled'))
+);
+
 CREATE TABLE IF NOT EXISTS portal_question_threads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
@@ -78,7 +104,11 @@ ALTER TABLE portal_question_threads
   ADD COLUMN IF NOT EXISTS response_message TEXT,
   ADD COLUMN IF NOT EXISTS response_note TEXT,
   ADD COLUMN IF NOT EXISTS response_error TEXT,
-  ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS requester_customer_code TEXT,
+  ADD COLUMN IF NOT EXISTS requester_email TEXT,
+  ADD COLUMN IF NOT EXISTS requester_name TEXT,
+  ADD COLUMN IF NOT EXISTS requester_phone TEXT;
 
 CREATE TABLE IF NOT EXISTS referral_relationships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -774,8 +804,14 @@ CREATE TABLE IF NOT EXISTS domain_candidates (
 CREATE INDEX IF NOT EXISTS idx_sites_site_key ON sites(site_key);
 CREATE INDEX IF NOT EXISTS idx_portal_activity_occurred ON portal_activity_events(occurred_at);
 CREATE INDEX IF NOT EXISTS idx_portal_activity_event_type ON portal_activity_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_portal_contract_requests_status ON portal_contract_requests(status);
+CREATE INDEX IF NOT EXISTS idx_portal_contract_requests_customer ON portal_contract_requests(customer_id);
+CREATE INDEX IF NOT EXISTS idx_portal_contract_requests_requester_code ON portal_contract_requests(requester_customer_code);
+CREATE INDEX IF NOT EXISTS idx_portal_contract_requests_requester_email ON portal_contract_requests(lower(requester_email));
 CREATE INDEX IF NOT EXISTS idx_portal_questions_status ON portal_question_threads(status);
 CREATE INDEX IF NOT EXISTS idx_portal_questions_customer ON portal_question_threads(customer_id);
+CREATE INDEX IF NOT EXISTS idx_portal_questions_requester_code ON portal_question_threads(requester_customer_code);
+CREATE INDEX IF NOT EXISTS idx_portal_questions_requester_email ON portal_question_threads(lower(requester_email));
 CREATE INDEX IF NOT EXISTS idx_sites_status ON sites(status);
 CREATE INDEX IF NOT EXISTS idx_site_proxy_assignments_site ON site_proxy_assignments(site_id);
 CREATE INDEX IF NOT EXISTS idx_site_proxy_assignments_status ON site_proxy_assignments(status);

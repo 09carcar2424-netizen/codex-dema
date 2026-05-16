@@ -152,6 +152,10 @@ function extractEmailAddress(text) {
   return match ? match[0] : '';
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase().slice(0, 320);
+}
+
 function encodeMailHeader(value) {
   return String(value || '').replace(/[\r\n]+/g, ' ').trim();
 }
@@ -390,6 +394,186 @@ function mapNotification(row) {
   };
 }
 
+function getContractStatusLabel(status) {
+  const labels = {
+    requested: '요청 접수',
+    document_sent: '계약서 발송',
+    signed: '서명 완료',
+    setup_ready: '세팅 대기',
+    closed: '종료',
+    canceled: '취소',
+  };
+
+  return labels[status] || '요청 접수';
+}
+
+function mapContractRequest(row, { publicOnly = false } = {}) {
+  const request = {
+    id: row.id,
+    customerCode: row.customer_code || row.requester_customer_code || 'NO_CUSTOMER',
+    requesterName: row.requester_name,
+    requesterEmail: publicOnly ? undefined : row.requester_email,
+    requesterPhone: publicOnly ? undefined : row.requester_phone,
+    desiredDomainCount: Number(row.desired_domain_count || 1),
+    contractAmount: row.contract_amount,
+    paymentTerms: row.payment_terms,
+    status: row.status,
+    statusLabel: getContractStatusLabel(row.status),
+    requestMessage: row.request_message,
+    publicMessage: row.public_message,
+    contractDocumentUrl: row.contract_document_url,
+    requestedAt: row.requested_at,
+    updatedAt: row.updated_at,
+    sentAt: row.sent_at,
+    signedAt: row.signed_at,
+    setupReadyAt: row.setup_ready_at,
+    closedAt: row.closed_at,
+  };
+
+  if (!publicOnly) {
+    request.internalNote = row.internal_note;
+  }
+
+  return request;
+}
+
+async function createWordfriendsContractRequest(req, res) {
+  if (!requireEventToken(req, res)) return undefined;
+
+  const body = await readJsonBody(req);
+  const requesterCustomerCode = String(body.customerCode || body.customer_code || '').trim().slice(0, 80);
+  const requesterEmail = normalizeEmail(body.requesterEmail || body.requester_email || body.email);
+  const requesterName = String(body.requesterName || body.requester_name || body.name || '').trim().slice(0, 160);
+  const requesterPhone = String(body.requesterPhone || body.requester_phone || body.phone || '').trim().slice(0, 80);
+  const desiredDomainCount = Math.min(100, Math.max(1, Number.parseInt(body.desiredDomainCount || body.desired_domain_count || 1, 10) || 1));
+  const requestMessage = String(body.requestMessage || body.request_message || '').trim().slice(0, 2000);
+  const sessionId = String(body.sessionId || body.session_id || '').trim().slice(0, 120);
+  const pagePath = String(body.pagePath || body.page_path || '/contract-guide').trim().slice(0, 500);
+
+  if (!requesterName || !requesterEmail) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'Requester name and email are required.',
+    });
+  }
+
+  const customerId = await findCustomerId(requesterCustomerCode);
+  const result = await query(
+    `
+      insert into portal_contract_requests (
+        customer_id, requester_customer_code, requester_name, requester_email,
+        requester_phone, desired_domain_count, contract_amount, payment_terms,
+        status, request_message, public_message, updated_at
+      )
+      values ($1, nullif($2, ''), $3, $4, nullif($5, ''), $6, $7, 'lump_sum',
+        'requested', nullif($8, ''), $9, now())
+      returning id::text, requester_customer_code, requester_name, requester_email,
+        requester_phone, desired_domain_count, contract_amount, payment_terms,
+        status, request_message, public_message, internal_note, contract_document_url,
+        requested_at, updated_at, sent_at, signed_at, setup_ready_at, closed_at
+    `,
+    [
+      customerId,
+      requesterCustomerCode,
+      requesterName,
+      requesterEmail,
+      requesterPhone,
+      desiredDomainCount,
+      3000000,
+      requestMessage,
+      '계약 요청이 접수되었습니다. 담당자가 확인 후 전자계약 안내를 드립니다.',
+    ],
+  );
+
+  await query(
+    `
+      insert into portal_activity_events (
+        customer_id, session_id, event_type, page_path, event_payload, occurred_at
+      )
+      values ($1, $2, 'contract_started', $3, $4::jsonb, now())
+    `,
+    [
+      customerId,
+      sessionId || null,
+      pagePath || null,
+      JSON.stringify({
+        source: 'wordfriends',
+        contractRequestId: result.rows[0].id,
+        requesterCustomerCode,
+        requesterEmail,
+        desiredDomainCount,
+        client: getRequestClientMeta(req),
+      }),
+    ],
+  );
+
+  let emailWarning = '';
+
+  try {
+    await sendEmailViaSmtp({
+      to: requesterEmail,
+      subject: '[Wordfriends] 전자계약 요청 접수 안내',
+      text: [
+        `${requesterName}님, 전자계약 요청이 접수되었습니다.`,
+        '',
+        `요청 도메인 수: ${desiredDomainCount}개`,
+        '담당자가 확인 후 전자계약 링크와 진행 안내를 드립니다.',
+        '',
+        '---',
+        '수익, 애드센스 승인, 트래픽은 보장하지 않으며 계약 조건과 운영 현황을 기준으로 안내드립니다.',
+      ].join('\n'),
+    });
+  } catch (error) {
+    emailWarning = `Contract request email failed: ${error.message}`;
+  }
+
+  return sendJson(req, res, 201, {
+    ok: true,
+    contractRequest: mapContractRequest(result.rows[0], { publicOnly: true }),
+    emailWarning,
+  });
+}
+
+async function listWordfriendsContractRequests(req, res, url) {
+  if (!requireEventToken(req, res)) return undefined;
+
+  const customerCode = String(url.searchParams.get('customerCode') || url.searchParams.get('customer_code') || '')
+    .trim()
+    .slice(0, 80);
+  const email = normalizeEmail(url.searchParams.get('email'));
+
+  if (!customerCode && !email) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'customerCode or email is required.',
+    });
+  }
+
+  const result = await query(
+    `
+      select pcr.id::text, c.customer_code, pcr.requester_customer_code,
+        pcr.requester_name, pcr.requester_email, pcr.requester_phone,
+        pcr.desired_domain_count, pcr.contract_amount, pcr.payment_terms,
+        pcr.status, pcr.request_message, pcr.public_message, pcr.internal_note,
+        pcr.contract_document_url, pcr.requested_at, pcr.updated_at,
+        pcr.sent_at, pcr.signed_at, pcr.setup_ready_at, pcr.closed_at
+      from portal_contract_requests pcr
+      left join customers c on c.id = pcr.customer_id
+      where
+        ($1 <> '' and (pcr.requester_customer_code = $1 or c.customer_code = $1))
+        or ($2 <> '' and lower(pcr.requester_email) = $2)
+      order by pcr.requested_at desc
+      limit 20
+    `,
+    [customerCode, email],
+  );
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    contractRequests: result.rows.map((row) => mapContractRequest(row, { publicOnly: true })),
+  });
+}
+
 async function createNotification(req, res) {
   const body = await readJsonBody(req);
   const title = String(body.title || '').trim();
@@ -611,7 +795,11 @@ async function createWordfriendsQuestion(req, res) {
     });
   }
 
-  const customerId = await findCustomerId(body.customerCode || body.customer_code);
+  const requesterCustomerCode = String(body.customerCode || body.customer_code || '').trim().slice(0, 80);
+  const requesterEmail = normalizeEmail(body.requesterEmail || body.requester_email || body.email);
+  const requesterName = String(body.requesterName || body.requester_name || body.name || '').trim().slice(0, 160);
+  const requesterPhone = String(body.requesterPhone || body.requester_phone || body.phone || '').trim().slice(0, 80);
+  const customerId = await findCustomerId(requesterCustomerCode);
   const sessionId = String(body.sessionId || body.session_id || '').trim().slice(0, 120);
   const pagePath = String(body.pagePath || body.page_path || '/contact').trim().slice(0, 500);
   const classification = classifyPortalQuestion(question, body.category, body.status);
@@ -621,9 +809,10 @@ async function createWordfriendsQuestion(req, res) {
     `
       insert into portal_question_threads (
         customer_id, question, category, status, ai_allowed,
-        human_review_required, answer_summary, updated_at
+        human_review_required, answer_summary, requester_customer_code,
+        requester_email, requester_name, requester_phone, updated_at
       )
-      values ($1, $2, $3, $4, $5, $6, $7, now())
+      values ($1, $2, $3, $4, $5, $6, $7, nullif($8, ''), nullif($9, ''), nullif($10, ''), nullif($11, ''), now())
       returning id::text, category, status, ai_allowed, human_review_required,
         to_char(updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
     `,
@@ -635,6 +824,10 @@ async function createWordfriendsQuestion(req, res) {
       classification.aiAllowed,
       classification.humanReviewRequired,
       answerSummary || null,
+      requesterCustomerCode,
+      requesterEmail,
+      requesterName,
+      requesterPhone,
     ],
   );
 
@@ -654,6 +847,8 @@ async function createWordfriendsQuestion(req, res) {
         questionThreadId: thread.rows[0].id,
         category: classification.category,
         status: classification.status,
+        requesterCustomerCode,
+        requesterEmail,
         client: getRequestClientMeta(req),
       }),
     ],
@@ -684,8 +879,393 @@ async function createWordfriendsQuestion(req, res) {
     ok: true,
     question: {
       ...thread.rows[0],
-      customerCode: body.customerCode || body.customer_code || 'NO_CUSTOMER',
+      customerCode: requesterCustomerCode || 'NO_CUSTOMER',
     },
+  });
+}
+
+function mapPublicQuestion(row) {
+  const statusLabel = row.status === 'answered' || row.response_status === 'sent'
+    ? '답변 완료'
+    : row.status === 'human_review'
+      ? '사람 검토'
+      : '접수';
+
+  return {
+    id: row.id,
+    category: row.category,
+    status: row.status,
+    statusLabel,
+    question: row.question,
+    answerSummary: row.response_message ? '답변이 등록되었습니다.' : '담당자 검토 대기',
+    responseStatus: row.response_status,
+    responseMessage: row.response_message,
+    respondedAt: row.responded_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function listWordfriendsQuestions(req, res, url) {
+  if (!requireEventToken(req, res)) return undefined;
+
+  const customerCode = String(url.searchParams.get('customerCode') || url.searchParams.get('customer_code') || '')
+    .trim()
+    .slice(0, 80);
+  const email = normalizeEmail(url.searchParams.get('email'));
+
+  if (!customerCode && !email) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'customerCode or email is required.',
+    });
+  }
+
+  const result = await query(
+    `
+      select pqt.id::text, pqt.category, pqt.status, pqt.question,
+        pqt.response_status, pqt.response_message, pqt.responded_at,
+        pqt.created_at, pqt.updated_at
+      from portal_question_threads pqt
+      left join customers c on c.id = pqt.customer_id
+      where
+        ($1 <> '' and (pqt.requester_customer_code = $1 or c.customer_code = $1))
+        or ($2 <> '' and lower(pqt.requester_email) = $2)
+      order by pqt.created_at desc
+      limit 50
+    `,
+    [customerCode, email],
+  );
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    questions: result.rows.map(mapPublicQuestion),
+  });
+}
+
+function getPublicSiteStatusLabel(status) {
+  if (status === 'active') return '운영 중';
+  if (status === 'paused') return '일시 중지';
+  if (status === 'archived') return '보관됨';
+  return '준비 중';
+}
+
+function getPublicContentStatusLabel(row) {
+  const published = Number(row.published_count || 0);
+  const approved = Number(row.approved_count || 0);
+  const inProgress = Number(row.in_progress_count || 0);
+
+  if (published > 0) return `${published}건 발행 완료`;
+  if (approved > 0) return `${approved}건 발행 준비`;
+  if (inProgress > 0) return `${inProgress}건 작성/검토 중`;
+  return '콘텐츠 준비 중';
+}
+
+function getPublicSitemapStatusLabel(status) {
+  if (['submitted', 'verified'].includes(status)) return '제출 완료';
+  if (status === 'ready') return '제출 준비';
+  if (['failed', 'manual_required'].includes(status)) return '확인 필요';
+  return '준비 중';
+}
+
+function getPublicSettlementStatusLabel(status) {
+  if (status === 'paid') return '입금 완료';
+  if (status === 'invoiced') return '입금 예정';
+  if (status === 'confirmed') return '정산 확정';
+  if (status === 'void') return '정산 제외';
+  return '정산 준비 중';
+}
+
+function getPublicReferralStatusLabel(status) {
+  if (status === 'paid') return '지급 완료';
+  if (status === 'payable') return '지급 예정';
+  if (status === 'confirmed') return '확정';
+  if (status === 'held') return '보류';
+  if (status === 'void') return '제외';
+  if (status === 'approved') return '승인';
+  if (status === 'rejected') return '반려';
+  return '검토 중';
+}
+
+function formatKrw(value) {
+  const amount = Number(value || 0);
+  return `${Math.round(amount).toLocaleString('ko-KR')}원`;
+}
+
+function mapPublicSettlement(row) {
+  return {
+    month: row.settlement_month,
+    domain: row.domain,
+    grossRevenue: formatKrw(row.gross_revenue),
+    agencyFee: formatKrw(row.agency_fee_amount),
+    status: row.status,
+    statusLabel: getPublicSettlementStatusLabel(row.status),
+    withholdingEstimate: row.total_withholding_amount === null ? null : {
+      type: row.estimate_type || 'manual_review',
+      grossAmount: formatKrw(row.estimate_gross_amount),
+      totalWithholdingAmount: formatKrw(row.total_withholding_amount),
+      netPayableAmount: formatKrw(row.net_payable_amount),
+      disclaimer: row.disclaimer || '세액은 참고용이며 최종 처리는 세무 전문가 확인이 필요합니다.',
+    },
+  };
+}
+
+function mapPublicReferralReward(row) {
+  return {
+    referredCustomerCode: row.referred_customer_code,
+    depth: Number(row.depth || 1),
+    rewardMonth: row.reward_month,
+    rewardAmount: formatKrw(row.reward_amount),
+    status: row.reward_status,
+    statusLabel: getPublicReferralStatusLabel(row.reward_status || row.relationship_status),
+  };
+}
+
+function mapPublicSite(row) {
+  return {
+    siteKey: row.site_key,
+    domain: row.domain,
+    siteName: row.site_name || row.domain,
+    status: row.status,
+    statusLabel: getPublicSiteStatusLabel(row.status),
+    wpStatus: row.wp_status || 'pending',
+    contentStatus: getPublicContentStatusLabel(row),
+    content: {
+      publishedCount: Number(row.published_count || 0),
+      approvedCount: Number(row.approved_count || 0),
+      inProgressCount: Number(row.in_progress_count || 0),
+      failedCount: Number(row.failed_count || 0),
+      nextScheduledAt: row.next_scheduled_at,
+    },
+    sitemap: {
+      status: row.sitemap_status || 'draft',
+      statusLabel: getPublicSitemapStatusLabel(row.sitemap_status),
+      lastCheckedAt: row.sitemap_last_checked_at,
+    },
+    seo: {
+      adsTxtStatus: row.ads_txt_status || 'unknown',
+      adsenseStatus: row.adsense_status || 'not_started',
+      note: '승인, 트래픽, 수익은 보장되지 않으며 운영 현황 기준으로 안내됩니다.',
+    },
+    settlementStatus: getPublicSettlementStatusLabel(row.settlement_status),
+    updatedAt: row.updated_at,
+  };
+}
+
+async function listWordfriendsSites(req, res, url) {
+  if (!requireEventToken(req, res)) return undefined;
+
+  const customerCode = String(url.searchParams.get('customerCode') || url.searchParams.get('customer_code') || '')
+    .trim()
+    .slice(0, 80);
+  const email = normalizeEmail(url.searchParams.get('email'));
+
+  if (!customerCode && !email) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'customerCode or email is required.',
+    });
+  }
+
+  const result = await query(
+    `
+      with matched_customers as (
+        select id
+        from customers
+        where
+          ($1 <> '' and customer_code = $1)
+          or ($2 <> '' and lower(contact_email) = $2)
+        union
+        select customer_id
+        from customer_portal_accounts
+        where $2 <> '' and lower(email) = $2
+      )
+      select s.site_key, s.domain, s.site_name, s.status, s.updated_at,
+        wc.status as wp_status,
+        ads.application_status as adsense_status,
+        ads.ads_txt_status,
+        cq.published_count,
+        cq.approved_count,
+        cq.in_progress_count,
+        cq.failed_count,
+        cq.next_scheduled_at,
+        ss.submission_status as sitemap_status,
+        ss.last_checked_at as sitemap_last_checked_at,
+        rs.status as settlement_status
+      from sites s
+      join matched_customers mc on mc.id = s.customer_id
+      left join wordpress_connections wc on wc.site_id = s.id
+      left join adsense_status ads on ads.site_id = s.id
+      left join lateral (
+        select
+          count(*) filter (where status = 'published')::int as published_count,
+          count(*) filter (where status = 'approved')::int as approved_count,
+          count(*) filter (where status in ('draft', 'ready', 'processing', 'generated', 'review_required'))::int as in_progress_count,
+          count(*) filter (where status in ('failed', 'validation_failed'))::int as failed_count,
+          to_char(min(scheduled_date) filter (where scheduled_date >= now()), 'YYYY-MM-DD HH24:MI') as next_scheduled_at
+        from content_queue
+        where site_id = s.id or site_key = s.site_key
+      ) cq on true
+      left join lateral (
+        select submission_status, to_char(last_checked_at, 'YYYY-MM-DD HH24:MI') as last_checked_at
+        from sitemap_submissions
+        where site_id = s.id or domain = s.domain
+        order by coalesce(last_checked_at, updated_at, created_at) desc
+        limit 1
+      ) ss on true
+      left join lateral (
+        select status
+        from revenue_settlements
+        where site_id = s.id
+        order by settlement_month desc, updated_at desc
+        limit 1
+      ) rs on true
+      where s.is_internal_infra = false
+      order by
+        case s.status when 'active' then 1 when 'draft' then 2 when 'paused' then 3 else 4 end,
+        s.updated_at desc
+      limit 50
+    `,
+    [customerCode, email],
+  );
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    sites: result.rows.map(mapPublicSite),
+  });
+}
+
+async function listWordfriendsSettlementReferrals(req, res, url) {
+  if (!requireEventToken(req, res)) return undefined;
+
+  const customerCode = String(url.searchParams.get('customerCode') || url.searchParams.get('customer_code') || '')
+    .trim()
+    .slice(0, 80);
+  const email = normalizeEmail(url.searchParams.get('email'));
+
+  if (!customerCode && !email) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'customerCode or email is required.',
+    });
+  }
+
+  const customerResult = await query(
+    `
+      select id, customer_code
+      from customers
+      where
+        ($1 <> '' and customer_code = $1)
+        or ($2 <> '' and lower(contact_email) = $2)
+        or exists (
+          select 1
+          from customer_portal_accounts cpa
+          where cpa.customer_id = customers.id
+            and $2 <> ''
+            and lower(cpa.email) = $2
+        )
+      order by updated_at desc
+      limit 1
+    `,
+    [customerCode, email],
+  );
+
+  if (!customerResult.rowCount) {
+    return sendJson(req, res, 200, {
+      ok: true,
+      customerCode: customerCode || '',
+      referralCode: null,
+      settlements: [],
+      referralRewards: [],
+      taxProfile: {
+        withholdingCategory: 'needs_review',
+        label: '세무 정보 확인 필요',
+        disclaimer: '세액과 지급 방식은 참고용이며 최종 처리는 세무 전문가 확인이 필요합니다.',
+      },
+    });
+  }
+
+  const customer = customerResult.rows[0];
+
+  const [referralCode, settlements, referralRewards, taxProfile] = await Promise.all([
+    query(
+      `
+        select code, status
+        from referral_codes
+        where customer_id = $1
+        order by case status when 'active' then 1 when 'paused' then 2 else 3 end, created_at desc
+        limit 1
+      `,
+      [customer.id],
+    ),
+    query(
+      `
+        select to_char(rs.settlement_month, 'YYYY-MM') as settlement_month,
+          s.domain, rs.gross_revenue, rs.agency_fee_amount, rs.status,
+          we.estimate_type, we.gross_amount as estimate_gross_amount,
+          we.total_withholding_amount, we.net_payable_amount, we.disclaimer
+        from revenue_settlements rs
+        left join sites s on s.id = rs.site_id
+        left join lateral (
+          select estimate_type, gross_amount, total_withholding_amount, net_payable_amount, disclaimer
+          from withholding_estimates
+          where settlement_id = rs.id
+          order by created_at desc
+          limit 1
+        ) we on true
+        where rs.customer_id = $1
+        order by rs.settlement_month desc
+        limit 12
+      `,
+      [customer.id],
+    ),
+    query(
+      `
+        select cc.customer_code as referred_customer_code, rr.depth, rr.status as relationship_status,
+          to_char(rew.reward_month, 'YYYY-MM') as reward_month,
+          rew.reward_amount, rew.status as reward_status
+        from referral_relationships rr
+        join customers cc on cc.id = rr.referred_customer_id
+        left join referral_rewards rew on rew.referral_relationship_id = rr.id
+        where rr.referrer_customer_id = $1
+          and rr.depth = 1
+        order by coalesce(rew.reward_month, date_trunc('month', rr.created_at)) desc, rr.created_at desc
+        limit 20
+      `,
+      [customer.id],
+    ),
+    query(
+      `
+        select withholding_category
+        from tax_profiles
+        where customer_id = $1
+        order by updated_at desc
+        limit 1
+      `,
+      [customer.id],
+    ),
+  ]);
+
+  const taxCategory = taxProfile.rows[0]?.withholding_category || 'needs_review';
+  const taxLabels = {
+    business_income_3_3: '사업소득 3.3% 참고',
+    other_income_8_8_reference: '기타소득 8.8% 참고',
+    invoice_required: '세금계산서 확인 필요',
+    needs_review: '세무 정보 확인 필요',
+  };
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    customerCode: customer.customer_code,
+    referralCode: referralCode.rows[0] || null,
+    settlements: settlements.rows.map(mapPublicSettlement),
+    referralRewards: referralRewards.rows.map(mapPublicReferralReward),
+    taxProfile: {
+      withholdingCategory: taxCategory,
+      label: taxLabels[taxCategory] || taxLabels.needs_review,
+      disclaimer: '세액과 지급 방식은 참고용이며 최종 처리는 세무 전문가 확인이 필요합니다.',
+    },
+    policyNote: '수익, 애드센스 승인, 트래픽은 보장하지 않으며 정산/추천 보상은 계약과 검토 결과를 기준으로 안내됩니다.',
   });
 }
 
@@ -711,7 +1291,7 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
   const existing = await query(
     `
       select id::text, category, status, question, response_channel, response_status,
-        response_message, response_note, answer_summary, responded_at, updated_at
+        response_message, response_note, answer_summary, requester_email, responded_at, updated_at
       from portal_question_threads
       where id = $1
     `,
@@ -736,7 +1316,7 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
       });
     }
 
-    const recipientEmail = extractEmailAddress(existing.rows[0].question);
+    const recipientEmail = existing.rows[0].requester_email || extractEmailAddress(existing.rows[0].question);
 
     if (!recipientEmail) {
       return sendJson(req, res, 400, {
@@ -797,6 +1377,110 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
   return sendJson(req, res, 200, {
     ok: true,
     question: updated.rows[0],
+  });
+}
+
+async function updateWordfriendsContractRequest(req, res, contractRequestId) {
+  const body = await readJsonBody(req);
+  const status = normalizeChoice(
+    body.status,
+    ['requested', 'document_sent', 'signed', 'setup_ready', 'closed', 'canceled'],
+    'requested',
+  );
+  const publicMessage = String(body.publicMessage || body.public_message || '').trim().slice(0, 2000);
+  const internalNote = String(body.internalNote || body.internal_note || '').trim().slice(0, 2000);
+  const contractDocumentUrl = String(body.contractDocumentUrl || body.contract_document_url || '').trim().slice(0, 1000);
+
+  const result = await query(
+    `
+      update portal_contract_requests
+      set status = $2,
+        public_message = nullif($3, ''),
+        internal_note = nullif($4, ''),
+        contract_document_url = nullif($5, ''),
+        updated_at = now(),
+        sent_at = case when $2 = 'document_sent' and sent_at is null then now() else sent_at end,
+        signed_at = case when $2 = 'signed' and signed_at is null then now() else signed_at end,
+        setup_ready_at = case when $2 = 'setup_ready' and setup_ready_at is null then now() else setup_ready_at end,
+        closed_at = case when $2 in ('closed', 'canceled') and closed_at is null then now() else closed_at end
+      where id = $1::uuid
+      returning id::text, requester_customer_code, requester_name, requester_email,
+        requester_phone, desired_domain_count, contract_amount, payment_terms,
+        status, request_message, public_message, internal_note, contract_document_url,
+        requested_at, updated_at, sent_at, signed_at, setup_ready_at, closed_at
+    `,
+    [contractRequestId, status, publicMessage, internalNote, contractDocumentUrl],
+  );
+
+  if (result.rowCount === 0) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Contract request not found.',
+    });
+  }
+
+  if (status === 'signed' || status === 'setup_ready') {
+    await query(
+      `
+        insert into portal_activity_events (
+          customer_id, session_id, event_type, page_path, event_payload, occurred_at
+        )
+        select customer_id, null, 'contract_completed', '/contract-guide', $2::jsonb, now()
+        from portal_contract_requests
+        where id = $1::uuid
+      `,
+      [
+        contractRequestId,
+        JSON.stringify({
+          source: 'siteops',
+          contractRequestId,
+          status,
+          requesterCustomerCode: result.rows[0].requester_customer_code,
+        }),
+      ],
+    );
+  }
+
+  let emailWarning = '';
+  const savedRequest = result.rows[0];
+
+  if (savedRequest.requester_email && ['document_sent', 'signed', 'setup_ready'].includes(status)) {
+    try {
+      const statusLabel = getContractStatusLabel(status);
+      const lines = [
+        `${savedRequest.requester_name}님, 전자계약 진행 상태가 변경되었습니다.`,
+        '',
+        `현재 상태: ${statusLabel}`,
+      ];
+
+      if (status === 'document_sent' && savedRequest.contract_document_url) {
+        lines.push('', `전자계약 링크: ${savedRequest.contract_document_url}`);
+      }
+
+      if (savedRequest.public_message) {
+        lines.push('', savedRequest.public_message);
+      }
+
+      lines.push(
+        '',
+        '---',
+        '수익, 애드센스 승인, 트래픽은 보장하지 않으며 계약 조건과 운영 현황을 기준으로 안내드립니다.',
+      );
+
+      await sendEmailViaSmtp({
+        to: savedRequest.requester_email,
+        subject: `[Wordfriends] 전자계약 ${statusLabel} 안내`,
+        text: lines.join('\n'),
+      });
+    } catch (error) {
+      emailWarning = `Contract status email failed: ${error.message}`;
+    }
+  }
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    contractRequest: mapContractRequest(savedRequest),
+    emailWarning,
   });
 }
 
@@ -1348,8 +2032,29 @@ async function getDashboardData() {
     limit 10
   `);
 
+  const portalContractRequests = await queryOptional(`
+    select pcr.id::text, coalesce(c.customer_code, pcr.requester_customer_code, 'NO_CUSTOMER') as customer_code,
+      pcr.requester_customer_code, pcr.requester_name, pcr.requester_email, pcr.requester_phone,
+      pcr.desired_domain_count, pcr.contract_amount, pcr.payment_terms, pcr.status,
+      pcr.request_message, pcr.public_message, pcr.internal_note, pcr.contract_document_url,
+      pcr.requested_at, pcr.updated_at, pcr.sent_at, pcr.signed_at, pcr.setup_ready_at, pcr.closed_at
+    from portal_contract_requests pcr
+    left join customers c on c.id = pcr.customer_id
+    order by
+      case pcr.status
+        when 'requested' then 1
+        when 'document_sent' then 2
+        when 'signed' then 3
+        when 'setup_ready' then 4
+        else 5
+      end,
+      pcr.updated_at desc
+    limit 10
+  `);
+
   const realtimeRow = portalRealtimeStats.rows[0] || {};
   const questionRows = portalQuestions.rows || [];
+  const contractRequestRows = portalContractRequests.rows || [];
 
   return {
     source: 'postgres',
@@ -1553,6 +2258,7 @@ async function getDashboardData() {
       openQuestions: questionRows.filter((row) => ['open', 'ai_draft', 'human_review'].includes(row.status)).length,
       humanReviewQuestions: questionRows.filter((row) => row.human_review_required || row.status === 'human_review').length,
       blockedQuestions: questionRows.filter((row) => !row.ai_allowed || row.status === 'blocked').length,
+      contractRequests: contractRequestRows.map((row) => mapContractRequest(row)),
       questions: questionRows.map((row) => ({
         id: row.id,
         customerCode: row.customer_code,
@@ -1608,6 +2314,26 @@ const server = http.createServer(async (req, res) => {
       return createWordfriendsQuestion(req, res);
     }
 
+    if (url.pathname === '/api/wordfriends/questions' && req.method === 'GET') {
+      return listWordfriendsQuestions(req, res, url);
+    }
+
+    if (url.pathname === '/api/wordfriends/contracts' && req.method === 'POST') {
+      return createWordfriendsContractRequest(req, res);
+    }
+
+    if (url.pathname === '/api/wordfriends/contracts' && req.method === 'GET') {
+      return listWordfriendsContractRequests(req, res, url);
+    }
+
+    if (url.pathname === '/api/wordfriends/sites' && req.method === 'GET') {
+      return listWordfriendsSites(req, res, url);
+    }
+
+    if (url.pathname === '/api/wordfriends/settlement-referrals' && req.method === 'GET') {
+      return listWordfriendsSettlementReferrals(req, res, url);
+    }
+
     if (!requireAdminAuth(req, res)) return;
 
     if (url.pathname === '/api/health') {
@@ -1622,6 +2348,11 @@ const server = http.createServer(async (req, res) => {
     const questionReplyMatch = url.pathname.match(/^\/api\/wordfriends\/questions\/([^/]+)\/reply$/);
     if (questionReplyMatch && req.method === 'POST') {
       return updateWordfriendsQuestionReply(req, res, questionReplyMatch[1]);
+    }
+
+    const contractRequestMatch = url.pathname.match(/^\/api\/wordfriends\/contracts\/([^/]+)$/);
+    if (contractRequestMatch && req.method === 'POST') {
+      return updateWordfriendsContractRequest(req, res, contractRequestMatch[1]);
     }
 
     if (url.pathname === '/api/n8n/site-runtime') {

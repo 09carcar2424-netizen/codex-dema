@@ -27,6 +27,7 @@ import {
   getApiBaseUrl,
   saveApiBaseUrl,
   saveDomainCandidates,
+  saveWordfriendsContractRequest,
   saveWordfriendsQuestionReply,
 } from './api.js';
 import {
@@ -77,6 +78,7 @@ const fallbackDashboard = {
     openQuestions: 0,
     humanReviewQuestions: 0,
     blockedQuestions: 0,
+    contractRequests: [],
     questions: [],
   },
 };
@@ -97,6 +99,13 @@ const emptyQuestionReplyForm = {
   status: 'human_review',
   responseMessage: '',
   responseNote: '',
+};
+
+const emptyContractRequestForm = {
+  status: 'requested',
+  publicMessage: '',
+  internalNote: '',
+  contractDocumentUrl: '',
 };
 
 const siteStatusFilters = [
@@ -293,6 +302,9 @@ function App() {
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [questionReplyDrafts, setQuestionReplyDrafts] = useState({});
   const [questionReplySaveState, setQuestionReplySaveState] = useState({});
+  const [expandedContractId, setExpandedContractId] = useState(null);
+  const [contractRequestDrafts, setContractRequestDrafts] = useState({});
+  const [contractRequestSaveState, setContractRequestSaveState] = useState({});
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -454,6 +466,76 @@ function App() {
     }
   };
 
+  const getContractRequestDraft = (request) => (
+    contractRequestDrafts[request.id] || {
+      status: request.status || emptyContractRequestForm.status,
+      publicMessage: request.publicMessage || '',
+      internalNote: request.internalNote || '',
+      contractDocumentUrl: request.contractDocumentUrl || '',
+    }
+  );
+
+  const updateContractRequestDraft = (request, field, value) => {
+    setContractRequestDrafts((current) => ({
+      ...current,
+      [request.id]: {
+        ...getContractRequestDraft(request),
+        ...current[request.id],
+        [field]: value,
+      },
+    }));
+  };
+
+  const submitContractRequestUpdate = async (request) => {
+    const draft = getContractRequestDraft(request);
+    setContractRequestSaveState((current) => ({
+      ...current,
+      [request.id]: { status: 'saving', message: '계약 상태를 저장하는 중입니다.' },
+    }));
+
+    try {
+      const result = await saveWordfriendsContractRequest(request.id, draft);
+      const saved = result.contractRequest || { ...request, ...draft };
+      setDashboard((current) => ({
+        ...current,
+        portalRealtime: {
+          ...current.portalRealtime,
+          contractRequests: (current.portalRealtime.contractRequests || []).map((row) => (
+            row.id === request.id ? saved : row
+          )),
+        },
+      }));
+      setContractRequestDrafts((current) => ({
+        ...current,
+        [request.id]: {
+          status: saved.status || draft.status,
+          publicMessage: saved.publicMessage || '',
+          internalNote: saved.internalNote || '',
+          contractDocumentUrl: saved.contractDocumentUrl || '',
+        },
+      }));
+      setContractRequestSaveState((current) => ({
+        ...current,
+        [request.id]: { status: 'saved', message: '계약 상태가 저장되었습니다.' },
+      }));
+      if (result.emailWarning) {
+        setContractRequestSaveState((current) => ({
+          ...current,
+          [request.id]: {
+            status: 'error',
+            message: `계약 상태는 저장됐지만 메일 발송은 실패했습니다: ${result.emailWarning}`,
+          },
+        }));
+      }
+      reloadDashboard();
+    } catch (error) {
+      setContractRequestSaveState((current) => ({
+        ...current,
+        [request.id]: { status: 'error', message: `저장 실패: ${error.message}` },
+      }));
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const apiBaseUrl = getApiBaseUrl();
@@ -516,6 +598,7 @@ function App() {
   const customerNotifications = dashboard.notifications.filter((row) => row.audience === 'customer');
   const internalNotifications = dashboard.notifications.filter((row) => row.visibility === 'internal_only');
   const portalRealtime = dashboard.portalRealtime || fallbackDashboard.portalRealtime;
+  const contractRequests = portalRealtime.contractRequests || [];
   const realtimeCards = [
     { label: '실시간 접속', value: portalRealtime.activeVisitors5m, detail: '최근 5분 활성 세션' },
     { label: '가입 시작', value: portalRealtime.signupStartedToday, detail: '오늘 시작한 회원가입' },
@@ -1798,6 +1881,134 @@ function App() {
               <code>POST /api/wordfriends/questions</code>
               <span>헤더: X-SiteOps-Event-Token · 서버 환경변수: SITEOPS_EVENT_TOKEN</span>
             </div>
+            <div className="ops-table contract-request-table" role="table">
+              <div className="ops-row ops-head" role="row">
+                <span>고객</span>
+                <span>계약 요청</span>
+                <span>상태</span>
+                <span>갱신</span>
+                <span>처리</span>
+              </div>
+              {contractRequests.slice(0, 8).map((request) => {
+                const expanded = expandedContractId === request.id;
+                const draft = getContractRequestDraft(request);
+                const saveState = contractRequestSaveState[request.id] || { status: 'idle', message: '' };
+
+                return (
+                  <div className="derived-question-item" key={request.id}>
+                    <div
+                      className="ops-row derived-question-row"
+                      role="row"
+                      tabIndex={0}
+                      aria-expanded={expanded}
+                      onClick={() => setExpandedContractId(expanded ? null : request.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setExpandedContractId(expanded ? null : request.id);
+                        }
+                      }}
+                    >
+                      <strong>{request.customerCode}</strong>
+                      <span>{request.requesterName} / {request.desiredDomainCount || 1}개 도메인</span>
+                      <StatusPill value={request.statusLabel || request.status} />
+                      <span>{formatSeoulDateTime(request.updatedAt || request.requestedAt)}</span>
+                      <span className="derived-question-action-cell">
+                        <button
+                          className="question-quick-action draft"
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setExpandedContractId(request.id);
+                          }}
+                        >
+                          계약 처리
+                        </button>
+                      </span>
+                    </div>
+                    {expanded ? (
+                      <div className="derived-question-detail">
+                        <div>
+                          <strong>계약 요청 내용</strong>
+                          <p>{request.requestMessage || '요청 메모 없음'}</p>
+                        </div>
+                        <form
+                          className="question-reply-box"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            submitContractRequestUpdate(request);
+                          }}
+                        >
+                          <div className="reply-grid">
+                            <label>
+                              처리 상태
+                              <select
+                                value={draft.status}
+                                onChange={(event) => updateContractRequestDraft(request, 'status', event.target.value)}
+                              >
+                                <option value="requested">요청 접수</option>
+                                <option value="document_sent">계약서 발송</option>
+                                <option value="signed">서명 완료</option>
+                                <option value="setup_ready">세팅 대기</option>
+                                <option value="closed">종료</option>
+                                <option value="canceled">취소</option>
+                              </select>
+                            </label>
+                            <label>
+                              계약서 링크
+                              <input
+                                type="url"
+                                value={draft.contractDocumentUrl}
+                                onChange={(event) => updateContractRequestDraft(request, 'contractDocumentUrl', event.target.value)}
+                                placeholder="전자계약 링크 또는 문서 URL"
+                              />
+                            </label>
+                          </div>
+                          <label>
+                            고객 공개 메시지
+                            <textarea
+                              rows={3}
+                              value={draft.publicMessage}
+                              onChange={(event) => updateContractRequestDraft(request, 'publicMessage', event.target.value)}
+                              placeholder="고객 내 계약 화면에 표시할 안내"
+                            />
+                          </label>
+                          <label>
+                            내부 메모
+                            <input
+                              type="text"
+                              value={draft.internalNote}
+                              onChange={(event) => updateContractRequestDraft(request, 'internalNote', event.target.value)}
+                              placeholder="관리자만 볼 메모"
+                            />
+                          </label>
+                          <div className="reply-actions">
+                            <button className="primary-action" type="submit">
+                              계약 상태 저장
+                            </button>
+                            <small>내부 메모는 고객에게 노출되지 않습니다.</small>
+                          </div>
+                          {saveState.message ? (
+                            <p className={`save-state ${saveState.status}`}>{saveState.message}</p>
+                          ) : null}
+                        </form>
+                        <div className="derived-question-meta">
+                          <span>상태: {request.status}</span>
+                          <span>요청: {formatSeoulDateTime(request.requestedAt)}</span>
+                          <span>발송: {formatSeoulDateTime(request.sentAt)}</span>
+                          <span>서명: {formatSeoulDateTime(request.signedAt)}</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+            {contractRequests.length === 0 ? (
+              <div className="empty-state">
+                아직 접수된 계약 요청이 없습니다. Wordfriends 전자계약 페이지에서 요청이 접수되면 이곳에 표시됩니다.
+              </div>
+            ) : null}
             <div className="ops-table derived-question-table" role="table">
               <div className="ops-row ops-head" role="row">
                 <span>고객</span>

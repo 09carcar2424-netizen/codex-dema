@@ -96,3 +96,27 @@ export async function saveWordfriendsQuestionReply(questionId, payload, apiBaseU
 
   return response.json();
 }
+
+export async function saveWordfriendsContractRequest(contractRequestId, payload, apiBaseUrl = getApiBaseUrl()) {
+  const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
+  const requestUrl = normalizedBaseUrl
+    ? `${normalizedBaseUrl}/api/wordfriends/contracts/${contractRequestId}`
+    : `/api/wordfriends/contracts/${contractRequestId}`;
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const requestError = new Error(error.detail || error.error || 'Contract request update failed');
+    requestError.payload = error;
+    throw requestError;
+  }
+
+  return response.json();
+}
