@@ -975,31 +975,68 @@ async function createWordfriendsQuestion(req, res) {
   const classification = classifyPortalQuestion(question, body.category, body.status);
   const answerSummary = String(body.answerSummary || body.answer_summary || '').trim();
 
-  const thread = await query(
-    `
-      insert into portal_question_threads (
-        customer_id, question, category, status, ai_allowed,
-        human_review_required, answer_summary, requester_customer_code,
-        requester_email, requester_name, requester_phone, updated_at
-      )
-      values ($1, $2, $3, $4, $5, $6, $7, nullif($8, ''), nullif($9, ''), nullif($10, ''), nullif($11, ''), now())
-      returning id::text, category, status, ai_allowed, human_review_required,
-        to_char(updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
-    `,
-    [
-      customerId,
-      question.slice(0, 2000),
-      classification.category,
-      classification.status,
-      classification.aiAllowed,
-      classification.humanReviewRequired,
-      answerSummary || null,
-      requesterCustomerCode,
-      requesterEmail,
-      requesterName,
-      requesterPhone,
-    ],
-  );
+  let thread;
+
+  try {
+    thread = await query(
+      `
+        insert into portal_question_threads (
+          customer_id, question, category, status, ai_allowed,
+          human_review_required, answer_summary, requester_customer_code,
+          requester_email, requester_name, requester_phone, updated_at
+        )
+        values ($1, $2, $3, $4, $5, $6, $7, nullif($8, ''), nullif($9, ''), nullif($10, ''), nullif($11, ''), now())
+        returning id::text, category, status, ai_allowed, human_review_required,
+          to_char(updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
+      `,
+      [
+        customerId,
+        question.slice(0, 2000),
+        classification.category,
+        classification.status,
+        classification.aiAllowed,
+        classification.humanReviewRequired,
+        answerSummary || null,
+        requesterCustomerCode,
+        requesterEmail,
+        requesterName,
+        requesterPhone,
+      ],
+    );
+  } catch (error) {
+    if (error.code !== '42703') {
+      throw error;
+    }
+
+    const contactLines = [
+      requesterName ? `Requester: ${requesterName}` : '',
+      requesterEmail ? `Email: ${requesterEmail}` : '',
+      requesterPhone ? `Phone: ${requesterPhone}` : '',
+      requesterCustomerCode ? `Customer code: ${requesterCustomerCode}` : '',
+    ].filter(Boolean);
+    const fallbackQuestion = `${contactLines.join('\n')}${contactLines.length ? '\n\n' : ''}${question}`.slice(0, 2000);
+
+    thread = await query(
+      `
+        insert into portal_question_threads (
+          customer_id, question, category, status, ai_allowed,
+          human_review_required, answer_summary, updated_at
+        )
+        values ($1, $2, $3, $4, $5, $6, $7, now())
+        returning id::text, category, status, ai_allowed, human_review_required,
+          to_char(updated_at, 'YYYY-MM-DD HH24:MI') as updated_at
+      `,
+      [
+        customerId,
+        fallbackQuestion,
+        classification.category,
+        classification.status,
+        classification.aiAllowed,
+        classification.humanReviewRequired,
+        answerSummary || null,
+      ],
+    );
+  }
 
   await query(
     `
@@ -1091,7 +1128,7 @@ async function listWordfriendsQuestions(req, res, url) {
     });
   }
 
-  const result = await query(
+  const result = await queryOptionalParams(
     `
       select pqt.id::text, pqt.category, pqt.status, pqt.question,
         pqt.response_status, pqt.response_message, pqt.responded_at,
@@ -1106,6 +1143,29 @@ async function listWordfriendsQuestions(req, res, url) {
     `,
     [customerCode, email],
   );
+
+  if (!result.rows.length) {
+    const fallbackResult = await queryOptionalParams(
+      `
+        select pqt.id::text, pqt.category, pqt.status, pqt.question,
+          pqt.response_status, pqt.response_message, pqt.responded_at,
+          pqt.created_at, pqt.updated_at
+        from portal_question_threads pqt
+        left join customers c on c.id = pqt.customer_id
+        where
+          ($1 <> '' and c.customer_code = $1)
+          or ($2 <> '' and lower(pqt.question) like '%' || $2 || '%')
+        order by pqt.created_at desc
+        limit 50
+      `,
+      [customerCode, email],
+    );
+
+    return sendJson(req, res, 200, {
+      ok: true,
+      questions: fallbackResult.rows.map(mapPublicQuestion),
+    });
+  }
 
   return sendJson(req, res, 200, {
     ok: true,

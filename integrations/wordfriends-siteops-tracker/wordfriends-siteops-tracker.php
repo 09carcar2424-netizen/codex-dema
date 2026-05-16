@@ -703,20 +703,21 @@ function wordfriends_siteops_handle_auth_posts() {
             return;
         }
 
-        $contact_note = '';
+        $contact_lines = [];
 
-        if (!is_user_logged_in()) {
-            $contact_lines = [
-                "문의자: {$name}",
-                "이메일: {$email}",
-            ];
-
-            if ($phone) {
-                $contact_lines[] = "전화번호: {$phone}";
-            }
-
-            $contact_note = implode("\n", $contact_lines) . "\n\n";
+        if ($name) {
+            $contact_lines[] = "문의자: {$name}";
         }
+
+        if ($email) {
+            $contact_lines[] = "이메일: {$email}";
+        }
+
+        if ($phone) {
+            $contact_lines[] = "전화번호: {$phone}";
+        }
+
+        $contact_note = $contact_lines ? implode("\n", $contact_lines) . "\n\n" : '';
 
         $session_id = isset($_COOKIE['wordfriends_session_id']) ? sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])) : '';
         $dedupe_key = 'wordfriends_question_' . md5(wp_json_encode([
