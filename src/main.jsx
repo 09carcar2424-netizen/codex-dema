@@ -123,6 +123,7 @@ const siteStatusFilters = [
 const SITE_PAGE_SIZE = 20;
 const INVENTORY_PAGE_SIZE = 20;
 const SITEMAP_PAGE_SIZE = 20;
+const PORTAL_REALTIME_PAGE_SIZE = 5;
 const REALTIME_REFRESH_MS = 30000;
 
 function formatSeoulDateTime(value) {
@@ -300,9 +301,11 @@ function App() {
   const [discoveryForm, setDiscoveryForm] = useState(defaultDiscoveryForm);
   const [candidateSaveState, setCandidateSaveState] = useState({ status: 'idle', message: '' });
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
+  const [portalQuestionPage, setPortalQuestionPage] = useState(1);
   const [questionReplyDrafts, setQuestionReplyDrafts] = useState({});
   const [questionReplySaveState, setQuestionReplySaveState] = useState({});
   const [expandedContractId, setExpandedContractId] = useState(null);
+  const [portalContractPage, setPortalContractPage] = useState(1);
   const [contractRequestDrafts, setContractRequestDrafts] = useState({});
   const [contractRequestSaveState, setContractRequestSaveState] = useState({});
   const isDark = theme === 'dark';
@@ -599,6 +602,19 @@ function App() {
   const internalNotifications = dashboard.notifications.filter((row) => row.visibility === 'internal_only');
   const portalRealtime = dashboard.portalRealtime || fallbackDashboard.portalRealtime;
   const contractRequests = portalRealtime.contractRequests || [];
+  const portalQuestions = portalRealtime.questions || [];
+  const portalContractPageCount = Math.max(1, Math.ceil(contractRequests.length / PORTAL_REALTIME_PAGE_SIZE));
+  const portalQuestionPageCount = Math.max(1, Math.ceil(portalQuestions.length / PORTAL_REALTIME_PAGE_SIZE));
+  const normalizedPortalContractPage = Math.min(portalContractPage, portalContractPageCount);
+  const normalizedPortalQuestionPage = Math.min(portalQuestionPage, portalQuestionPageCount);
+  const pagedPortalContracts = contractRequests.slice(
+    (normalizedPortalContractPage - 1) * PORTAL_REALTIME_PAGE_SIZE,
+    normalizedPortalContractPage * PORTAL_REALTIME_PAGE_SIZE,
+  );
+  const pagedPortalQuestions = portalQuestions.slice(
+    (normalizedPortalQuestionPage - 1) * PORTAL_REALTIME_PAGE_SIZE,
+    normalizedPortalQuestionPage * PORTAL_REALTIME_PAGE_SIZE,
+  );
   const realtimeCards = [
     { label: '실시간 접속', value: portalRealtime.activeVisitors5m, detail: '최근 5분 활성 세션' },
     { label: '가입 시작', value: portalRealtime.signupStartedToday, detail: '오늘 시작한 회원가입' },
@@ -1889,7 +1905,7 @@ function App() {
                 <span>갱신</span>
                 <span>처리</span>
               </div>
-              {contractRequests.slice(0, 8).map((request) => {
+              {pagedPortalContracts.map((request) => {
                 const expanded = expandedContractId === request.id;
                 const draft = getContractRequestDraft(request);
                 const saveState = contractRequestSaveState[request.id] || { status: 'idle', message: '' };
@@ -2004,6 +2020,20 @@ function App() {
                 );
               })}
             </div>
+            {contractRequests.length > PORTAL_REALTIME_PAGE_SIZE ? (
+              <div className="pagination-bar" aria-label="계약 요청 페이지">
+                {Array.from({ length: portalContractPageCount }, (_, index) => index + 1).map((page) => (
+                  <button
+                    className={`page-button ${normalizedPortalContractPage === page ? 'active' : ''}`}
+                    key={page}
+                    type="button"
+                    onClick={() => setPortalContractPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {contractRequests.length === 0 ? (
               <div className="empty-state">
                 아직 접수된 계약 요청이 없습니다. Wordfriends 전자계약 페이지에서 요청이 접수되면 이곳에 표시됩니다.
@@ -2018,7 +2048,7 @@ function App() {
                 <span>갱신</span>
                 <span>처리</span>
               </div>
-              {portalRealtime.questions.slice(0, 8).map((question) => {
+              {pagedPortalQuestions.map((question) => {
                 const expanded = expandedQuestionId === question.id;
                 const replyDraft = getQuestionReplyDraft(question);
                 const replyState = questionReplySaveState[question.id] || { status: 'idle', message: '' };
@@ -2165,6 +2195,20 @@ function App() {
                 );
               })}
             </div>
+            {portalQuestions.length > PORTAL_REALTIME_PAGE_SIZE ? (
+              <div className="pagination-bar" aria-label="문의 목록 페이지">
+                {Array.from({ length: portalQuestionPageCount }, (_, index) => index + 1).map((page) => (
+                  <button
+                    className={`page-button ${normalizedPortalQuestionPage === page ? 'active' : ''}`}
+                    key={page}
+                    type="button"
+                    onClick={() => setPortalQuestionPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {portalRealtime.questions.length === 0 ? (
               <div className="empty-state">
                 아직 수집된 파생 질문이 없습니다. Wordfriends 문의/AI 상담 이벤트가 연결되면 이곳에 실시간으로 표시됩니다.

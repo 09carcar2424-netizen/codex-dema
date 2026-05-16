@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.4.4
+ * Version: 0.4.5
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.4.4';
+const WORDFRIENDS_SITEOPS_VERSION = '0.4.5';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -543,6 +543,37 @@ function wordfriends_siteops_portal_styles() {
         color: #64748b;
         font-size: 12px;
       }
+      .wordfriends-pagination {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 16px;
+      }
+      .wordfriends-pagination a,
+      .wordfriends-pagination span {
+        min-width: 34px;
+        min-height: 34px;
+        border-radius: 8px;
+        border: 1px solid #d9e2e7;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        color: #17212b;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .wordfriends-pagination .is-active {
+        background: #248f73;
+        border-color: #248f73;
+        color: #fff;
+      }
+      .wordfriends-pagination .is-muted {
+        color: #94a3b8;
+        font-weight: 700;
+      }
       .wordfriends-optional {
         color: #64748b;
         font-size: 13px;
@@ -560,6 +591,58 @@ function wordfriends_siteops_redirect_url($atts) {
     }
 
     return remove_query_arg(['wordfriends_signup', 'wordfriends_login']);
+}
+
+function wordfriends_siteops_paginate_items($items, $param, $per_page = 5) {
+    $items = is_array($items) ? array_values($items) : [];
+    $total = count($items);
+    $per_page = max(1, min(20, absint($per_page)));
+    $total_pages = max(1, (int) ceil($total / $per_page));
+    $current_page = max(1, absint($_GET[$param] ?? 1));
+    $current_page = min($current_page, $total_pages);
+    $offset = ($current_page - 1) * $per_page;
+
+    return [
+        'items' => array_slice($items, $offset, $per_page),
+        'page' => $current_page,
+        'perPage' => $per_page,
+        'total' => $total,
+        'totalPages' => $total_pages,
+    ];
+}
+
+function wordfriends_siteops_render_pagination($pagination, $param) {
+    $total_pages = (int) ($pagination['totalPages'] ?? 1);
+    $current_page = (int) ($pagination['page'] ?? 1);
+
+    if ($total_pages <= 1) {
+        return '';
+    }
+
+    $html = '<nav class="wordfriends-pagination" aria-label="페이지 이동">';
+    $html .= $current_page > 1
+        ? '<a href="' . esc_url(add_query_arg($param, $current_page - 1)) . '">이전</a>'
+        : '<span class="is-muted">이전</span>';
+
+    for ($page = 1; $page <= $total_pages; $page += 1) {
+        if ($page !== 1 && $page !== $total_pages && abs($page - $current_page) > 2) {
+            if ($page === 2 || $page === $total_pages - 1) {
+                $html .= '<span class="is-muted">…</span>';
+            }
+            continue;
+        }
+
+        $html .= $page === $current_page
+            ? '<span class="is-active">' . esc_html((string) $page) . '</span>'
+            : '<a href="' . esc_url(add_query_arg($param, $page)) . '">' . esc_html((string) $page) . '</a>';
+    }
+
+    $html .= $current_page < $total_pages
+        ? '<a href="' . esc_url(add_query_arg($param, $current_page + 1)) . '">다음</a>'
+        : '<span class="is-muted">다음</span>';
+    $html .= '</nav>';
+
+    return $html;
 }
 
 function wordfriends_siteops_handle_auth_posts() {
@@ -1165,6 +1248,9 @@ function wordfriends_siteops_contract_request_shortcode($atts = []) {
         }
     }
 
+    $contract_pagination = wordfriends_siteops_paginate_items($contract_requests, 'wfc_page', 5);
+    $contract_requests = $contract_pagination['items'];
+
     ob_start();
     ?>
     <section class="wordfriends-auth">
@@ -1195,6 +1281,7 @@ function wordfriends_siteops_contract_request_shortcode($atts = []) {
             </article>
           <?php endforeach; ?>
         </div>
+        <?php echo wordfriends_siteops_render_pagination($contract_pagination, 'wfc_page'); ?>
       <?php endif; ?>
 
       <form method="post" data-siteops-event="contract_started">
@@ -1282,6 +1369,9 @@ function wordfriends_siteops_my_questions_shortcode($atts = []) {
         }
     }
 
+    $question_pagination = wordfriends_siteops_paginate_items($questions, 'wfq_page', 5);
+    $questions = $question_pagination['items'];
+
     ob_start();
     ?>
     <section class="wordfriends-auth">
@@ -1315,6 +1405,7 @@ function wordfriends_siteops_my_questions_shortcode($atts = []) {
             </article>
           <?php endforeach; ?>
         </div>
+        <?php echo wordfriends_siteops_render_pagination($question_pagination, 'wfq_page'); ?>
       <?php endif; ?>
     </section>
     <?php
@@ -1355,6 +1446,9 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
         }
     }
 
+    $site_pagination = wordfriends_siteops_paginate_items($sites, 'wfsites_page', 4);
+    $sites = $site_pagination['items'];
+
     ob_start();
     ?>
     <section class="wordfriends-auth">
@@ -1388,6 +1482,7 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
             </article>
           <?php endforeach; ?>
         </div>
+        <?php echo wordfriends_siteops_render_pagination($site_pagination, 'wfsites_page'); ?>
       <?php endif; ?>
     </section>
     <?php
@@ -1440,6 +1535,10 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
     $settlements = is_array($data['settlements'] ?? null) ? $data['settlements'] : [];
     $rewards = is_array($data['referralRewards'] ?? null) ? $data['referralRewards'] : [];
     $latest_settlement = $settlements[0] ?? null;
+    $settlement_pagination = wordfriends_siteops_paginate_items($settlements, 'wfsettle_page', 5);
+    $reward_pagination = wordfriends_siteops_paginate_items($rewards, 'wfreward_page', 5);
+    $settlements = $settlement_pagination['items'];
+    $rewards = $reward_pagination['items'];
 
     ob_start();
     ?>
@@ -1491,6 +1590,7 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
               <?php endforeach; ?>
             </tbody>
           </table>
+          <?php echo wordfriends_siteops_render_pagination($settlement_pagination, 'wfsettle_page'); ?>
         <?php endif; ?>
 
         <h3>1단계 추천 보상</h3>
@@ -1520,6 +1620,7 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
               <?php endforeach; ?>
             </tbody>
           </table>
+          <?php echo wordfriends_siteops_render_pagination($reward_pagination, 'wfreward_page'); ?>
         <?php endif; ?>
 
         <p class="wordfriends-auth-small"><?php echo esc_html($data['taxProfile']['disclaimer'] ?? '세액과 지급 방식은 참고용이며 최종 처리는 세무 전문가 확인이 필요합니다.'); ?></p>
@@ -1563,6 +1664,9 @@ function wordfriends_siteops_timeline_shortcode($atts = []) {
         }
     }
 
+    $timeline_pagination = wordfriends_siteops_paginate_items($timeline, 'wft_page', 5);
+    $timeline = $timeline_pagination['items'];
+
     ob_start();
     ?>
     <section class="wordfriends-auth">
@@ -1590,6 +1694,7 @@ function wordfriends_siteops_timeline_shortcode($atts = []) {
             </article>
           <?php endforeach; ?>
         </div>
+        <?php echo wordfriends_siteops_render_pagination($timeline_pagination, 'wft_page'); ?>
       <?php endif; ?>
       <p class="wordfriends-auth-small">수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황과 검토 결과를 기준으로 안내됩니다.</p>
     </section>

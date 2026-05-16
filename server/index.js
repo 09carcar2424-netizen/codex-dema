@@ -1518,7 +1518,7 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
     });
   }
 
-  const existing = await query(
+  let existing = await queryOptionalParams(
     `
       select id::text, category, status, question, response_channel, response_status,
         response_message, response_note, answer_summary, requester_email, responded_at, updated_at
@@ -1527,6 +1527,19 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
     `,
     [questionId],
   );
+
+  if (!existing.rowCount) {
+    existing = await query(
+      `
+        select id::text, category, status, question, response_channel, response_status,
+          response_message, response_note, answer_summary, null::text as requester_email,
+          responded_at, updated_at
+        from portal_question_threads
+        where id = $1
+      `,
+      [questionId],
+    );
+  }
 
   if (!existing.rowCount) {
     return sendJson(req, res, 404, {
@@ -1576,25 +1589,52 @@ async function updateWordfriendsQuestionReply(req, res, questionId) {
     }
   }
 
-  const updated = await query(
-    `
-      update portal_question_threads
-      set
-        response_channel = $2,
-        response_status = $3,
-        response_message = nullif($4, ''),
-        response_note = nullif($5, ''),
-        response_error = nullif($7, ''),
-        answer_summary = coalesce(nullif($5, ''), nullif($4, ''), answer_summary),
-        status = $6,
-        responded_at = case when $3 in ('queued', 'sent') then coalesce(responded_at, now()) else responded_at end,
-        updated_at = now()
-      where id = $1
-      returning id::text, category, status, response_channel, response_status,
-        response_message, response_note, response_error, answer_summary, responded_at, updated_at
-    `,
-    [questionId, channel, effectiveResponseStatus, message, note, nextStatus, responseError],
-  );
+  let updated;
+
+  try {
+    updated = await query(
+      `
+        update portal_question_threads
+        set
+          response_channel = $2,
+          response_status = $3,
+          response_message = nullif($4, ''),
+          response_note = nullif($5, ''),
+          response_error = nullif($7, ''),
+          answer_summary = coalesce(nullif($5, ''), nullif($4, ''), answer_summary),
+          status = $6,
+          responded_at = case when $3 in ('queued', 'sent') then coalesce(responded_at, now()) else responded_at end,
+          updated_at = now()
+        where id = $1
+        returning id::text, category, status, response_channel, response_status,
+          response_message, response_note, response_error, answer_summary, responded_at, updated_at
+      `,
+      [questionId, channel, effectiveResponseStatus, message, note, nextStatus, responseError],
+    );
+  } catch (error) {
+    if (error.code !== '42703') {
+      throw error;
+    }
+
+    updated = await query(
+      `
+        update portal_question_threads
+        set
+          response_channel = $2,
+          response_status = $3,
+          response_message = nullif($4, ''),
+          response_note = nullif($5, ''),
+          answer_summary = coalesce(nullif($5, ''), nullif($4, ''), answer_summary),
+          status = $6,
+          responded_at = case when $3 in ('queued', 'sent') then coalesce(responded_at, now()) else responded_at end,
+          updated_at = now()
+        where id = $1
+        returning id::text, category, status, response_channel, response_status,
+          response_message, response_note, null::text as response_error, answer_summary, responded_at, updated_at
+      `,
+      [questionId, channel, effectiveResponseStatus, message, note, nextStatus],
+    );
+  }
 
   if (responseError) {
     return sendJson(req, res, 200, {
