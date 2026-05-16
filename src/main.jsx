@@ -92,6 +92,7 @@ const emptyNotificationForm = {
   title: '',
   message: '',
   marketingMessage: false,
+  publishNow: true,
 };
 
 const emptyQuestionReplyForm = {
@@ -379,9 +380,15 @@ function App() {
       await createNotificationDraft({
         ...notificationForm,
         visibility: notificationForm.audienceType === 'customer' ? 'public_to_customer' : 'internal_only',
+        sendStatus: notificationForm.publishNow ? 'sent' : 'draft',
       });
       setNotificationForm(emptyNotificationForm);
-      setNotificationSaveState({ status: 'saved', message: '알림 초안을 저장했습니다. 실제 발송은 아직 하지 않습니다.' });
+      setNotificationSaveState({
+        status: 'saved',
+        message: notificationForm.publishNow
+          ? '고객 알림센터에 공개했습니다.'
+          : '알림 초안을 저장했습니다. 고객에게는 아직 공개되지 않습니다.',
+      });
       reloadDashboard();
     } catch (error) {
       setNotificationSaveState({ status: 'error', message: `저장 실패: ${error.message}` });
@@ -3882,9 +3889,17 @@ function App() {
                   />
                   광고성 문구 포함
                 </label>
+                <label className="inline-check">
+                  <input
+                    type="checkbox"
+                    checked={notificationForm.publishNow}
+                    onChange={(event) => updateNotificationForm('publishNow', event.target.checked)}
+                  />
+                  고객 알림센터에 즉시 공개
+                </label>
                 <button className="primary-action" type="submit" disabled={notificationSaveState.status === 'saving'}>
                   <Bell size={16} />
-                  초안 저장
+                  {notificationForm.publishNow ? '공개 저장' : '초안 저장'}
                 </button>
               </div>
               {notificationSaveState.message ? (

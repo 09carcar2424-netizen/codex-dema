@@ -696,6 +696,7 @@ async function listWordfriendsTimeline(req, res, url) {
         from notifications
         where audience_type = 'customer'
           and visibility = 'public_to_customer'
+          and send_status in ('ready', 'sent')
           and marketing_message = false
           and (customer_id is null or customer_id = any($1::uuid[]))
         order by created_at desc
@@ -834,14 +835,15 @@ async function createNotification(req, res) {
   );
   const severity = normalizeChoice(body.severity, ['info', 'action_required', 'warning', 'critical'], 'info');
   const channel = normalizeChoice(body.channel, ['portal', 'sms', 'kakao', 'telegram', 'portal_sms', 'portal_telegram'], 'portal');
+  const sendStatus = normalizeChoice(body.sendStatus || body.send_status, ['draft', 'ready', 'sent'], 'draft');
 
   const result = await query(
     `
       insert into notifications (
         audience_type, visibility, category, severity, title, message, channel,
-        marketing_message, opt_in_required, send_status
+        marketing_message, opt_in_required, send_status, sent_at
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'draft')
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, case when $10 = 'sent' then now() else null end)
       returning id::text, audience_type, visibility, title, message, channel,
         category, severity, send_status, marketing_message
     `,
@@ -855,6 +857,7 @@ async function createNotification(req, res) {
       channel,
       Boolean(body.marketingMessage),
       Boolean(body.marketingMessage),
+      sendStatus,
     ],
   );
 
