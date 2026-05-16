@@ -331,6 +331,67 @@ async function findCustomerId(customerCode) {
   return result.rows[0]?.id || null;
 }
 
+async function findCustomerIdByCodeOrEmail(customerCode, email) {
+  const normalizedCode = String(customerCode || '').trim();
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedCode && !normalizedEmail) return null;
+
+  const result = await query(
+    `
+      select id
+      from customers
+      where ($1 <> '' and customer_code = $1)
+        or ($2 <> '' and lower(contact_email) = $2)
+        or (
+          $2 <> ''
+          and exists (
+            select 1
+            from customer_portal_accounts cpa
+            where cpa.customer_id = customers.id
+              and lower(cpa.email) = $2
+          )
+        )
+      order by
+        case when $1 <> '' and customer_code = $1 then 1 else 2 end,
+        created_at desc
+      limit 1
+    `,
+    [normalizedCode, normalizedEmail],
+  );
+
+  return result.rows[0]?.id || null;
+}
+
+async function ensurePortalCustomer({ customerCode, email, name, phone }) {
+  const normalizedCode = String(customerCode || '').trim().slice(0, 80);
+  const normalizedEmail = normalizeEmail(email);
+  const displayName = String(name || normalizedEmail || normalizedCode || '').trim().slice(0, 160);
+  const contactPhone = String(phone || '').trim().slice(0, 80);
+
+  if (normalizedCode) {
+    const result = await query(
+      `
+        insert into customers (
+          customer_code, display_name, contact_email, contact_phone, contract_status, ownership_type
+        )
+        values ($1, $2, nullif($3, ''), nullif($4, ''), 'lead', 'customer_owned')
+        on conflict (customer_code) do update
+        set
+          display_name = excluded.display_name,
+          contact_email = coalesce(excluded.contact_email, customers.contact_email),
+          contact_phone = coalesce(excluded.contact_phone, customers.contact_phone),
+          updated_at = now()
+        returning id
+      `,
+      [normalizedCode, displayName || normalizedCode, normalizedEmail, contactPhone],
+    );
+
+    return result.rows[0]?.id || null;
+  }
+
+  return findCustomerIdByCodeOrEmail('', normalizedEmail);
+}
+
 function classifyPortalQuestion(question, requestedCategory, requestedStatus) {
   const text = String(question || '').toLowerCase();
   const category = normalizeChoice(
@@ -470,7 +531,12 @@ async function createWordfriendsContractRequest(req, res) {
     });
   }
 
-  const customerId = await findCustomerId(requesterCustomerCode);
+  const customerId = await ensurePortalCustomer({
+    customerCode: requesterCustomerCode,
+    email: requesterEmail,
+    name: requesterName,
+    phone: requesterPhone,
+  });
   const result = await query(
     `
       insert into portal_contract_requests (
@@ -926,7 +992,10 @@ async function createWordfriendsEvent(req, res) {
     });
   }
 
-  const customerId = await findCustomerId(body.customerCode || body.customer_code);
+  const customerId = await findCustomerIdByCodeOrEmail(
+    body.customerCode || body.customer_code,
+    body.email || body.requesterEmail || body.requester_email,
+  );
   const sessionId = String(body.sessionId || body.session_id || '').trim().slice(0, 120);
   const pagePath = String(body.pagePath || body.page_path || '').trim().slice(0, 500);
   const payload = {
@@ -969,7 +1038,12 @@ async function createWordfriendsQuestion(req, res) {
   const requesterEmail = normalizeEmail(body.requesterEmail || body.requester_email || body.email);
   const requesterName = String(body.requesterName || body.requester_name || body.name || '').trim().slice(0, 160);
   const requesterPhone = String(body.requesterPhone || body.requester_phone || body.phone || '').trim().slice(0, 80);
-  const customerId = await findCustomerId(requesterCustomerCode);
+  const customerId = await ensurePortalCustomer({
+    customerCode: requesterCustomerCode,
+    email: requesterEmail,
+    name: requesterName,
+    phone: requesterPhone,
+  });
   const sessionId = String(body.sessionId || body.session_id || '').trim().slice(0, 120);
   const pagePath = String(body.pagePath || body.page_path || '/contact').trim().slice(0, 500);
   const classification = classifyPortalQuestion(question, body.category, body.status);
@@ -2037,33 +2111,64 @@ async function getDashboardData() {
         limit 100
       `),
       query(`
-        select
-          c.customer_code as code,
-          c.display_name as name,
-          c.contact_email,
-          c.contract_status,
-          count(distinct s.id)::int as sites,
-          coalesce(
-            max(ads.application_status) filter (where ads.application_status = 'approved'),
-            max(ads.application_status) filter (where ads.application_status = 'submitted'),
-            max(ads.application_status) filter (where ads.application_status = 'paused'),
-            max(ads.application_status) filter (where ads.application_status = 'rejected'),
-            max(ads.application_status) filter (where ads.application_status = 'not_started'),
-            'UNKNOWN'
-          ) as adsense_status,
-          coalesce(
-            max(rs.status) filter (where rs.status = 'paid'),
-            max(rs.status) filter (where rs.status = 'invoiced'),
-            max(rs.status) filter (where rs.status = 'confirmed'),
-            max(rs.status) filter (where rs.status = 'draft'),
-            'NONE'
-          ) as settlement_status
-        from customers c
-        left join sites s on s.customer_id = c.id
-        left join adsense_status ads on ads.site_id = s.id
-        left join revenue_settlements rs on rs.customer_id = c.id
-        group by c.id
-        order by c.created_at desc
+        with customer_base as (
+          select
+            c.customer_code as code,
+            c.display_name as name,
+            c.contact_email,
+            c.contract_status,
+            count(distinct s.id)::int as sites,
+            coalesce(
+              max(ads.application_status) filter (where ads.application_status = 'approved'),
+              max(ads.application_status) filter (where ads.application_status = 'submitted'),
+              max(ads.application_status) filter (where ads.application_status = 'paused'),
+              max(ads.application_status) filter (where ads.application_status = 'rejected'),
+              max(ads.application_status) filter (where ads.application_status = 'not_started'),
+              'UNKNOWN'
+            ) as adsense_status,
+            coalesce(
+              max(rs.status) filter (where rs.status = 'paid'),
+              max(rs.status) filter (where rs.status = 'invoiced'),
+              max(rs.status) filter (where rs.status = 'confirmed'),
+              max(rs.status) filter (where rs.status = 'draft'),
+              'NONE'
+            ) as settlement_status,
+            c.created_at
+          from customers c
+          left join sites s on s.customer_id = c.id
+          left join adsense_status ads on ads.site_id = s.id
+          left join revenue_settlements rs on rs.customer_id = c.id
+          group by c.id
+        ),
+        portal_requesters as (
+          select
+            requester_customer_code as code,
+            coalesce(max(nullif(requester_name, '')), requester_customer_code) as name,
+            max(nullif(requester_email, '')) as contact_email,
+            'lead' as contract_status,
+            0::int as sites,
+            'UNKNOWN' as adsense_status,
+            'NONE' as settlement_status,
+            max(updated_at) as created_at
+          from (
+            select requester_customer_code, requester_name, requester_email, updated_at
+            from portal_question_threads
+            union all
+            select requester_customer_code, requester_name, requester_email, updated_at
+            from portal_contract_requests
+          ) request_rows
+          where nullif(requester_customer_code, '') is not null
+          group by requester_customer_code
+        )
+        select code, name, contact_email, contract_status, sites, adsense_status, settlement_status
+        from customer_base
+        union all
+        select pr.code, pr.name, pr.contact_email, pr.contract_status, pr.sites,
+          pr.adsense_status, pr.settlement_status
+        from portal_requesters pr
+        left join customer_base cb on cb.code = pr.code
+        where cb.code is null
+        order by code desc
         limit 100
       `),
       query(`
@@ -2332,13 +2437,14 @@ async function getDashboardData() {
   `);
 
   const portalQuestions = await queryOptional(`
-    select pqt.id::text, coalesce(c.customer_code, 'NO_CUSTOMER') as customer_code,
+    select pqt.id::text, coalesce(c.customer_code, pqt.requester_customer_code, 'NO_CUSTOMER') as customer_code,
       pqt.category, pqt.status, pqt.ai_allowed, pqt.human_review_required,
       pqt.question, pqt.answer_summary, pqt.response_channel, pqt.response_status,
       pqt.response_message, pqt.response_note, pqt.response_error, pqt.responded_at,
       pqt.updated_at
     from portal_question_threads pqt
     left join customers c on c.id = pqt.customer_id
+      or (pqt.customer_id is null and pqt.requester_customer_code is not null and c.customer_code = pqt.requester_customer_code)
     order by
       case pqt.status
         when 'human_review' then 1
@@ -2359,6 +2465,7 @@ async function getDashboardData() {
       pcr.requested_at, pcr.updated_at, pcr.sent_at, pcr.signed_at, pcr.setup_ready_at, pcr.closed_at
     from portal_contract_requests pcr
     left join customers c on c.id = pcr.customer_id
+      or (pcr.customer_id is null and pcr.requester_customer_code is not null and c.customer_code = pcr.requester_customer_code)
     order by
       case pcr.status
         when 'requested' then 1
