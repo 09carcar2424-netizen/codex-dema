@@ -1227,7 +1227,7 @@ async function listWordfriendsQuestions(req, res, url) {
         from portal_question_threads pqt
         left join customers c on c.id = pqt.customer_id
         where
-          ($1 <> '' and c.customer_code = $1)
+          ($1 <> '' and (c.customer_code = $1 or lower(pqt.question) like '%' || lower($1) || '%'))
           or ($2 <> '' and lower(pqt.question) like '%' || $2 || '%')
         order by pqt.created_at desc
         limit 50
@@ -2151,7 +2151,11 @@ async function getDashboardData() {
             'NONE' as settlement_status,
             max(updated_at) as created_at
           from (
-            select requester_customer_code, requester_name, requester_email, updated_at
+            select coalesce(
+                requester_customer_code,
+                substring(question from 'Customer code:[[:space:]]*([A-Za-z0-9_-]+)')
+              ) as requester_customer_code,
+              requester_name, requester_email, updated_at
             from portal_question_threads
             union all
             select requester_customer_code, requester_name, requester_email, updated_at
@@ -2437,7 +2441,12 @@ async function getDashboardData() {
   `);
 
   const portalQuestions = await queryOptional(`
-    select pqt.id::text, coalesce(c.customer_code, pqt.requester_customer_code, 'NO_CUSTOMER') as customer_code,
+    select pqt.id::text, coalesce(
+        c.customer_code,
+        pqt.requester_customer_code,
+        substring(pqt.question from 'Customer code:[[:space:]]*([A-Za-z0-9_-]+)'),
+        'NO_CUSTOMER'
+      ) as customer_code,
       pqt.category, pqt.status, pqt.ai_allowed, pqt.human_review_required,
       pqt.question, pqt.answer_summary, pqt.response_channel, pqt.response_status,
       pqt.response_message, pqt.response_note, pqt.response_error, pqt.responded_at,
