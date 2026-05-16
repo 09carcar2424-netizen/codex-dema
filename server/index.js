@@ -1666,6 +1666,13 @@ async function updateWordfriendsContractRequest(req, res, contractRequestId) {
   const internalNote = String(body.internalNote || body.internal_note || '').trim().slice(0, 2000);
   const contractDocumentUrl = String(body.contractDocumentUrl || body.contract_document_url || '').trim().slice(0, 1000);
 
+  if (status === 'document_sent' && !contractDocumentUrl) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'Contract document URL is required before marking the request as document_sent.',
+    });
+  }
+
   const result = await query(
     `
       update portal_contract_requests
@@ -1717,6 +1724,7 @@ async function updateWordfriendsContractRequest(req, res, contractRequestId) {
   }
 
   let emailWarning = '';
+  let emailSent = false;
   const savedRequest = result.rows[0];
 
   if (savedRequest.requester_email && ['document_sent', 'signed', 'setup_ready'].includes(status)) {
@@ -1747,6 +1755,7 @@ async function updateWordfriendsContractRequest(req, res, contractRequestId) {
         subject: `[Wordfriends] 전자계약 ${statusLabel} 안내`,
         text: lines.join('\n'),
       });
+      emailSent = true;
     } catch (error) {
       emailWarning = `Contract status email failed: ${error.message}`;
     }
@@ -1755,6 +1764,7 @@ async function updateWordfriendsContractRequest(req, res, contractRequestId) {
   return sendJson(req, res, 200, {
     ok: true,
     contractRequest: mapContractRequest(savedRequest),
+    emailSent,
     emailWarning,
   });
 }

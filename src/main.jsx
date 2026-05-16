@@ -559,6 +559,15 @@ function App() {
         ...current,
         [request.id]: { status: 'saved', message: '계약 상태가 저장되었습니다.' },
       }));
+      setContractRequestSaveState((current) => ({
+        ...current,
+        [request.id]: {
+          status: 'saved',
+          message: result.emailSent
+            ? '계약 상태 저장 및 고객 이메일 발송이 완료되었습니다.'
+            : '계약 상태가 저장되었습니다. 고객 이메일 발송 대상 상태가 아니거나 수신 이메일이 없습니다.',
+        },
+      }));
       if (result.emailWarning) {
         setContractRequestSaveState((current) => ({
           ...current,
