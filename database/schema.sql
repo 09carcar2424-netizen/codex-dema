@@ -24,6 +24,21 @@ ALTER TABLE customers
   ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}',
   ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'normal';
 
+CREATE TABLE IF NOT EXISTS customer_followups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  due_date DATE,
+  status TEXT NOT NULL DEFAULT 'planned',
+  priority TEXT NOT NULL DEFAULT 'normal',
+  internal_note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at TIMESTAMPTZ,
+  CHECK (status IN ('planned', 'in_progress', 'done', 'hold', 'canceled')),
+  CHECK (priority IN ('low', 'normal', 'high', 'urgent'))
+);
+
 CREATE TABLE IF NOT EXISTS customer_portal_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -830,6 +845,8 @@ CREATE TABLE IF NOT EXISTS domain_candidates (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sites_site_key ON sites(site_key);
+CREATE INDEX IF NOT EXISTS idx_customer_followups_customer ON customer_followups(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_followups_due_status ON customer_followups(due_date, status);
 CREATE INDEX IF NOT EXISTS idx_portal_activity_occurred ON portal_activity_events(occurred_at);
 CREATE INDEX IF NOT EXISTS idx_portal_activity_event_type ON portal_activity_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_portal_contract_requests_status ON portal_contract_requests(status);

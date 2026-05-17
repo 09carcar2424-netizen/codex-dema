@@ -1143,6 +1143,100 @@ h2 {
   background: var(--panel-bg);
 }
 
+.customer-followup-panel {
+  margin-top: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-bg);
+}
+
+.followup-summary-grid,
+.followup-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.followup-summary-grid article {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-soft);
+}
+
+.followup-summary-grid span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.followup-summary-grid strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 20px;
+}
+
+.followup-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.followup-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.followup-form label span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.followup-form input,
+.followup-form select,
+.followup-form textarea {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.followup-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.followup-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+}
+
+.followup-row small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.followup-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .referral-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2883,6 +2977,8 @@ h2 {
   .customer-detail-summary,
   .customer-detail-columns,
   .customer-ops-grid,
+  .followup-summary-grid,
+  .followup-form-grid,
   .referral-summary-grid,
   .referral-map,
   .timeline-item,

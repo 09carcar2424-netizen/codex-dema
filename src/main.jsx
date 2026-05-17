@@ -27,6 +27,7 @@ import {
   fetchDashboardData,
   getApiBaseUrl,
   saveApiBaseUrl,
+  saveCustomerFollowup,
   saveCustomerOps,
   saveDomainCandidates,
   saveReferralReward,
@@ -155,6 +156,14 @@ const emptyReferralRewardForm = {
   status: 'draft',
   notes: '',
   publishNotification: false,
+};
+
+const emptyCustomerFollowupForm = {
+  title: '',
+  dueDate: '',
+  status: 'planned',
+  priority: 'normal',
+  internalNote: '',
 };
 
 const siteStatusFilters = [
@@ -396,6 +405,8 @@ function App() {
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [customerOpsDrafts, setCustomerOpsDrafts] = useState({});
   const [customerOpsSaveState, setCustomerOpsSaveState] = useState({});
+  const [customerFollowupForm, setCustomerFollowupForm] = useState(emptyCustomerFollowupForm);
+  const [customerFollowupSaveState, setCustomerFollowupSaveState] = useState({ status: 'idle', message: '' });
   const [settlementForm, setSettlementForm] = useState(emptySettlementForm);
   const [settlementSaveState, setSettlementSaveState] = useState({ status: 'idle', message: '' });
   const [referralRewardForm, setReferralRewardForm] = useState(emptyReferralRewardForm);
@@ -643,6 +654,30 @@ function App() {
         ...current,
         [customer.code]: { status: 'error', message: `고객 메모 저장 실패: ${error.message}` },
       }));
+    }
+  };
+
+  const updateCustomerFollowupForm = (field, value) => {
+    setCustomerFollowupForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const submitCustomerFollowup = async (event, customer) => {
+    event.preventDefault();
+    if (!customer?.code) return;
+
+    setCustomerFollowupSaveState({ status: 'saving', message: '후속 조치를 저장하고 있습니다.' });
+
+    try {
+      const result = await saveCustomerFollowup(customer.code, customerFollowupForm);
+      const savedFollowup = result.followup;
+      setDashboard((current) => ({
+        ...current,
+        followups: [savedFollowup, ...(current.followups || [])],
+      }));
+      setCustomerFollowupForm(emptyCustomerFollowupForm);
+      setCustomerFollowupSaveState({ status: 'saved', message: '후속 조치를 저장했습니다. 고객 화면에는 노출되지 않습니다.' });
+    } catch (error) {
+      setCustomerFollowupSaveState({ status: 'error', message: `후속 조치 저장 실패: ${error.message}` });
     }
   };
 
@@ -1010,6 +1045,7 @@ function App() {
           workflows: data.workflows?.length ? data.workflows : apiSource === 'postgres' ? [] : workflowRows,
           runLogs: data.runLogs?.length ? data.runLogs : apiSource === 'postgres' ? [] : runLogRows,
           settlements: data.settlements?.length ? data.settlements : apiSource === 'postgres' ? [] : settlementRows,
+          followups: data.followups || [],
           referrals: data.referrals?.length ? data.referrals : apiSource === 'postgres' ? [] : referralRows,
           taxEstimates: data.taxEstimates?.length ? data.taxEstimates : apiSource === 'postgres' ? [] : taxEstimateRows,
           notifications: data.notifications?.length ? data.notifications : apiSource === 'postgres' ? [] : notificationRows,
@@ -1143,6 +1179,16 @@ function App() {
   const selectedCustomerNotifications = selectedCustomer
     ? dashboard.notifications.filter((row) => row.customerCode === selectedCustomer.code).slice(0, 5)
     : [];
+  const selectedCustomerFollowups = selectedCustomer
+    ? (dashboard.followups || []).filter((row) => row.customerCode === selectedCustomer.code)
+    : [];
+  const activeSelectedCustomerFollowups = selectedCustomerFollowups.filter((row) =>
+    !['done', 'canceled'].includes(String(row.status || '').toLowerCase()),
+  );
+  const todayDateKey = new Date().toISOString().slice(0, 10);
+  const selectedCustomerOverdueFollowups = activeSelectedCustomerFollowups.filter((row) =>
+    row.dueDate && row.dueDate < todayDateKey,
+  );
   const selectedCustomerReferralOutgoing = selectedCustomer
     ? dashboard.referrals.filter((row) => row.referrer === selectedCustomer.code)
     : [];
@@ -2512,6 +2558,115 @@ function App() {
                     <strong>{selectedCustomerSettlements.length + selectedCustomerNotifications.length}건</strong>
                     <small>고객 공개 안내 기준</small>
                   </article>
+                </div>
+                <div className="customer-followup-panel">
+                  <div className="section-subheading">
+                    <div>
+                      <p className="eyebrow">next actions</p>
+                      <h3>후속 조치 / 할 일</h3>
+                      <small>고객별 다음 연락, 계약, 입금, 세무 확인을 내부에서 관리합니다.</small>
+                    </div>
+                    <StatusPill value={selectedCustomerOverdueFollowups.length ? 'urgent' : 'planned'} />
+                  </div>
+                  <div className="followup-summary-grid">
+                    <article>
+                      <span>진행 중</span>
+                      <strong>{activeSelectedCustomerFollowups.length}건</strong>
+                    </article>
+                    <article>
+                      <span>지연</span>
+                      <strong>{selectedCustomerOverdueFollowups.length}건</strong>
+                    </article>
+                    <article>
+                      <span>전체 기록</span>
+                      <strong>{selectedCustomerFollowups.length}건</strong>
+                    </article>
+                  </div>
+                  <form className="followup-form" onSubmit={(event) => submitCustomerFollowup(event, selectedCustomer)}>
+                    <label>
+                      <span>할 일</span>
+                      <input
+                        type="text"
+                        value={customerFollowupForm.title}
+                        placeholder="예: 계약서 링크 발송, 입금 확인, 세무자료 요청"
+                        onChange={(event) => updateCustomerFollowupForm('title', event.target.value)}
+                        required
+                      />
+                    </label>
+                    <div className="followup-form-grid">
+                      <label>
+                        <span>예정일</span>
+                        <input
+                          type="date"
+                          value={customerFollowupForm.dueDate}
+                          onChange={(event) => updateCustomerFollowupForm('dueDate', event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        <span>상태</span>
+                        <select
+                          value={customerFollowupForm.status}
+                          onChange={(event) => updateCustomerFollowupForm('status', event.target.value)}
+                        >
+                          <option value="planned">예정</option>
+                          <option value="in_progress">진행 중</option>
+                          <option value="done">완료</option>
+                          <option value="hold">보류</option>
+                          <option value="canceled">취소</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>우선순위</span>
+                        <select
+                          value={customerFollowupForm.priority}
+                          onChange={(event) => updateCustomerFollowupForm('priority', event.target.value)}
+                        >
+                          <option value="low">낮음</option>
+                          <option value="normal">보통</option>
+                          <option value="high">높음</option>
+                          <option value="urgent">긴급</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label>
+                      <span>내부 메모</span>
+                      <textarea
+                        rows={2}
+                        value={customerFollowupForm.internalNote}
+                        placeholder="담당자가 다음에 볼 내용을 남깁니다."
+                        onChange={(event) => updateCustomerFollowupForm('internalNote', event.target.value)}
+                      />
+                    </label>
+                    <div className="reply-actions">
+                      <button type="submit" className="primary-action" disabled={customerFollowupSaveState.status === 'saving'}>
+                        후속 조치 저장
+                      </button>
+                      <small>고객 화면에는 노출되지 않습니다.</small>
+                    </div>
+                    {customerFollowupSaveState.message ? (
+                      <p className={`form-message ${customerFollowupSaveState.status}`}>
+                        {customerFollowupSaveState.message}
+                      </p>
+                    ) : null}
+                  </form>
+                  {selectedCustomerFollowups.length ? (
+                    <div className="followup-list">
+                      {selectedCustomerFollowups.slice(0, 6).map((followup) => (
+                        <div className="followup-row" key={followup.id}>
+                          <div>
+                            <strong>{followup.title}</strong>
+                            <small>{followup.dueDate || '예정일 없음'} · {followup.internalNote || '메모 없음'}</small>
+                          </div>
+                          <div className="followup-statuses">
+                            <StatusPill value={followup.priority} />
+                            <StatusPill value={followup.status} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty-state compact-empty">아직 등록된 후속 조치가 없습니다.</div>
+                  )}
                 </div>
                 <div className="customer-referral-panel">
                   <div className="section-subheading">

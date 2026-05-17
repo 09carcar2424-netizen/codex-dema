@@ -2215,6 +2215,74 @@ async function updateCustomerOps(req, res, customerCode) {
   });
 }
 
+function normalizeDateOnly(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : null;
+}
+
+async function saveCustomerFollowup(req, res, customerCode) {
+  const body = await readJsonBody(req);
+  const code = String(customerCode || '').trim().slice(0, 80);
+  const title = String(body.title || '').trim().slice(0, 160);
+  const dueDate = normalizeDateOnly(body.dueDate || body.due_date);
+  const status = normalizeChoice(body.status, ['planned', 'in_progress', 'done', 'hold', 'canceled'], 'planned');
+  const priority = normalizeChoice(body.priority, ['low', 'normal', 'high', 'urgent'], 'normal');
+  const internalNote = String(body.internalNote || body.internal_note || '').trim().slice(0, 1200);
+
+  if (!code || !title) {
+    return sendJson(req, res, 400, { ok: false, error: 'Customer code and follow-up title are required.' });
+  }
+
+  const customerResult = await query(
+    `
+      select id, customer_code, display_name
+      from customers
+      where customer_code = $1
+      limit 1
+    `,
+    [code],
+  );
+
+  if (customerResult.rowCount === 0) {
+    return sendJson(req, res, 404, { ok: false, error: 'Customer code not found.' });
+  }
+
+  const result = await query(
+    `
+      insert into customer_followups (
+        customer_id, title, due_date, status, priority, internal_note, completed_at
+      )
+      values (
+        $1::uuid, $2, $3::date, $4, $5, $6,
+        case when $4 = 'done' then now() else null end
+      )
+      returning id::text, title, to_char(due_date, 'YYYY-MM-DD') as due_date,
+        status, priority, coalesce(internal_note, '') as internal_note,
+        created_at, updated_at, completed_at
+    `,
+    [customerResult.rows[0].id, title, dueDate, status, priority, internalNote],
+  );
+
+  const saved = result.rows[0];
+  return sendJson(req, res, 200, {
+    ok: true,
+    followup: {
+      id: saved.id,
+      customerCode: customerResult.rows[0].customer_code,
+      customerName: customerResult.rows[0].display_name,
+      title: saved.title,
+      dueDate: saved.due_date,
+      status: saved.status,
+      priority: saved.priority,
+      internalNote: saved.internal_note,
+      createdAt: saved.created_at,
+      updatedAt: saved.updated_at,
+      completedAt: saved.completed_at,
+    },
+  });
+}
+
 function parseMoneyAmount(value, fallback = 0) {
   const normalized = String(value ?? '')
     .replace(/[,\s원]/g, '')
@@ -2903,7 +2971,7 @@ async function queryOptionalParams(sql, params = []) {
 }
 
 async function getDashboardData() {
-  const [sites, customers, contentQueue, wpSetup, workflows, runLogs, settlements, referrals] =
+  const [sites, customers, contentQueue, wpSetup, workflows, runLogs, settlements, followups, referrals] =
     await Promise.all([
       query(`
         select s.site_key, s.domain, s.language_code, s.g_level, s.guardrail_level, s.b_code,
@@ -3050,6 +3118,26 @@ async function getDashboardData() {
         left join customers c on c.id = rs.customer_id
         order by settlement_month desc
         limit 50
+      `),
+      query(`
+        select cf.id::text, c.customer_code, c.display_name as customer_name,
+          cf.title, to_char(cf.due_date, 'YYYY-MM-DD') as due_date,
+          cf.status, cf.priority, coalesce(cf.internal_note, '') as internal_note,
+          cf.created_at, cf.updated_at, cf.completed_at
+        from customer_followups cf
+        join customers c on c.id = cf.customer_id
+        order by
+          case cf.status
+            when 'planned' then 1
+            when 'in_progress' then 2
+            when 'hold' then 3
+            when 'done' then 4
+            when 'canceled' then 5
+            else 6
+          end,
+          cf.due_date nulls last,
+          cf.updated_at desc
+        limit 100
       `),
       query(`
         select rc.customer_code as referrer, rc.display_name as referrer_name,
@@ -3398,6 +3486,19 @@ async function getDashboardData() {
       agencyFee: formatKrw(row.agency_fee_amount),
       status: row.status?.toUpperCase(),
     })),
+    followups: followups.rows.map((row) => ({
+      id: row.id,
+      customerCode: row.customer_code,
+      customerName: row.customer_name,
+      title: row.title,
+      dueDate: row.due_date,
+      status: row.status,
+      priority: row.priority,
+      internalNote: row.internal_note,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      completedAt: row.completed_at,
+    })),
     referrals: referrals.rows.map((row) => ({
       referrer: row.referrer,
       referrerName: row.referrer_name,
@@ -3658,6 +3759,11 @@ const server = http.createServer(async (req, res) => {
     const customerOpsMatch = url.pathname.match(/^\/api\/customers\/([^/]+)\/ops$/);
     if (customerOpsMatch && req.method === 'POST') {
       return updateCustomerOps(req, res, decodeURIComponent(customerOpsMatch[1]));
+    }
+
+    const customerFollowupMatch = url.pathname.match(/^\/api\/customers\/([^/]+)\/followups$/);
+    if (customerFollowupMatch && req.method === 'POST') {
+      return saveCustomerFollowup(req, res, decodeURIComponent(customerFollowupMatch[1]));
     }
 
     if (url.pathname === '/api/settlements' && req.method === 'POST') {

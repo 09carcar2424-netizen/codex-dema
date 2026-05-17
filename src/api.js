@@ -215,6 +215,30 @@ export async function saveCustomerOps(customerCode, payload, apiBaseUrl = getApi
   return response.json();
 }
 
+export async function saveCustomerFollowup(customerCode, payload, apiBaseUrl = getApiBaseUrl()) {
+  const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
+  const requestUrl = normalizedBaseUrl
+    ? `${normalizedBaseUrl}/api/customers/${encodeURIComponent(customerCode)}/followups`
+    : `/api/customers/${encodeURIComponent(customerCode)}/followups`;
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const requestError = new Error(error.detail || error.error || 'Customer follow-up save failed');
+    requestError.payload = error;
+    throw requestError;
+  }
+
+  return response.json();
+}
+
 export async function saveSettlementRecord(payload, apiBaseUrl = getApiBaseUrl()) {
   const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
   const requestUrl = normalizedBaseUrl ? `${normalizedBaseUrl}/api/settlements` : '/api/settlements';
