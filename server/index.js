@@ -2005,6 +2005,77 @@ async function updateWordfriendsContractRequest(req, res, contractRequestId) {
   });
 }
 
+async function updateSiteCustomer(req, res, siteKey) {
+  const body = await readJsonBody(req);
+  const customerCode = String(body.customerCode || body.customer_code || '').trim().slice(0, 80);
+
+  if (!customerCode) {
+    const result = await query(
+      `
+        update sites
+        set customer_id = null,
+          updated_at = now()
+        where site_key = $1 or domain = $1
+        returning site_key, domain
+      `,
+      [siteKey],
+    );
+
+    if (result.rowCount === 0) {
+      return sendJson(req, res, 404, { ok: false, error: 'Site not found.' });
+    }
+
+    return sendJson(req, res, 200, {
+      ok: true,
+      site: { siteKey: result.rows[0].site_key, domain: result.rows[0].domain, customerCode: '' },
+    });
+  }
+
+  const customerResult = await query(
+    `
+      select id, customer_code, display_name
+      from customers
+      where customer_code = $1
+      limit 1
+    `,
+    [customerCode],
+  );
+
+  if (customerResult.rowCount === 0) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Customer code not found. Create the customer through signup, question, or contract request first.',
+    });
+  }
+
+  const result = await query(
+    `
+      update sites
+      set customer_id = $2::uuid,
+        is_customer_portal = true,
+        is_internal_infra = false,
+        updated_at = now()
+      where site_key = $1 or domain = $1
+      returning site_key, domain
+    `,
+    [siteKey, customerResult.rows[0].id],
+  );
+
+  if (result.rowCount === 0) {
+    return sendJson(req, res, 404, { ok: false, error: 'Site not found.' });
+  }
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    site: {
+      siteKey: result.rows[0].site_key,
+      domain: result.rows[0].domain,
+      customerCode: customerResult.rows[0].customer_code,
+      customerName: customerResult.rows[0].display_name,
+    },
+  });
+}
+
 async function getN8nSiteRuntime(req, res, url) {
   const siteKey = String(url.searchParams.get('siteKey') || url.searchParams.get('site_key') || '').trim();
 
@@ -2206,6 +2277,8 @@ function mapSite(row) {
     siteKey: row.site_key,
     domain: row.domain,
     owner: row.customer_name || (row.is_customer_portal ? 'Customer portal' : 'Customer owned'),
+    customerCode: row.customer_code || '',
+    customerName: row.customer_name || '',
     language: row.language_code,
     gLevel: row.g_level,
     guardrail: row.guardrail_level?.toUpperCase(),
@@ -2257,7 +2330,7 @@ async function getDashboardData() {
       query(`
         select s.site_key, s.domain, s.language_code, s.g_level, s.guardrail_level, s.b_code,
           s.portfolio_status, s.approval_status, s.risk_level, s.monetize_mode, s.memo, s.status,
-          s.is_customer_portal, c.display_name as customer_name, wps.setup_status,
+          s.is_customer_portal, c.customer_code, c.display_name as customer_name, wps.setup_status,
           wps.approval as setup_approval, wc.wp_base_url,
           wc.wp_credential_ref, ai.workflow_type, ai.prompt_profile, ai.llm_provider,
           ai.primary_model, ai.automation_mode, ai.monthly_target,
@@ -2978,6 +3051,11 @@ const server = http.createServer(async (req, res) => {
     const contractRequestMatch = url.pathname.match(/^\/api\/wordfriends\/contracts\/([^/]+)$/);
     if (contractRequestMatch && req.method === 'POST') {
       return updateWordfriendsContractRequest(req, res, contractRequestMatch[1]);
+    }
+
+    const siteCustomerMatch = url.pathname.match(/^\/api\/sites\/([^/]+)\/customer$/);
+    if (siteCustomerMatch && req.method === 'POST') {
+      return updateSiteCustomer(req, res, decodeURIComponent(siteCustomerMatch[1]));
     }
 
     if (url.pathname === '/api/n8n/site-runtime') {

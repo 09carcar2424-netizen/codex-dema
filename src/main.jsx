@@ -30,6 +30,7 @@ import {
   saveDomainCandidates,
   saveWordfriendsContractRequest,
   saveWordfriendsQuestionReply,
+  updateSiteCustomer,
   updateNotificationStatus,
 } from './api.js';
 import {
@@ -340,6 +341,8 @@ function App() {
   const [portalContractPage, setPortalContractPage] = useState(1);
   const [contractRequestDrafts, setContractRequestDrafts] = useState({});
   const [contractRequestSaveState, setContractRequestSaveState] = useState({});
+  const [siteCustomerDrafts, setSiteCustomerDrafts] = useState({});
+  const [siteCustomerSaveState, setSiteCustomerSaveState] = useState({});
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -426,6 +429,39 @@ function App() {
       setNotificationActionState((current) => ({
         ...current,
         [notification.id]: { status: 'error', message: `알림 처리 실패: ${error.message}` },
+      }));
+    }
+  };
+
+  const getSiteCustomerDraft = (site) => (
+    siteCustomerDrafts[site.siteKey] ?? site.customerCode ?? ''
+  );
+
+  const updateSiteCustomerDraft = (siteKey, customerCode) => {
+    setSiteCustomerDrafts((current) => ({ ...current, [siteKey]: customerCode }));
+  };
+
+  const submitSiteCustomer = async (site) => {
+    const customerCode = getSiteCustomerDraft(site).trim();
+    setSiteCustomerSaveState((current) => ({
+      ...current,
+      [site.siteKey]: { status: 'saving', message: '고객 연결을 저장하는 중입니다.' },
+    }));
+
+    try {
+      await updateSiteCustomer(site.siteKey, { customerCode });
+      setSiteCustomerSaveState((current) => ({
+        ...current,
+        [site.siteKey]: {
+          status: 'saved',
+          message: customerCode ? '사이트가 고객 포털에 연결되었습니다.' : '고객 연결을 해제했습니다.',
+        },
+      }));
+      reloadDashboard();
+    } catch (error) {
+      setSiteCustomerSaveState((current) => ({
+        ...current,
+        [site.siteKey]: { status: 'error', message: `고객 연결 저장 실패: ${error.message}` },
       }));
     }
   };
@@ -824,6 +860,9 @@ function App() {
   const portalCustomers = (hasLiveDashboard ? dashboard.customers : []).filter((customer) =>
     ['ACTIVE', 'LEAD', 'PENDING', 'SUBMITTED'].includes(String(customer.contractStatus || '').toUpperCase()),
   );
+  const siteCustomerOptions = (hasLiveDashboard ? dashboard.customers : [])
+    .filter((customer) => customer.code && customer.code !== 'NO_CUSTOMER')
+    .sort((a, b) => String(a.code).localeCompare(String(b.code)));
   const portalReportableSites = dashboard.sites.filter((site) =>
     ['Customer owned', 'Customer portal'].includes(site.owner) &&
     site.portfolioStatus !== 'high_risk_hold' &&
@@ -1878,6 +1917,36 @@ function App() {
                     <span>다음 액션</span>
                     <strong>{getSiteNextAction(selectedSite)}</strong>
                     <p>{selectedSite.memo || '운영 메모 없음'}</p>
+                  </div>
+                  <div className="detail-next-action site-customer-linker">
+                    <span>고객 포털 연결</span>
+                    <strong>{selectedSite.customerCode || '미연결'}</strong>
+                    <select
+                      value={getSiteCustomerDraft(selectedSite)}
+                      onChange={(event) => updateSiteCustomerDraft(selectedSite.siteKey, event.target.value)}
+                    >
+                      <option value="">고객 연결 없음</option>
+                      {siteCustomerOptions.map((customer) => (
+                        <option key={customer.code} value={customer.code}>
+                          {customer.code} · {customer.name || customer.contactEmail || '고객'}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="secondary-action"
+                      type="button"
+                      onClick={() => submitSiteCustomer(selectedSite)}
+                      disabled={siteCustomerSaveState[selectedSite.siteKey]?.status === 'saving'}
+                    >
+                      고객 연결 저장
+                    </button>
+                    {siteCustomerSaveState[selectedSite.siteKey]?.message ? (
+                      <p className={`form-status ${siteCustomerSaveState[selectedSite.siteKey].status}`}>
+                        {siteCustomerSaveState[selectedSite.siteKey].message}
+                      </p>
+                    ) : (
+                      <p>저장하면 고객의 내 사이트 화면에 이 도메인이 표시됩니다.</p>
+                    )}
                   </div>
                   <div className="detail-actions">
                     <a href="#errors">에러 센터</a>
