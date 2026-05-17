@@ -705,6 +705,10 @@ function App() {
         followups: (current.followups || []).map((row) => (
           row.id === savedFollowup.id ? { ...row, ...savedFollowup } : row
         )),
+        runLogs: result.log ? [result.log, ...(current.runLogs || [])].slice(0, 20) : current.runLogs,
+        notifications: result.notification
+          ? [result.notification, ...(current.notifications || [])].slice(0, 80)
+          : current.notifications,
       }));
       setCustomerFollowupActionState((current) => ({
         ...current,

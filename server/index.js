@@ -2311,7 +2311,7 @@ async function updateCustomerFollowupStatus(req, res, followupId) {
       from customers c
       where cf.customer_id = c.id
         and cf.id = $1::uuid
-      returning cf.id::text, c.customer_code, c.display_name as customer_name,
+      returning cf.id::text, c.id::text as customer_id, c.customer_code, c.display_name as customer_name,
         cf.title, to_char(cf.due_date, 'YYYY-MM-DD') as due_date,
         to_char(cf.reminder_date, 'YYYY-MM-DD') as reminder_date,
         coalesce(cf.assigned_to, '') as assigned_to,
@@ -2326,6 +2326,67 @@ async function updateCustomerFollowupStatus(req, res, followupId) {
   }
 
   const saved = result.rows[0];
+  const statusLabel = {
+    planned: '예정',
+    in_progress: '진행 중',
+    done: '완료',
+    hold: '보류',
+    canceled: '취소',
+  }[saved.status] || saved.status;
+  const auditPayload = {
+    source: 'customer_followup',
+    followupId: saved.id,
+    customerCode: saved.customer_code,
+    customerName: saved.customer_name,
+    title: saved.title,
+    status: saved.status,
+    assignedTo: saved.assigned_to,
+    dueDate: saved.due_date,
+    reminderDate: saved.reminder_date,
+  };
+  const [logResult, notificationResult] = await Promise.allSettled([
+    query(
+      `
+        insert into run_logs (
+          site_key, workflow_type, status, final_post_url, raw_payload
+        ) values (
+          $1, 'customer_followup', 'success', $2, $3::jsonb
+        )
+        returning to_char(run_timestamp, 'YYYY-MM-DD HH24:MI') as time,
+          site_key, workflow_type as workflow, status, concat('$', coalesce(cost_usd, 0)) as cost,
+          coalesce(execution_time_sec, 0) as seconds,
+          coalesce(final_post_url, error_message, 'No result yet') as result
+      `,
+      [
+        `customer:${saved.customer_code}`,
+        `고객 후속조치 ${statusLabel}: ${saved.title}`,
+        JSON.stringify(auditPayload),
+      ],
+    ),
+    query(
+      `
+        insert into notifications (
+          customer_id, audience_type, visibility, category, severity,
+          title, message, channel, send_status, sent_at, metadata
+        ) values (
+          $1::uuid, 'staff', 'internal_only', 'general', $2,
+          $3, $4, 'portal', 'sent', now(), $5::jsonb
+        )
+        returning id::text, audience_type, visibility, title, message, channel,
+          category, severity, send_status, marketing_message, created_at, sent_at
+      `,
+      [
+        saved.customer_id,
+        saved.status === 'hold' ? 'action_required' : 'info',
+        `후속조치 ${statusLabel}: ${saved.title}`,
+        `${saved.customer_name}(${saved.customer_code}) 고객 후속조치가 ${statusLabel} 상태로 변경되었습니다.`,
+        JSON.stringify(auditPayload),
+      ],
+    ),
+  ]);
+  const savedLog = logResult.status === 'fulfilled' ? logResult.value.rows[0] : null;
+  const savedNotification = notificationResult.status === 'fulfilled' ? notificationResult.value.rows[0] : null;
+
   return sendJson(req, res, 200, {
     ok: true,
     followup: {
@@ -2343,6 +2404,30 @@ async function updateCustomerFollowupStatus(req, res, followupId) {
       updatedAt: saved.updated_at,
       completedAt: saved.completed_at,
     },
+    log: savedLog ? {
+      time: savedLog.time,
+      siteKey: savedLog.site_key,
+      workflow: savedLog.workflow,
+      status: savedLog.status,
+      cost: savedLog.cost,
+      seconds: savedLog.seconds,
+      result: savedLog.result,
+    } : null,
+    notification: savedNotification ? {
+      id: savedNotification.id,
+      audience: savedNotification.audience_type,
+      customerCode: saved.customer_code || '',
+      visibility: savedNotification.visibility,
+      title: savedNotification.title,
+      message: savedNotification.message,
+      channel: savedNotification.channel,
+      category: savedNotification.category,
+      severity: savedNotification.severity,
+      status: savedNotification.send_status,
+      marketing: savedNotification.marketing_message,
+      createdAt: savedNotification.created_at,
+      sentAt: savedNotification.sent_at,
+    } : null,
   });
 }
 
