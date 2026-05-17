@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.4.6
+ * Version: 0.4.7
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.4.6';
+const WORDFRIENDS_SITEOPS_VERSION = '0.4.7';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -571,9 +571,16 @@ function wordfriends_siteops_portal_styles() {
         background: #f8fbfc;
         color: #17212b;
         text-decoration: none;
+        min-height: 132px;
+        transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease, background .16s ease;
       }
-      .wordfriends-dashboard-card:hover {
+      .wordfriends-dashboard-card:hover,
+      .wordfriends-dashboard-card:focus-visible {
         border-color: #1f8a70;
+        background: #f3fbf8;
+        box-shadow: 0 10px 24px rgba(15, 118, 110, .12);
+        transform: translateY(-1px);
+        outline: none;
       }
       .wordfriends-dashboard-card small {
         color: #64748b;
@@ -586,6 +593,22 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-dashboard-card span {
         color: #5b6872;
         line-height: 1.5;
+      }
+      .wordfriends-card-action {
+        align-self: end;
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+        color: #1f8a70;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .wordfriends-card-action::after {
+        content: ">";
+        font-size: 14px;
+        line-height: 1;
       }
       .wordfriends-table {
         width: 100%;
@@ -1468,21 +1491,25 @@ function wordfriends_siteops_dashboard_shortcode($atts = []) {
           <small>내 사이트</small>
           <strong><?php echo esc_html(count($sites)); ?>개</strong>
           <span><?php echo esc_html($latest_site ? (($latest_site['domain'] ?? '') . ' · ' . ($latest_site['statusLabel'] ?? '준비 중')) : '연결된 사이트가 표시됩니다.'); ?></span>
+          <em class="wordfriends-card-action">현황 보기</em>
         </a>
         <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_my_questions_page_url()); ?>">
           <small>내 문의</small>
           <strong><?php echo esc_html(count($open_questions)); ?>건 확인 중</strong>
           <span><?php echo esc_html($latest_question ? (($latest_question['categoryLabel'] ?? '문의') . ' · ' . ($latest_question['statusLabel'] ?? '접수')) : '새 문의와 답변 상태를 확인합니다.'); ?></span>
+          <em class="wordfriends-card-action">문의 보기</em>
         </a>
         <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_settlement_referrals_page_url()); ?>">
           <small>정산/추천</small>
           <strong><?php echo esc_html($latest_settlement['statusLabel'] ?? '준비 중'); ?></strong>
           <span><?php echo esc_html($referral_code ? ('추천 코드 ' . ($referral_code['code'] ?? '확인 중')) : '정산 참고와 추천 보상을 확인합니다.'); ?></span>
+          <em class="wordfriends-card-action">정산 보기</em>
         </a>
         <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_timeline_page_url()); ?>">
           <small>알림센터</small>
           <strong><?php echo esc_html(count($timeline)); ?>건</strong>
           <span><?php echo esc_html($latest_notice ? (($latest_notice['title'] ?? '알림') . ' · ' . ($latest_notice['statusLabel'] ?? '안내')) : '새 알림이 이곳에 표시됩니다.'); ?></span>
+          <em class="wordfriends-card-action">알림 보기</em>
         </a>
       </div>
       <p class="wordfriends-auth-small">수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황과 검토 결과를 기준으로 안내됩니다.</p>
