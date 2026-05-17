@@ -600,12 +600,41 @@ function wordfriends_siteops_portal_styles() {
         font-size: 12px;
         font-weight: 800;
       }
+      .wordfriends-dashboard-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .wordfriends-dashboard-badge {
+        border-radius: 999px;
+        padding: 3px 8px;
+        background: #e8f5f1;
+        color: #126451;
+        font-size: 11px;
+        font-style: normal;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .wordfriends-dashboard-badge.neutral {
+        background: #eef3f6;
+        color: #53616d;
+      }
+      .wordfriends-dashboard-badge.warn {
+        background: #fff4de;
+        color: #8a5a00;
+      }
       .wordfriends-dashboard-card strong {
         font-size: 22px;
       }
       .wordfriends-dashboard-card span {
         color: #5b6872;
         line-height: 1.5;
+      }
+      .wordfriends-dashboard-card .wordfriends-dashboard-detail {
+        color: #697985;
+        font-size: 12px;
+        line-height: 1.45;
       }
       .wordfriends-card-action {
         align-self: end;
@@ -1493,6 +1522,32 @@ function wordfriends_siteops_dashboard_shortcode($atts = []) {
     $latest_question = $questions[0] ?? null;
     $latest_notice = $timeline[0] ?? null;
     $latest_settlement = $settlements[0] ?? null;
+    $answered_questions = array_filter($questions, function ($question) {
+        return in_array($question['status'] ?? '', ['answered', 'closed'], true);
+    });
+    $active_sites = array_filter($sites, function ($site) {
+        return in_array($site['status'] ?? '', ['active', 'ACTIVE'], true) || ($site['statusLabel'] ?? '') === '운영 중';
+    });
+    $site_badge = count($sites) > 0 ? count($active_sites) . '개 운영' : '연결 대기';
+    $site_badge_class = count($sites) > 0 ? '' : ' neutral';
+    $question_badge = count($open_questions) > 0 ? '확인 필요' : '답변 완료';
+    $question_badge_class = count($open_questions) > 0 ? ' warn' : '';
+    $settlement_badge = $latest_settlement ? ($latest_settlement['statusLabel'] ?? '업데이트') : '준비 중';
+    $settlement_badge_class = $latest_settlement ? '' : ' neutral';
+    $notice_badge = count($timeline) > 0 ? '새 소식' : '대기';
+    $notice_badge_class = count($timeline) > 0 ? '' : ' neutral';
+    $site_detail = $latest_site
+        ? (($latest_site['domain'] ?? '사이트') . ' · ' . ($latest_site['contentStatus'] ?? '운영 현황 확인'))
+        : 'SiteOps 연결 후 도메인 운영 현황이 표시됩니다.';
+    $question_detail = $latest_question
+        ? (($latest_question['categoryLabel'] ?? '문의') . ' · ' . ($latest_question['statusLabel'] ?? '접수'))
+        : '새 문의와 답변 상태를 확인합니다.';
+    $settlement_detail = $latest_settlement
+        ? (($latest_settlement['month'] ?? '최근') . ' · ' . ($latest_settlement['agencyFee'] ?? '정산 참고'))
+        : ($referral_code ? ('추천 코드 ' . ($referral_code['code'] ?? '확인 중')) : '정산 참고와 추천 보상을 확인합니다.');
+    $notice_detail = $latest_notice
+        ? (($latest_notice['title'] ?? '알림') . ' · ' . ($latest_notice['statusLabel'] ?? '안내'))
+        : '새 알림이 이곳에 표시됩니다.';
 
     ob_start();
     ?>
@@ -1501,27 +1556,43 @@ function wordfriends_siteops_dashboard_shortcode($atts = []) {
       <p><?php echo esc_html($atts['subtitle']); ?></p>
       <div class="wordfriends-dashboard-grid">
         <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_my_sites_page_url()); ?>">
-          <small>내 사이트</small>
+          <div class="wordfriends-dashboard-card-head">
+            <small>내 사이트</small>
+            <em class="wordfriends-dashboard-badge<?php echo esc_attr($site_badge_class); ?>"><?php echo esc_html($site_badge); ?></em>
+          </div>
           <strong><?php echo esc_html(count($sites)); ?>개</strong>
-          <span><?php echo esc_html($latest_site ? (($latest_site['domain'] ?? '') . ' · ' . ($latest_site['statusLabel'] ?? '준비 중')) : '연결된 사이트가 표시됩니다.'); ?></span>
+          <span><?php echo esc_html(count($sites) > 0 ? '연결된 사이트 운영 상태를 확인합니다.' : '연결된 사이트가 표시됩니다.'); ?></span>
+          <span class="wordfriends-dashboard-detail"><?php echo esc_html($site_detail); ?></span>
           <em class="wordfriends-card-action">현황 보기</em>
         </a>
         <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_my_questions_page_url()); ?>">
-          <small>내 문의</small>
+          <div class="wordfriends-dashboard-card-head">
+            <small>내 문의</small>
+            <em class="wordfriends-dashboard-badge<?php echo esc_attr($question_badge_class); ?>"><?php echo esc_html($question_badge); ?></em>
+          </div>
           <strong><?php echo esc_html(count($open_questions)); ?>건 확인 중</strong>
-          <span><?php echo esc_html($latest_question ? (($latest_question['categoryLabel'] ?? '문의') . ' · ' . ($latest_question['statusLabel'] ?? '접수')) : '새 문의와 답변 상태를 확인합니다.'); ?></span>
+          <span>답변 완료 <?php echo esc_html(count($answered_questions)); ?>건</span>
+          <span class="wordfriends-dashboard-detail"><?php echo esc_html($question_detail); ?></span>
           <em class="wordfriends-card-action">문의 보기</em>
         </a>
         <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_settlement_referrals_page_url()); ?>">
-          <small>정산/추천</small>
+          <div class="wordfriends-dashboard-card-head">
+            <small>정산/추천</small>
+            <em class="wordfriends-dashboard-badge<?php echo esc_attr($settlement_badge_class); ?>"><?php echo esc_html($settlement_badge); ?></em>
+          </div>
           <strong><?php echo esc_html($latest_settlement['statusLabel'] ?? '준비 중'); ?></strong>
           <span><?php echo esc_html($referral_code ? ('추천 코드 ' . ($referral_code['code'] ?? '확인 중')) : '정산 참고와 추천 보상을 확인합니다.'); ?></span>
+          <span class="wordfriends-dashboard-detail"><?php echo esc_html($settlement_detail); ?></span>
           <em class="wordfriends-card-action">정산 보기</em>
         </a>
         <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_timeline_page_url()); ?>">
-          <small>알림센터</small>
+          <div class="wordfriends-dashboard-card-head">
+            <small>알림센터</small>
+            <em class="wordfriends-dashboard-badge<?php echo esc_attr($notice_badge_class); ?>"><?php echo esc_html($notice_badge); ?></em>
+          </div>
           <strong><?php echo esc_html(count($timeline)); ?>건</strong>
-          <span><?php echo esc_html($latest_notice ? (($latest_notice['title'] ?? '알림') . ' · ' . ($latest_notice['statusLabel'] ?? '안내')) : '새 알림이 이곳에 표시됩니다.'); ?></span>
+          <span>계약, 문의, 정산 관련 안내를 모아봅니다.</span>
+          <span class="wordfriends-dashboard-detail"><?php echo esc_html($notice_detail); ?></span>
           <em class="wordfriends-card-action">알림 보기</em>
         </a>
       </div>
