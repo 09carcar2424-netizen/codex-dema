@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.4.5
+ * Version: 0.4.6
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.4.5';
+const WORDFRIENDS_SITEOPS_VERSION = '0.4.6';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -126,6 +126,7 @@ function wordfriends_siteops_enqueue_tracker() {
         'nonce' => wp_create_nonce('wordfriends_siteops_event'),
         'sessionId' => sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])),
         'customerCode' => wordfriends_siteops_customer_code(),
+        'dashboardUrl' => wordfriends_siteops_dashboard_page_url(),
         'loginUrl' => wordfriends_siteops_login_page_url(),
         'logoutUrl' => wordfriends_siteops_logout_page_url(),
         'inquiryUrl' => wordfriends_siteops_question_page_url(),
@@ -248,6 +249,7 @@ JS);
   }
 
   function ensurePortalLinks() {
+    ensurePortalLink('\uace0\uac1d \ud3ec\ud138', WordfriendsSiteOps.dashboardUrl);
     ensurePortalLink('\ub0b4 \uc0ac\uc774\ud2b8', WordfriendsSiteOps.mySitesUrl);
     ensurePortalLink('\ub0b4 \ubb38\uc758', WordfriendsSiteOps.myQuestionsUrl);
     ensurePortalLink('\uc815\uc0b0/\ucd94\ucc9c', WordfriendsSiteOps.settlementReferralsUrl);
@@ -648,7 +650,7 @@ function wordfriends_siteops_redirect_url($atts) {
         return $redirect;
     }
 
-    return remove_query_arg(['wordfriends_signup', 'wordfriends_login']);
+    return wordfriends_siteops_dashboard_page_url();
 }
 
 function wordfriends_siteops_paginate_items($items, $param, $per_page = 5) {
@@ -1935,6 +1937,10 @@ function wordfriends_siteops_portal_page_url($shortcode, $fallback_path, $slugs 
 
 function wordfriends_siteops_login_page_url() {
     return wordfriends_siteops_portal_page_url('wordfriends_login', '/login/', ['login', '로그인']);
+}
+
+function wordfriends_siteops_dashboard_page_url() {
+    return wordfriends_siteops_portal_page_url('wordfriends_dashboard', '/login/', ['portal', 'customer-portal', '고객-포털']);
 }
 
 function wordfriends_siteops_logout_page_url() {
