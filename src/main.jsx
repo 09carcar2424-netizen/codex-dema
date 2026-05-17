@@ -957,6 +957,15 @@ function App() {
     site.portfolioStatus !== 'high_risk_hold' &&
     !['high', 'critical'].includes(site.riskLevel),
   );
+  const portalLinkCandidates = dashboard.sites
+    .filter((site) => site.siteKey && site.portfolioStatus !== 'infra_internal')
+    .sort((a, b) => {
+      const aLinked = a.customerCode ? 1 : 0;
+      const bLinked = b.customerCode ? 1 : 0;
+      if (aLinked !== bLinked) return aLinked - bLinked;
+      return String(a.domain || a.siteKey).localeCompare(String(b.domain || b.siteKey));
+    })
+    .slice(0, 12);
   const portalSettlementRows = dashboard.settlements.filter((row) =>
     ['CONFIRMED', 'DRAFT', 'PENDING'].includes(String(row.status || '').toUpperCase()),
   );
@@ -2125,6 +2134,69 @@ function App() {
                 아직 고객 포털에 연결된 고객 데이터가 없습니다. 회원가입, 계약 요청, 문의가 접수되면 이곳에 실제 고객 기준으로 표시됩니다.
               </div>
             ) : null}
+            <div className="portal-link-workbench">
+              <div className="section-subheading">
+                <div>
+                  <p className="eyebrow">site link workbench</p>
+                  <h3>고객-사이트 빠른 연결</h3>
+                </div>
+                <span>{portalLinkCandidates.length}개 표시</span>
+              </div>
+              {siteCustomerOptions.length === 0 ? (
+                <div className="empty-state">
+                  연결 가능한 고객 코드가 아직 없습니다. 고객 회원가입, 문의, 계약 요청이 접수되면 선택 목록에 표시됩니다.
+                </div>
+              ) : (
+                <div className="ops-table portal-link-table" role="table">
+                  <div className="ops-row ops-head" role="row">
+                    <span>사이트</span>
+                    <span>현재 고객</span>
+                    <span>연결 대상</span>
+                    <span>처리</span>
+                  </div>
+                  {portalLinkCandidates.map((site) => {
+                    const saveState = siteCustomerSaveState[site.siteKey];
+                    return (
+                      <div className="ops-row" role="row" key={site.siteKey}>
+                        <div>
+                          <strong>{site.domain || site.siteKey}</strong>
+                          <small>{site.siteKey} · {normalizeDisplayValue(site.portfolioStatus, '미분류')}</small>
+                        </div>
+                        <strong>{site.customerCode || '미연결'}</strong>
+                        <select
+                          value={getSiteCustomerDraft(site)}
+                          onChange={(event) => updateSiteCustomerDraft(site.siteKey, event.target.value)}
+                          aria-label={`${site.domain || site.siteKey} 고객 연결`}
+                        >
+                          <option value="">고객 연결 없음</option>
+                          {siteCustomerOptions.map((customer) => (
+                            <option key={customer.code} value={customer.code}>
+                              {customer.code} · {customer.name || customer.contactEmail || '고객'}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="row-action-stack">
+                          <button
+                            className="secondary-action"
+                            type="button"
+                            onClick={() => submitSiteCustomer(site)}
+                            disabled={saveState?.status === 'saving'}
+                          >
+                            {site.customerCode ? '연결 변경' : '연결 저장'}
+                          </button>
+                          {saveState?.message ? (
+                            <small className={`form-status ${saveState.status}`}>{saveState.message}</small>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="helper-copy">
+                연결 저장 후 고객의 wordfriends.co.kr 내 사이트 화면에 해당 도메인이 표시됩니다.
+              </p>
+            </div>
           </article>
 
           <article className="panel wide-panel" id="portal-admin">
