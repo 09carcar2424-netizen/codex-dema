@@ -149,6 +149,12 @@ Home landing page:
 [wordfriends_home]
 ```
 
+Services page:
+
+```text
+[wordfriends_services]
+```
+
 Recommended public menu:
 
 ```text
