@@ -1130,7 +1130,8 @@ h2 {
   margin-top: 12px;
 }
 
-.customer-detail-actions a {
+.customer-detail-actions a,
+.customer-detail-actions button {
   border: 1px solid var(--panel-border);
   border-radius: 8px;
   padding: 8px 10px;
@@ -1139,6 +1140,19 @@ h2 {
   font-size: 12px;
   font-weight: 900;
   text-decoration: none;
+}
+
+.customer-detail-actions button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.customer-detail-actions button:hover,
+.customer-detail-actions button:focus-visible,
+.customer-detail-actions a:hover,
+.customer-detail-actions a:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--panel-border));
+  outline: none;
 }
 
 .section-subheading {

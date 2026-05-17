@@ -477,16 +477,61 @@ function App() {
     }
   };
 
-  const getSiteCustomerDraft = (site) => (
-    siteCustomerDrafts[site.siteKey] ?? site.customerCode ?? ''
+  const scrollToSection = (sectionId) => {
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const prepareCustomerNotification = (customer, category = 'general') => {
+    setNotificationForm((current) => ({
+      ...current,
+      audienceType: 'customer',
+      targetCustomerCode: customer.code,
+      category,
+      publishNow: true,
+    }));
+    scrollToSection('notifications');
+  };
+
+  const prepareCustomerSettlement = (customer) => {
+    setSettlementForm((current) => ({
+      ...current,
+      customerCode: customer.code,
+      siteKey: '',
+    }));
+    scrollToSection('settlements');
+  };
+
+  const prepareCustomerSiteLink = (customer) => {
+    selectPortalCustomer(customer);
+    scrollToSection('portal-link-workbench');
+  };
+
+  const openCustomerQuestions = () => {
+    if (selectedCustomerQuestions[0]?.id) {
+      setExpandedQuestionId(selectedCustomerQuestions[0].id);
+    }
+    scrollToSection('realtime');
+  };
+
+  const openCustomerContracts = () => {
+    if (selectedCustomerContracts[0]?.id) {
+      setExpandedContractId(selectedCustomerContracts[0].id);
+    }
+    scrollToSection('realtime');
+  };
+
+  const getSiteCustomerDraft = (site, fallbackCustomerCode = '') => (
+    siteCustomerDrafts[site.siteKey] ?? site.customerCode ?? fallbackCustomerCode
   );
 
   const updateSiteCustomerDraft = (siteKey, customerCode) => {
     setSiteCustomerDrafts((current) => ({ ...current, [siteKey]: customerCode }));
   };
 
-  const submitSiteCustomer = async (site) => {
-    const customerCode = getSiteCustomerDraft(site).trim();
+  const submitSiteCustomer = async (site, fallbackCustomerCode = '') => {
+    const customerCode = getSiteCustomerDraft(site, fallbackCustomerCode).trim();
     setSiteCustomerSaveState((current) => ({
       ...current,
       [site.siteKey]: { status: 'saving', message: '고객 연결을 저장하는 중입니다.' },
@@ -515,6 +560,20 @@ function App() {
       ...current,
       [field]: value,
       ...(field === 'customerCode' ? { siteKey: '' } : {}),
+    }));
+  };
+
+  const selectPortalCustomer = (customer) => {
+    setSelectedCustomerCode(customer.code);
+    setNotificationForm((current) => (
+      current.audienceType === 'customer'
+        ? { ...current, targetCustomerCode: customer.code }
+        : current
+    ));
+    setSettlementForm((current) => ({
+      ...current,
+      customerCode: customer.code,
+      siteKey: current.customerCode === customer.code ? current.siteKey : '',
     }));
   };
 
@@ -1015,6 +1074,21 @@ function App() {
       return String(a.domain || a.siteKey).localeCompare(String(b.domain || b.siteKey));
     })
     .slice(0, 12);
+  const activePortalLinkCandidates = selectedCustomer
+    ? dashboard.sites
+        .filter((site) =>
+          site.siteKey &&
+          site.portfolioStatus !== 'infra_internal' &&
+          (!site.customerCode || site.customerCode === selectedCustomer.code),
+        )
+        .sort((a, b) => {
+          const aLinkedToCustomer = a.customerCode === selectedCustomer.code ? 0 : 1;
+          const bLinkedToCustomer = b.customerCode === selectedCustomer.code ? 0 : 1;
+          if (aLinkedToCustomer !== bLinkedToCustomer) return aLinkedToCustomer - bLinkedToCustomer;
+          return String(a.domain || a.siteKey).localeCompare(String(b.domain || b.siteKey));
+        })
+        .slice(0, 12)
+    : portalLinkCandidates;
   const portalSettlementRows = dashboard.settlements.filter((row) =>
     ['CONFIRMED', 'DRAFT', 'PENDING'].includes(String(row.status || '').toUpperCase()),
   );
@@ -2172,11 +2246,11 @@ function App() {
                   key={customer.code}
                   tabIndex={0}
                   aria-selected={selectedCustomer?.code === customer.code}
-                  onClick={() => setSelectedCustomerCode(customer.code)}
+                  onClick={() => selectPortalCustomer(customer)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
-                      setSelectedCustomerCode(customer.code);
+                      selectPortalCustomer(customer);
                     }
                   }}
                 >
@@ -2312,20 +2386,24 @@ function App() {
                   </article>
                 </div>
                 <div className="customer-detail-actions">
-                  <a href="#portal">사이트 연결</a>
-                  <a href="#realtime">문의 확인</a>
-                  <a href="#settlements">정산 기록</a>
-                  <a href="#notifications">알림 작성</a>
+                  <button type="button" onClick={() => prepareCustomerSiteLink(selectedCustomer)}>사이트 연결</button>
+                  <button type="button" onClick={openCustomerQuestions}>문의 확인</button>
+                  <button type="button" onClick={openCustomerContracts}>계약 처리</button>
+                  <button type="button" onClick={() => prepareCustomerSettlement(selectedCustomer)}>정산 기록</button>
+                  <button type="button" onClick={() => prepareCustomerNotification(selectedCustomer, 'notice')}>알림 작성</button>
                 </div>
               </div>
             ) : null}
-            <div className="portal-link-workbench">
+            <div className="portal-link-workbench" id="portal-link-workbench">
               <div className="section-subheading">
                 <div>
                   <p className="eyebrow">site link workbench</p>
                   <h3>고객-사이트 빠른 연결</h3>
                 </div>
-                <span>{portalLinkCandidates.length}개 표시</span>
+                <span>
+                  {selectedCustomer ? `${selectedCustomer.code} 기준 · ` : ''}
+                  {activePortalLinkCandidates.length}개 표시
+                </span>
               </div>
               {siteCustomerOptions.length === 0 ? (
                 <div className="empty-state">
@@ -2339,7 +2417,7 @@ function App() {
                     <span>연결 대상</span>
                     <span>처리</span>
                   </div>
-                  {portalLinkCandidates.map((site) => {
+                  {activePortalLinkCandidates.map((site) => {
                     const saveState = siteCustomerSaveState[site.siteKey];
                     return (
                       <div className="ops-row" role="row" key={site.siteKey}>
@@ -2349,7 +2427,7 @@ function App() {
                         </div>
                         <strong>{site.customerCode || '미연결'}</strong>
                         <select
-                          value={getSiteCustomerDraft(site)}
+                          value={getSiteCustomerDraft(site, selectedCustomer?.code || '')}
                           onChange={(event) => updateSiteCustomerDraft(site.siteKey, event.target.value)}
                           aria-label={`${site.domain || site.siteKey} 고객 연결`}
                         >
@@ -2364,7 +2442,7 @@ function App() {
                           <button
                             className="secondary-action"
                             type="button"
-                            onClick={() => submitSiteCustomer(site)}
+                            onClick={() => submitSiteCustomer(site, selectedCustomer?.code || '')}
                             disabled={saveState?.status === 'saving'}
                           >
                             {site.customerCode ? '연결 변경' : '연결 저장'}
