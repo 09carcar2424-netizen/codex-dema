@@ -10,12 +10,19 @@ CREATE TABLE IF NOT EXISTS customers (
   contract_status TEXT NOT NULL DEFAULT 'lead',
   adsense_owner_type TEXT NOT NULL DEFAULT 'customer',
   notes TEXT,
+  tags TEXT[] NOT NULL DEFAULT '{}',
+  priority TEXT NOT NULL DEFAULT 'normal',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (ownership_type IN ('customer_owned', 'boss_owned')),
   CHECK (contract_status IN ('lead', 'active', 'paused', 'closed')),
-  CHECK (adsense_owner_type IN ('customer', 'boss_internal_test'))
+  CHECK (adsense_owner_type IN ('customer', 'boss_internal_test')),
+  CHECK (priority IN ('low', 'normal', 'high', 'urgent', 'hold'))
 );
+
+ALTER TABLE customers
+  ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'normal';
 
 CREATE TABLE IF NOT EXISTS customer_portal_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

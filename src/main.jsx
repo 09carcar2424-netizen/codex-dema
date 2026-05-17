@@ -27,6 +27,7 @@ import {
   fetchDashboardData,
   getApiBaseUrl,
   saveApiBaseUrl,
+  saveCustomerOps,
   saveDomainCandidates,
   saveReferralReward,
   saveSettlementRecord,
@@ -392,6 +393,8 @@ function App() {
   const [siteCustomerDrafts, setSiteCustomerDrafts] = useState({});
   const [siteCustomerSaveState, setSiteCustomerSaveState] = useState({});
   const [selectedCustomerCode, setSelectedCustomerCode] = useState(null);
+  const [customerOpsDrafts, setCustomerOpsDrafts] = useState({});
+  const [customerOpsSaveState, setCustomerOpsSaveState] = useState({});
   const [settlementForm, setSettlementForm] = useState(emptySettlementForm);
   const [settlementSaveState, setSettlementSaveState] = useState({ status: 'idle', message: '' });
   const [referralRewardForm, setReferralRewardForm] = useState(emptyReferralRewardForm);
@@ -560,6 +563,84 @@ function App() {
       setSiteCustomerSaveState((current) => ({
         ...current,
         [site.siteKey]: { status: 'error', message: `고객 연결 저장 실패: ${error.message}` },
+      }));
+    }
+  };
+
+  const getCustomerOpsDraft = (customer) => {
+    if (!customer?.code) {
+      return { internalNote: '', tagsText: '', priority: 'normal' };
+    }
+
+    return customerOpsDrafts[customer.code] || {
+      internalNote: customer.internalNote || '',
+      tagsText: (customer.tags || []).join(', '),
+      priority: customer.priority || 'normal',
+    };
+  };
+
+  const updateCustomerOpsDraft = (customer, field, value) => {
+    if (!customer?.code) return;
+    setCustomerOpsDrafts((current) => ({
+      ...current,
+      [customer.code]: {
+        ...getCustomerOpsDraft(customer),
+        [field]: value,
+      },
+    }));
+  };
+
+  const submitCustomerOps = async (event, customer) => {
+    event.preventDefault();
+    if (!customer?.code) return;
+
+    const draft = getCustomerOpsDraft(customer);
+    const tags = draft.tagsText
+      .split(',')
+      .map((tag) => tag.trim().replace(/^#/, ''))
+      .filter(Boolean)
+      .slice(0, 12);
+
+    setCustomerOpsSaveState((current) => ({
+      ...current,
+      [customer.code]: { status: 'saving', message: '고객 내부 메모를 저장하고 있습니다.' },
+    }));
+
+    try {
+      const result = await saveCustomerOps(customer.code, {
+        internalNote: draft.internalNote,
+        tags,
+        priority: draft.priority,
+      });
+      const savedCustomer = result.customer || {
+        code: customer.code,
+        internalNote: draft.internalNote,
+        tags,
+        priority: draft.priority,
+      };
+
+      setDashboard((current) => ({
+        ...current,
+        customers: (current.customers || []).map((row) => (
+          row.code === customer.code ? { ...row, ...savedCustomer } : row
+        )),
+      }));
+      setCustomerOpsDrafts((current) => ({
+        ...current,
+        [customer.code]: {
+          internalNote: savedCustomer.internalNote || '',
+          tagsText: (savedCustomer.tags || []).join(', '),
+          priority: savedCustomer.priority || 'normal',
+        },
+      }));
+      setCustomerOpsSaveState((current) => ({
+        ...current,
+        [customer.code]: { status: 'saved', message: '내부 메모와 태그를 저장했습니다. 고객 화면에는 노출되지 않습니다.' },
+      }));
+    } catch (error) {
+      setCustomerOpsSaveState((current) => ({
+        ...current,
+        [customer.code]: { status: 'error', message: `고객 메모 저장 실패: ${error.message}` },
       }));
     }
   };
@@ -1116,6 +1197,10 @@ function App() {
         .sort((a, b) => getTimelineTime(b.time) - getTimelineTime(a.time))
         .slice(0, 10)
     : [];
+  const selectedCustomerOpsDraft = selectedCustomer ? getCustomerOpsDraft(selectedCustomer) : null;
+  const selectedCustomerOpsState = selectedCustomer
+    ? customerOpsSaveState[selectedCustomer.code] || { status: 'idle', message: '' }
+    : { status: 'idle', message: '' };
 
   useEffect(() => {
     if (!portalCustomers.length) {
@@ -2410,6 +2495,73 @@ function App() {
                     </div>
                   )}
                 </div>
+                {selectedCustomerOpsDraft ? (
+                  <form className="customer-ops-form" onSubmit={(event) => submitCustomerOps(event, selectedCustomer)}>
+                    <div className="section-subheading">
+                      <div>
+                        <p className="eyebrow">internal ops</p>
+                        <h3>고객 내부 메모</h3>
+                        <small>태그와 메모는 SiteOps 내부에만 표시됩니다.</small>
+                      </div>
+                      <StatusPill value={selectedCustomerOpsDraft.priority} />
+                    </div>
+                    <div className="customer-ops-grid">
+                      <label>
+                        <span>우선순위</span>
+                        <select
+                          value={selectedCustomerOpsDraft.priority}
+                          onChange={(event) => updateCustomerOpsDraft(selectedCustomer, 'priority', event.target.value)}
+                        >
+                          <option value="low">낮음</option>
+                          <option value="normal">보통</option>
+                          <option value="high">높음</option>
+                          <option value="urgent">긴급</option>
+                          <option value="hold">보류</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>태그</span>
+                        <input
+                          type="text"
+                          value={selectedCustomerOpsDraft.tagsText}
+                          placeholder="예: 계약의사 높음, 전화상담, 세무확인"
+                          onChange={(event) => updateCustomerOpsDraft(selectedCustomer, 'tagsText', event.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <label className="customer-ops-note">
+                      <span>내부 메모</span>
+                      <textarea
+                        rows={3}
+                        value={selectedCustomerOpsDraft.internalNote}
+                        placeholder="관리자만 볼 고객 특이사항, 다음 연락 시점, 확인할 내용을 남깁니다."
+                        onChange={(event) => updateCustomerOpsDraft(selectedCustomer, 'internalNote', event.target.value)}
+                      />
+                    </label>
+                    {(selectedCustomer.tags || []).length ? (
+                      <div className="customer-tag-strip">
+                        {(selectedCustomer.tags || []).map((tag) => (
+                          <span className="tag-chip" key={tag}>#{tag}</span>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="reply-actions">
+                      <button
+                        type="submit"
+                        className="primary-action"
+                        disabled={selectedCustomerOpsState.status === 'saving'}
+                      >
+                        고객 메모 저장
+                      </button>
+                      <small>고객 포털, 알림센터, 이메일에는 노출되지 않습니다.</small>
+                    </div>
+                    {selectedCustomerOpsState.message ? (
+                      <p className={`form-message ${selectedCustomerOpsState.status}`}>
+                        {selectedCustomerOpsState.message}
+                      </p>
+                    ) : null}
+                  </form>
+                ) : null}
                 <div className="customer-detail-columns">
                   <article>
                     <h4>사이트</h4>

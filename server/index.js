@@ -2162,6 +2162,59 @@ async function updateSiteCustomer(req, res, siteKey) {
   });
 }
 
+async function updateCustomerOps(req, res, customerCode) {
+  const body = await readJsonBody(req);
+  const code = String(customerCode || '').trim().slice(0, 80);
+  const internalNote = String(body.internalNote ?? body.notes ?? '').trim().slice(0, 2000);
+  const requestedTags = Array.isArray(body.tags)
+    ? body.tags
+    : String(body.tags || '').split(',');
+  const tags = [...new Set(
+    requestedTags
+      .map((tag) => String(tag || '').trim().replace(/^#/, '').slice(0, 32))
+      .filter(Boolean),
+  )].slice(0, 12);
+  const priority = normalizeChoice(body.priority, ['low', 'normal', 'high', 'urgent', 'hold'], 'normal');
+
+  if (!code) {
+    return sendJson(req, res, 400, { ok: false, error: 'Customer code is required.' });
+  }
+
+  const result = await query(
+    `
+      update customers
+      set notes = $2,
+        tags = $3::text[],
+        priority = $4,
+        updated_at = now()
+      where customer_code = $1
+      returning customer_code, display_name, contact_email, contract_status, notes, tags, priority
+    `,
+    [code, internalNote, tags, priority],
+  );
+
+  if (result.rowCount === 0) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Customer code not found. Link this requester to a customer before saving internal ops notes.',
+    });
+  }
+
+  const saved = result.rows[0];
+  return sendJson(req, res, 200, {
+    ok: true,
+    customer: {
+      code: saved.customer_code,
+      name: saved.display_name,
+      contactEmail: saved.contact_email,
+      contractStatus: saved.contract_status?.toUpperCase(),
+      internalNote: saved.notes || '',
+      tags: saved.tags || [],
+      priority: saved.priority || 'normal',
+    },
+  });
+}
+
 function parseMoneyAmount(value, fallback = 0) {
   const normalized = String(value ?? '')
     .replace(/[,\s원]/g, '')
@@ -2877,6 +2930,9 @@ async function getDashboardData() {
             c.display_name as name,
             c.contact_email,
             c.contract_status,
+            coalesce(c.notes, '') as notes,
+            coalesce(c.tags, '{}'::text[]) as tags,
+            coalesce(c.priority, 'normal') as priority,
             count(distinct s.id)::int as sites,
             coalesce(
               max(ads.application_status) filter (where ads.application_status = 'approved'),
@@ -2906,6 +2962,9 @@ async function getDashboardData() {
             coalesce(max(nullif(requester_name, '')), requester_customer_code) as name,
             max(nullif(requester_email, '')) as contact_email,
             'lead' as contract_status,
+            '' as notes,
+            '{}'::text[] as tags,
+            'normal' as priority,
             0::int as sites,
             'UNKNOWN' as adsense_status,
             'NONE' as settlement_status,
@@ -2924,10 +2983,10 @@ async function getDashboardData() {
           where nullif(requester_customer_code, '') is not null
           group by requester_customer_code
         )
-        select code, name, contact_email, contract_status, sites, adsense_status, settlement_status
+        select code, name, contact_email, contract_status, notes, tags, priority, sites, adsense_status, settlement_status
         from customer_base
         union all
-        select pr.code, pr.name, pr.contact_email, pr.contract_status, pr.sites,
+        select pr.code, pr.name, pr.contact_email, pr.contract_status, pr.notes, pr.tags, pr.priority, pr.sites,
           pr.adsense_status, pr.settlement_status
         from portal_requesters pr
         left join customer_base cb on cb.code = pr.code
@@ -3280,6 +3339,9 @@ async function getDashboardData() {
       name: row.name,
       contactEmail: row.contact_email,
       contractStatus: row.contract_status?.toUpperCase(),
+      internalNote: row.notes || '',
+      tags: Array.isArray(row.tags) ? row.tags : [],
+      priority: row.priority || 'normal',
       sites: Number(row.sites || 0),
       adsenseStatus: row.adsense_status,
       settlementStatus: row.settlement_status,
@@ -3588,6 +3650,11 @@ const server = http.createServer(async (req, res) => {
     const siteCustomerMatch = url.pathname.match(/^\/api\/sites\/([^/]+)\/customer$/);
     if (siteCustomerMatch && req.method === 'POST') {
       return updateSiteCustomer(req, res, decodeURIComponent(siteCustomerMatch[1]));
+    }
+
+    const customerOpsMatch = url.pathname.match(/^\/api\/customers\/([^/]+)\/ops$/);
+    if (customerOpsMatch && req.method === 'POST') {
+      return updateCustomerOps(req, res, decodeURIComponent(customerOpsMatch[1]));
     }
 
     if (url.pathname === '/api/settlements' && req.method === 'POST') {

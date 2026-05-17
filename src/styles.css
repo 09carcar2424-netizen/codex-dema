@@ -1149,6 +1149,65 @@ h2 {
   padding: 12px;
 }
 
+.customer-ops-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-bg);
+}
+
+.customer-ops-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.customer-ops-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.customer-ops-form label span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.customer-ops-form input,
+.customer-ops-form select,
+.customer-ops-form textarea {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.customer-ops-note textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.customer-tag-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-chip {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel-soft));
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .customer-detail-columns h4 {
   margin: 0 0 10px;
   font-size: 15px;
@@ -2694,6 +2753,7 @@ h2 {
   .realtime-card-grid,
   .customer-detail-summary,
   .customer-detail-columns,
+  .customer-ops-grid,
   .timeline-item,
   .site-filter-grid,
   .site-toolbar,
