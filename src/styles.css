@@ -1095,6 +1095,60 @@ h2 {
   margin-top: 12px;
 }
 
+.customer-timeline {
+  margin-top: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-bg);
+}
+
+.timeline-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+}
+
+.timeline-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.timeline-item small,
+.timeline-item p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.timeline-item strong {
+  display: block;
+  margin: 3px 0;
+  font-size: 14px;
+}
+
+.compact-empty {
+  margin-top: 0;
+  padding: 12px;
+}
+
 .customer-detail-columns h4 {
   margin: 0 0 10px;
   font-size: 15px;
@@ -2640,6 +2694,7 @@ h2 {
   .realtime-card-grid,
   .customer-detail-summary,
   .customer-detail-columns,
+  .timeline-item,
   .site-filter-grid,
   .site-toolbar,
   .site-workbench,

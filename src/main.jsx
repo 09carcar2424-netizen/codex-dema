@@ -208,6 +208,15 @@ function formatKrwAmount(value) {
   return `${amount.toLocaleString('ko-KR')}원`;
 }
 
+function getTimelineTime(value) {
+  if (!value) {
+    return 0;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
 const defaultDiscoveryForm = {
   category: 'health',
   keywords: 'bio, care, journal, korea',
@@ -1035,6 +1044,77 @@ function App() {
     : [];
   const selectedCustomerNotifications = selectedCustomer
     ? dashboard.notifications.filter((row) => row.customerCode === selectedCustomer.code).slice(0, 5)
+    : [];
+  const selectedCustomerTimeline = selectedCustomer
+    ? [
+        ...selectedCustomerContracts.flatMap((request) => [
+          {
+            id: `contract-requested-${request.id}`,
+            time: request.requestedAt,
+            type: '계약',
+            title: '계약 요청 접수',
+            detail: `${request.requesterName || selectedCustomer.name || selectedCustomer.code} · ${request.desiredDomainCount || 1}개 도메인`,
+            status: request.statusLabel || request.status,
+          },
+          request.sentAt
+            ? {
+                id: `contract-sent-${request.id}`,
+                time: request.sentAt,
+                type: '계약',
+                title: '계약서 발송',
+                detail: request.contractDocumentUrl ? '전자계약 링크 등록됨' : '계약서 링크 확인 필요',
+                status: 'document_sent',
+              }
+            : null,
+          request.signedAt
+            ? {
+                id: `contract-signed-${request.id}`,
+                time: request.signedAt,
+                type: '계약',
+                title: '서명 완료',
+                detail: '고객 서명 확인됨',
+                status: 'signed',
+              }
+            : null,
+          request.setupReadyAt
+            ? {
+                id: `contract-setup-${request.id}`,
+                time: request.setupReadyAt,
+                type: '계약',
+                title: '세팅 준비',
+                detail: '계정/도메인/호스팅 확인 단계',
+                status: 'setup_ready',
+              }
+            : null,
+        ]),
+        ...selectedCustomerQuestions.map((question) => ({
+          id: `question-${question.id}`,
+          time: question.respondedAt || question.updatedAt || question.createdAt,
+          type: '문의',
+          title: question.status === 'answered' ? '답변 완료' : '문의 접수',
+          detail: question.question || question.message || '문의 내용 없음',
+          status: question.status,
+        })),
+        ...selectedCustomerSettlements.map((row) => ({
+          id: `settlement-${row.customer}-${row.month}`,
+          time: row.month ? `${row.month}-01T00:00:00+09:00` : '',
+          type: '정산',
+          title: '정산 기록',
+          detail: `${formatKrwAmount(row.grossRevenue)} · 운영 수수료 ${formatKrwAmount(row.agencyFee)}`,
+          status: row.status,
+        })),
+        ...selectedCustomerNotifications.map((row) => ({
+          id: `notification-${row.id || row.title}`,
+          time: row.sentAt || row.createdAt || row.updatedAt,
+          type: '알림',
+          title: row.status === 'sent' ? '알림 공개' : '알림 작성',
+          detail: row.title || row.message || '알림 내용 없음',
+          status: row.status || row.severity,
+        })),
+      ]
+        .filter((item) => item && getTimelineTime(item.time))
+        .sort((a, b) => getTimelineTime(b.time) - getTimelineTime(a.time))
+        .slice(0, 10)
     : [];
 
   useEffect(() => {
@@ -2301,6 +2381,34 @@ function App() {
                     <strong>{selectedCustomerSettlements.length + selectedCustomerNotifications.length}건</strong>
                     <small>고객 공개 안내 기준</small>
                   </article>
+                </div>
+                <div className="customer-timeline">
+                  <div className="section-subheading">
+                    <div>
+                      <p className="eyebrow">customer timeline</p>
+                      <h3>최근 활동 타임라인</h3>
+                    </div>
+                    <span>{selectedCustomerTimeline.length}건</span>
+                  </div>
+                  {selectedCustomerTimeline.length ? (
+                    <ol className="timeline-list">
+                      {selectedCustomerTimeline.map((item) => (
+                        <li className="timeline-item" key={item.id}>
+                          <span className="timeline-dot" aria-hidden="true" />
+                          <div>
+                            <small>{formatSeoulDateTime(item.time)} · {item.type}</small>
+                            <strong>{item.title}</strong>
+                            <p>{item.detail}</p>
+                          </div>
+                          <StatusPill value={item.status} />
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <div className="empty-state compact-empty">
+                      아직 시간순으로 표시할 고객 활동이 없습니다. 계약 요청, 문의 답변, 정산 기록, 고객 알림이 쌓이면 이곳에 표시됩니다.
+                    </div>
+                  )}
                 </div>
                 <div className="customer-detail-columns">
                   <article>
