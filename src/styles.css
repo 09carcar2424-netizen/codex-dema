@@ -1976,6 +1976,10 @@ h2 {
   gap: 12px;
 }
 
+.wide-label {
+  grid-column: span 2;
+}
+
 .compose-footer {
   display: flex;
   align-items: center;

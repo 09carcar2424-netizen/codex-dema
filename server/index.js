@@ -2160,6 +2160,14 @@ function calculateWithholdingEstimate(category, grossAmount) {
   };
 }
 
+function makeReferralCode(customerCode) {
+  const normalized = String(customerCode || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(-12);
+  return normalized ? `REF-${normalized}` : `REF-${Date.now()}`;
+}
+
 async function saveSettlementRecord(req, res) {
   const body = await readJsonBody(req);
   const customerCode = String(body.customerCode || body.customer_code || '').trim().slice(0, 80);
@@ -2360,6 +2368,192 @@ async function saveSettlementRecord(req, res) {
       agencyFeeAmount,
       status,
       withholdingCategory,
+    },
+  });
+}
+
+async function saveReferralRewardRecord(req, res) {
+  const body = await readJsonBody(req);
+  const referrerCode = String(body.referrerCustomerCode || body.referrer_customer_code || '').trim().slice(0, 80);
+  const referredCode = String(body.referredCustomerCode || body.referred_customer_code || '').trim().slice(0, 80);
+  const rewardMonth = parseSettlementMonth(body.rewardMonth || body.reward_month);
+  const status = normalizeChoice(body.status, ['draft', 'confirmed', 'payable', 'paid', 'void', 'held'], 'draft');
+  const baseAmount = parseMoneyAmount(body.baseAmount ?? body.base_amount);
+  const rewardAmount = parseMoneyAmount(body.rewardAmount ?? body.reward_amount);
+  const notes = String(body.notes || '').trim().slice(0, 2000);
+  const publishNotification = Boolean(body.publishNotification || body.publish_notification);
+
+  if (!referrerCode || !referredCode || !rewardMonth || referrerCode === referredCode) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'Referrer, referred customer, and reward month are required.',
+    });
+  }
+
+  const customersResult = await query(
+    `
+      select id, customer_code, display_name
+      from customers
+      where customer_code = any($1::text[])
+    `,
+    [[referrerCode, referredCode]],
+  );
+  const referrer = customersResult.rows.find((row) => row.customer_code === referrerCode);
+  const referred = customersResult.rows.find((row) => row.customer_code === referredCode);
+
+  if (!referrer || !referred) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Referrer or referred customer was not found.',
+    });
+  }
+
+  const referralCodeResult = await query(
+    `
+      with existing as (
+        select id, code
+        from referral_codes
+        where customer_id = $1::uuid
+        order by case status when 'active' then 1 else 2 end, created_at desc
+        limit 1
+      ),
+      inserted as (
+        insert into referral_codes (customer_id, code, status)
+        select $1::uuid, $2, 'active'
+        where not exists (select 1 from existing)
+        on conflict (code) do nothing
+        returning id, code
+      )
+      select id, code from inserted
+      union all
+      select id, code from existing
+      limit 1
+    `,
+    [referrer.id, makeReferralCode(referrer.customer_code)],
+  );
+  let referralCode = referralCodeResult.rows[0];
+  if (!referralCode) {
+    const fallbackCode = `${makeReferralCode(referrer.customer_code)}-${Date.now().toString(36).toUpperCase()}`;
+    const fallbackResult = await query(
+      `
+        insert into referral_codes (customer_id, code, status)
+        values ($1::uuid, $2, 'active')
+        returning id, code
+      `,
+      [referrer.id, fallbackCode],
+    );
+    referralCode = fallbackResult.rows[0];
+  }
+
+  const existingRelationship = await query(
+    `
+      select id, referrer_customer_id
+      from referral_relationships
+      where referred_customer_id = $1::uuid
+      limit 1
+    `,
+    [referred.id],
+  );
+
+  if (
+    existingRelationship.rowCount > 0 &&
+    existingRelationship.rows[0].referrer_customer_id !== referrer.id
+  ) {
+    return sendJson(req, res, 409, {
+      ok: false,
+      error: 'This customer already has another referrer.',
+    });
+  }
+
+  const relationshipResult = existingRelationship.rowCount > 0
+    ? await query(
+        `
+          update referral_relationships
+          set referral_code_id = $2::uuid,
+            depth = 1,
+            status = case when status = 'pending' and $3 in ('confirmed', 'payable', 'paid') then 'approved' else status end,
+            approved_at = case when $3 in ('confirmed', 'payable', 'paid') and approved_at is null then now() else approved_at end
+          where id = $1::uuid
+          returning id
+        `,
+        [existingRelationship.rows[0].id, referralCode.id, status],
+      )
+    : await query(
+        `
+          insert into referral_relationships (
+            referrer_customer_id, referred_customer_id, referral_code_id, depth, status, approved_at
+          )
+          values ($1::uuid, $2::uuid, $3::uuid, 1, $4, case when $4 = 'approved' then now() else null end)
+          returning id
+        `,
+        [referrer.id, referred.id, referralCode.id, ['confirmed', 'payable', 'paid'].includes(status) ? 'approved' : 'pending'],
+      );
+
+  const relationshipId = relationshipResult.rows[0].id;
+  const rewardResult = await query(
+    `
+      with updated as (
+        update referral_rewards
+        set base_amount = $3,
+          reward_amount = $4,
+          status = $5,
+          notes = nullif($6, ''),
+          updated_at = now()
+        where referral_relationship_id = $1::uuid
+          and reward_month = $2::date
+        returning *
+      )
+      insert into referral_rewards (
+        referral_relationship_id, reward_month, base_amount, reward_amount, currency, status, notes
+      )
+      select $1::uuid, $2::date, $3, $4, 'KRW', $5, nullif($6, '')
+      where not exists (select 1 from updated)
+      returning *
+    `,
+    [relationshipId, rewardMonth, baseAmount, rewardAmount, status, notes],
+  );
+  const reward = rewardResult.rows[0] || (await query(
+    `
+      select *
+      from referral_rewards
+      where referral_relationship_id = $1::uuid
+        and reward_month = $2::date
+      limit 1
+    `,
+    [relationshipId, rewardMonth],
+  )).rows[0];
+
+  if (publishNotification && ['confirmed', 'payable', 'paid'].includes(status)) {
+    const monthLabel = String(body.rewardMonth || body.reward_month || '').trim();
+    await queryOptionalParams(
+      `
+        insert into notifications (
+          customer_id, audience_type, visibility, category, severity,
+          title, message, channel, marketing_message, send_status, sent_at, metadata
+        )
+        values ($1::uuid, 'customer', 'public_to_customer', 'settlement', 'info',
+          $2, $3, 'portal', false, 'sent', now(), $4::jsonb)
+      `,
+      [
+        referrer.id,
+        `${monthLabel} 추천 보상 안내`,
+        `${referred.customer_code} 고객의 1단계 추천 보상 상태가 업데이트되었습니다. 정산/추천 화면에서 확인해 주세요.`,
+        JSON.stringify({ source: 'referral_reward', rewardId: reward.id, referredCustomerCode: referred.customer_code, status }),
+      ],
+    );
+  }
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    referralCode: referralCode.code,
+    reward: {
+      id: reward.id,
+      referrerCustomerCode: referrer.customer_code,
+      referredCustomerCode: referred.customer_code,
+      rewardMonth: String(body.rewardMonth || body.reward_month || '').trim(),
+      baseAmount,
+      rewardAmount,
+      status,
     },
   });
 }
@@ -2758,12 +2952,16 @@ async function getDashboardData() {
       query(`
         select rc.customer_code as referrer, cc.customer_code as referred,
           rr.depth, coalesce(rule.rule_name, 'Referral rule not set') as rule,
-          coalesce(rule.active, false) as active, rr.status
+          coalesce(rule.active, false) as active, rr.status,
+          to_char(rew.reward_month, 'YYYY-MM') as reward_month,
+          rew.reward_amount,
+          rew.status as reward_status
         from referral_relationships rr
         join customers rc on rc.id = rr.referrer_customer_id
         join customers cc on cc.id = rr.referred_customer_id
         left join referral_reward_rules rule on rule.depth = rr.depth
-        order by rr.created_at desc
+        left join referral_rewards rew on rew.referral_relationship_id = rr.id
+        order by coalesce(rew.reward_month, date_trunc('month', rr.created_at)) desc, rr.created_at desc
         limit 50
       `),
     ]);
@@ -3100,7 +3298,9 @@ async function getDashboardData() {
       depth: row.depth,
       rule: row.rule,
       active: row.active,
-      status: row.status?.toUpperCase(),
+      rewardMonth: row.reward_month,
+      rewardAmount: row.reward_amount === null ? '' : formatKrw(row.reward_amount),
+      status: (row.reward_status || row.status)?.toUpperCase(),
     })),
     notifications: notifications.rows.map((row) => ({
       id: row.id,
@@ -3349,6 +3549,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/settlements' && req.method === 'POST') {
       return saveSettlementRecord(req, res);
+    }
+
+    if (url.pathname === '/api/referral-rewards' && req.method === 'POST') {
+      return saveReferralRewardRecord(req, res);
     }
 
     if (url.pathname === '/api/n8n/site-runtime') {

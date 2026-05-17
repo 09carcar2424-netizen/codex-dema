@@ -28,6 +28,7 @@ import {
   getApiBaseUrl,
   saveApiBaseUrl,
   saveDomainCandidates,
+  saveReferralReward,
   saveSettlementRecord,
   saveWordfriendsContractRequest,
   saveWordfriendsQuestionReply,
@@ -140,6 +141,17 @@ const emptySettlementForm = {
   agencyFeeAmount: '',
   status: 'draft',
   withholdingCategory: 'needs_review',
+  notes: '',
+  publishNotification: false,
+};
+
+const emptyReferralRewardForm = {
+  referrerCustomerCode: '',
+  referredCustomerCode: '',
+  rewardMonth: new Date().toISOString().slice(0, 7),
+  baseAmount: '3000000',
+  rewardAmount: '500000',
+  status: 'draft',
   notes: '',
   publishNotification: false,
 };
@@ -359,6 +371,8 @@ function App() {
   const [siteCustomerSaveState, setSiteCustomerSaveState] = useState({});
   const [settlementForm, setSettlementForm] = useState(emptySettlementForm);
   const [settlementSaveState, setSettlementSaveState] = useState({ status: 'idle', message: '' });
+  const [referralRewardForm, setReferralRewardForm] = useState(emptyReferralRewardForm);
+  const [referralRewardSaveState, setReferralRewardSaveState] = useState({ status: 'idle', message: '' });
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -505,6 +519,32 @@ function App() {
       reloadDashboard();
     } catch (error) {
       setSettlementSaveState({ status: 'error', message: `정산 저장 실패: ${error.message}` });
+    }
+  };
+
+  const updateReferralRewardForm = (field, value) => {
+    setReferralRewardForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'referrerCustomerCode' && value === current.referredCustomerCode ? { referredCustomerCode: '' } : {}),
+    }));
+  };
+
+  const submitReferralReward = async (event) => {
+    event.preventDefault();
+    setReferralRewardSaveState({ status: 'saving', message: '추천 보상을 저장하는 중입니다.' });
+
+    try {
+      await saveReferralReward(referralRewardForm);
+      setReferralRewardForm((current) => ({
+        ...emptyReferralRewardForm,
+        referrerCustomerCode: current.referrerCustomerCode,
+        rewardMonth: current.rewardMonth,
+      }));
+      setReferralRewardSaveState({ status: 'saved', message: '추천 보상 내역이 저장되었습니다. 고객 포털 정산/추천 화면에도 반영됩니다.' });
+      reloadDashboard();
+    } catch (error) {
+      setReferralRewardSaveState({ status: 'error', message: `추천 보상 저장 실패: ${error.message}` });
     }
   };
 
@@ -909,6 +949,9 @@ function App() {
     .filter((site) => !settlementForm.customerCode || site.customerCode === settlementForm.customerCode)
     .filter((site) => site.siteKey || site.domain)
     .sort((a, b) => String(a.domain || a.siteKey).localeCompare(String(b.domain || b.siteKey)));
+  const referralReferredOptions = siteCustomerOptions.filter(
+    (customer) => customer.code !== referralRewardForm.referrerCustomerCode,
+  );
   const portalReportableSites = dashboard.sites.filter((site) =>
     ['Customer owned', 'Customer portal'].includes(site.owner) &&
     site.portfolioStatus !== 'high_risk_hold' &&
@@ -3717,6 +3760,106 @@ function App() {
                 <p className={`form-status ${settlementSaveState.status}`}>{settlementSaveState.message}</p>
               ) : null}
             </form>
+            <form className="settlement-compose" onSubmit={submitReferralReward}>
+              <div className="compose-grid">
+                <label>
+                  <span>추천인</span>
+                  <select
+                    value={referralRewardForm.referrerCustomerCode}
+                    onChange={(event) => updateReferralRewardForm('referrerCustomerCode', event.target.value)}
+                    required
+                  >
+                    <option value="">추천인 고객 선택</option>
+                    {siteCustomerOptions.map((customer) => (
+                      <option value={customer.code} key={customer.code}>
+                        {customer.code} · {customer.name || customer.contactEmail || '고객'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>피추천 고객</span>
+                  <select
+                    value={referralRewardForm.referredCustomerCode}
+                    onChange={(event) => updateReferralRewardForm('referredCustomerCode', event.target.value)}
+                    required
+                  >
+                    <option value="">피추천 고객 선택</option>
+                    {referralReferredOptions.map((customer) => (
+                      <option value={customer.code} key={customer.code}>
+                        {customer.code} · {customer.name || customer.contactEmail || '고객'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>보상 월</span>
+                  <input
+                    type="month"
+                    value={referralRewardForm.rewardMonth}
+                    onChange={(event) => updateReferralRewardForm('rewardMonth', event.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  <span>상태</span>
+                  <select
+                    value={referralRewardForm.status}
+                    onChange={(event) => updateReferralRewardForm('status', event.target.value)}
+                  >
+                    <option value="draft">초안</option>
+                    <option value="confirmed">확정</option>
+                    <option value="payable">지급 예정</option>
+                    <option value="paid">지급 완료</option>
+                    <option value="held">보류</option>
+                    <option value="void">제외</option>
+                  </select>
+                </label>
+                <label>
+                  <span>기준 금액</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={referralRewardForm.baseAmount}
+                    onChange={(event) => updateReferralRewardForm('baseAmount', event.target.value)}
+                    placeholder="예: 3000000"
+                  />
+                </label>
+                <label>
+                  <span>보상 금액</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={referralRewardForm.rewardAmount}
+                    onChange={(event) => updateReferralRewardForm('rewardAmount', event.target.value)}
+                    placeholder="예: 500000"
+                  />
+                </label>
+                <label className="wide-label">
+                  <span>메모</span>
+                  <input
+                    type="text"
+                    value={referralRewardForm.notes}
+                    onChange={(event) => updateReferralRewardForm('notes', event.target.value)}
+                    placeholder="계약 확인, 지급 보류 사유, 지급 예정일 등을 남깁니다."
+                  />
+                </label>
+              </div>
+              <div className="compose-footer">
+                <label className="inline-check">
+                  <input
+                    type="checkbox"
+                    checked={referralRewardForm.publishNotification}
+                    onChange={(event) => updateReferralRewardForm('publishNotification', event.target.checked)}
+                  />
+                  추천인 알림센터에 보상 업데이트 공개
+                </label>
+                <button className="primary-action" type="submit">추천 보상 저장</button>
+              </div>
+              {referralRewardSaveState.message ? (
+                <p className={`form-status ${referralRewardSaveState.status}`}>{referralRewardSaveState.message}</p>
+              ) : null}
+            </form>
             <div className="split-grid">
               <div className="stack-list">
                 {dashboard.settlements.map((row) => (
@@ -3735,7 +3878,7 @@ function App() {
                   <div className="stack-item" key={`${row.referrer}-${row.referred}-${row.depth}`}>
                     <div>
                       <strong>{row.referrer} → {row.referred}</strong>
-                      <small>{row.rule} · depth {row.depth}</small>
+                      <small>{row.rewardMonth || '보상 월 미정'} · {row.rewardAmount || row.rule}</small>
                       <small>{row.active ? '지급 가능 규칙' : '법무/세무 검토 전 비활성'}</small>
                     </div>
                     <StatusPill value={row.status} />
