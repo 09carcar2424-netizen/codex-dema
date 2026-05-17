@@ -426,6 +426,48 @@ function wordfriends_siteops_portal_styles() {
         gap: 14px;
         margin-top: 18px;
       }
+      .wordfriends-question-filters {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(120px, 180px) minmax(92px, 130px) auto;
+        gap: 8px;
+        align-items: end;
+        margin: 18px 0 4px;
+      }
+      .wordfriends-question-filters label {
+        display: grid;
+        gap: 5px;
+        margin: 0;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .wordfriends-question-filters input,
+      .wordfriends-question-filters select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #fff;
+        color: #17212b;
+        font-size: 14px;
+      }
+      .wordfriends-question-filters button {
+        min-height: 42px;
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 16px;
+        background: #17212b;
+        color: #fff;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .wordfriends-question-filter-summary {
+        margin: 10px 0 0;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+      }
       .wordfriends-question-card {
         border: 1px solid #d9e2e7;
         border-radius: 8px;
@@ -613,6 +655,7 @@ function wordfriends_siteops_portal_styles() {
         text-underline-offset: 3px;
       }
       @media (max-width: 720px) {
+        .wordfriends-question-filters,
         .wordfriends-site-filters {
           grid-template-columns: 1fr;
         }
@@ -1706,7 +1749,46 @@ function wordfriends_siteops_my_questions_shortcode($atts = []) {
         }
     }
 
-    $question_pagination = wordfriends_siteops_paginate_items($questions, 'wfq_page', 5);
+    $question_query = sanitize_text_field(wp_unslash($_GET['wfq_q'] ?? ''));
+    $question_status = sanitize_text_field(wp_unslash($_GET['wfq_status'] ?? 'all'));
+    $question_per_page = absint($_GET['wfq_per_page'] ?? 5);
+    $question_per_page = in_array($question_per_page, [5, 10, 20], true) ? $question_per_page : 5;
+    $all_question_count = count($questions);
+    $question_status_options = [
+        'all' => '전체',
+        'answered' => '답변 완료',
+        'human_review' => '사람 검토',
+        'received' => '접수',
+        'draft' => '초안',
+    ];
+    if (!array_key_exists($question_status, $question_status_options)) {
+        $question_status = 'all';
+    }
+
+    if ($question_query !== '') {
+        $needle = strtolower($question_query);
+        $questions = array_values(array_filter($questions, function ($question) use ($needle) {
+            $haystack = implode(' ', [
+                wordfriends_siteops_question_category_label($question['category'] ?? 'general'),
+                $question['category'] ?? '',
+                $question['statusLabel'] ?? '',
+                $question['status'] ?? '',
+                $question['question'] ?? '',
+                $question['responseMessage'] ?? '',
+            ]);
+            return stripos($haystack, $needle) !== false;
+        }));
+    }
+
+    if ($question_status !== 'all') {
+        $questions = array_values(array_filter($questions, function ($question) use ($question_status) {
+            return ($question['status'] ?? '') === $question_status
+                || ($question['responseStatus'] ?? '') === $question_status;
+        }));
+    }
+
+    $filtered_question_count = count($questions);
+    $question_pagination = wordfriends_siteops_paginate_items($questions, 'wfq_page', $question_per_page);
     $questions = $question_pagination['items'];
 
     ob_start();
@@ -1716,12 +1798,38 @@ function wordfriends_siteops_my_questions_shortcode($atts = []) {
       <p><?php echo esc_html($atts['subtitle']); ?></p>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
-      <?php elseif (!$questions) : ?>
-        <div class="wordfriends-empty">
-          <strong>아직 접수된 문의가 없습니다.</strong>
-          <p class="wordfriends-auth-small">문의 페이지에서 남긴 내용은 이곳에 표시됩니다.</p>
-        </div>
       <?php else : ?>
+        <form class="wordfriends-question-filters" method="get">
+          <label>
+            문의 검색
+            <input type="search" name="wfq_q" value="<?php echo esc_attr($question_query); ?>" placeholder="분류, 문의 내용, 답변">
+          </label>
+          <label>
+            상태
+            <select name="wfq_status">
+              <?php foreach ($question_status_options as $value => $label) : ?>
+                <option value="<?php echo esc_attr($value); ?>" <?php selected($question_status, $value); ?>><?php echo esc_html($label); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <label>
+            표시
+            <select name="wfq_per_page">
+              <?php foreach ([5, 10, 20] as $count) : ?>
+                <option value="<?php echo esc_attr((string) $count); ?>" <?php selected($question_per_page, $count); ?>><?php echo esc_html((string) $count); ?>개</option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <button type="submit">적용</button>
+        </form>
+        <p class="wordfriends-question-filter-summary">전체 <?php echo esc_html((string) $all_question_count); ?>건 중 <?php echo esc_html((string) $filtered_question_count); ?>건 표시</p>
+      <?php endif; ?>
+      <?php if (!$error && !$questions) : ?>
+        <div class="wordfriends-empty">
+          <strong><?php echo $all_question_count ? '조건에 맞는 문의가 없습니다.' : '아직 접수된 문의가 없습니다.'; ?></strong>
+          <p class="wordfriends-auth-small"><?php echo $all_question_count ? '검색어 또는 상태 필터를 조정해 주세요.' : '문의 페이지에서 남긴 내용은 이곳에 표시됩니다.'; ?></p>
+        </div>
+      <?php elseif (!$error) : ?>
         <div class="wordfriends-question-list">
           <?php foreach ($questions as $question) : ?>
             <article class="wordfriends-question-card">
