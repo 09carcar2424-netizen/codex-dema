@@ -512,6 +512,29 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-site-progress {
         margin-top: 10px;
       }
+      .wordfriends-site-next {
+        display: grid;
+        gap: 4px;
+        margin-top: 10px;
+        border: 1px solid #d9e2e7;
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: #fff;
+      }
+      .wordfriends-site-next small {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .wordfriends-site-next strong {
+        color: #17212b;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+      .wordfriends-site-next span {
+        color: #64748b;
+        font-size: 12px;
+      }
       .wordfriends-site-progress-track {
         overflow: hidden;
         height: 7px;
@@ -1741,11 +1764,18 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
             <article class="wordfriends-site-card">
               <header>
                 <h3><?php echo esc_html($site['domain'] ?? $site['siteName'] ?? 'Wordfriends 사이트'); ?></h3>
-                <span class="wordfriends-question-status"><?php echo esc_html($site['statusLabel'] ?? '준비 중'); ?></span>
+                <span class="wordfriends-question-status"><?php echo esc_html($site['healthSummary'] ?? $site['statusLabel'] ?? '준비 중'); ?></span>
               </header>
               <?php if (!empty($site['websiteUrl'])) : ?>
                 <p class="wordfriends-auth-small"><a class="wordfriends-site-link" href="<?php echo esc_url($site['websiteUrl']); ?>" target="_blank" rel="noopener noreferrer">사이트 열기</a></p>
               <?php endif; ?>
+              <div class="wordfriends-site-next">
+                <small>다음 안내</small>
+                <strong><?php echo esc_html($site['nextAction'] ?? '운영 상태를 확인 중입니다.'); ?></strong>
+                <?php if (!empty($site['lastActivityAt'])) : ?>
+                  <span>최근 갱신: <?php echo esc_html($site['lastActivityAt']); ?></span>
+                <?php endif; ?>
+              </div>
               <div class="wordfriends-site-meta">
                 <span><small>콘텐츠</small><?php echo esc_html($site['contentStatus'] ?? '콘텐츠 준비 중'); ?></span>
                 <span><small>사이트맵</small><?php echo esc_html($sitemap['statusLabel'] ?? '준비 중'); ?></span>

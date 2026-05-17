@@ -1430,6 +1430,32 @@ function mapPublicSite(row) {
     ? Math.min(100, Math.round(((publishedCount + approvedCount * 0.7 + inProgressCount * 0.35) / totalTrackedCount) * 100))
     : 0;
   const websiteUrl = row.wp_base_url || (row.domain ? `https://${row.domain}` : '');
+  const sitemapReady = ['submitted', 'indexed', 'success', 'verified'].includes(String(row.sitemap_status || '').toLowerCase());
+  const adsReady = ['approved', 'active'].includes(String(row.adsense_status || '').toLowerCase());
+  const wpReady = ['connected', 'active', 'ok'].includes(String(row.wp_status || '').toLowerCase());
+  const nextAction = failedCount > 0
+    ? '콘텐츠 검수 후 재발행 예정입니다.'
+    : !wpReady
+      ? '워드프레스 연결 확인을 진행 중입니다.'
+      : !sitemapReady
+        ? '사이트맵 제출 및 확인을 준비 중입니다.'
+        : !adsReady
+          ? '애드센스 상태를 확인 중입니다.'
+          : inProgressCount > 0
+            ? '준비 중인 콘텐츠를 검수하고 발행합니다.'
+            : '운영 상태를 주기적으로 점검 중입니다.';
+  const healthSummary = failedCount > 0
+    ? '확인 필요'
+    : wpReady && sitemapReady && adsReady
+      ? '운영 안정'
+      : wpReady
+        ? '운영 준비'
+        : '세팅 준비';
+  const lastActivityAt = row.last_published_at
+    || row.sitemap_last_checked_at
+    || row.adsense_last_checked_at
+    || row.sitemap_last_submitted_at
+    || row.updated_at;
 
   return {
     siteKey: row.site_key,
@@ -1438,6 +1464,9 @@ function mapPublicSite(row) {
     websiteUrl,
     status: row.status,
     statusLabel: getPublicSiteStatusLabel(row.status),
+    healthSummary,
+    nextAction,
+    lastActivityAt,
     wpStatus: row.wp_status || 'pending',
     wpStatusLabel: getPublicWpStatusLabel(row.wp_status),
     riskLabel: getPublicRiskLabel(row.risk_level),
