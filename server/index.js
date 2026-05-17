@@ -1962,10 +1962,53 @@ async function updateWordfriendsContractRequest(req, res, contractRequestId) {
   let emailWarning = '';
   let emailSent = false;
   const savedRequest = result.rows[0];
+  const statusLabel = getContractStatusLabel(status);
+
+  if (['document_sent', 'signed', 'setup_ready', 'closed', 'canceled'].includes(status)) {
+    const notificationTitle = `전자계약 ${statusLabel}`;
+    const notificationMessage = savedRequest.public_message || (
+      status === 'document_sent'
+        ? '전자계약서 링크를 발송했습니다. 내용을 확인하신 뒤 서명을 진행해 주세요.'
+        : `전자계약 진행 상태가 ${statusLabel} 단계로 변경되었습니다.`
+    );
+
+    await queryOptionalParams(
+      `
+        insert into notifications (
+          customer_id, audience_type, visibility, category, severity,
+          title, message, channel, marketing_message, send_status, sent_at, metadata
+        )
+        select pcr.customer_id, 'customer', 'public_to_customer', 'contract', 'info',
+          $2, $3, 'portal', false, 'sent', now(), $4::jsonb
+        from portal_contract_requests pcr
+        where pcr.id = $1::uuid
+          and pcr.customer_id is not null
+          and not exists (
+            select 1
+            from notifications n
+            where n.customer_id = pcr.customer_id
+              and n.category = 'contract'
+              and n.title = $2
+              and n.message = $3
+              and n.created_at > now() - interval '10 minutes'
+          )
+      `,
+      [
+        contractRequestId,
+        notificationTitle,
+        notificationMessage,
+        JSON.stringify({
+          source: 'contract_request',
+          contractRequestId,
+          status,
+          contractDocumentUrl: savedRequest.contract_document_url || '',
+        }),
+      ],
+    );
+  }
 
   if (savedRequest.requester_email && ['document_sent', 'signed', 'setup_ready'].includes(status)) {
     try {
-      const statusLabel = getContractStatusLabel(status);
       const lines = [
         `${savedRequest.requester_name}님, 전자계약 진행 상태가 변경되었습니다.`,
         '',
