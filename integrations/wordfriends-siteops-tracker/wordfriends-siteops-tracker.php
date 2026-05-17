@@ -836,6 +836,184 @@ function wordfriends_siteops_portal_styles() {
         font-size: 13px;
         font-weight: 700;
       }
+      body:has(.wordfriends-auth) {
+        background: #061316;
+        color: #d8f2ee;
+      }
+      body:has(.wordfriends-auth) .wp-site-blocks,
+      body:has(.wordfriends-auth) main,
+      body:has(.wordfriends-auth) .entry-content {
+        background: #061316;
+      }
+      body:has(.wordfriends-auth) header,
+      body:has(.wordfriends-auth) footer {
+        background: #061316;
+        color: #d8f2ee;
+      }
+      body:has(.wordfriends-auth) header a,
+      body:has(.wordfriends-auth) footer a {
+        color: #d8f2ee;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 4px;
+      }
+      body:has(.wordfriends-auth) header a:hover,
+      body:has(.wordfriends-auth) footer a:hover {
+        color: #4ad6b4;
+      }
+      .wordfriends-auth {
+        max-width: 620px;
+        border-color: #24474d;
+        background: #0b2227;
+        color: #e6fffb;
+        box-shadow: 0 18px 42px rgba(0, 0, 0, .22);
+      }
+      .wordfriends-auth h2 {
+        color: #f3fffd;
+        font-size: 30px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+      .wordfriends-auth h3,
+      .wordfriends-question-card h3,
+      .wordfriends-site-card h3 {
+        color: #f3fffd;
+      }
+      .wordfriends-auth p,
+      .wordfriends-dashboard-card span,
+      .wordfriends-site-next strong {
+        color: #b8d6d4;
+      }
+      .wordfriends-auth label,
+      .wordfriends-question-filters label,
+      .wordfriends-site-filters label {
+        color: #bfe6df;
+      }
+      .wordfriends-auth input[type="text"],
+      .wordfriends-auth input[type="email"],
+      .wordfriends-auth input[type="tel"],
+      .wordfriends-auth input[type="number"],
+      .wordfriends-auth input[type="password"],
+      .wordfriends-auth select,
+      .wordfriends-auth textarea,
+      .wordfriends-question-filters input,
+      .wordfriends-question-filters select,
+      .wordfriends-site-filters input,
+      .wordfriends-site-filters select {
+        border-color: #29545b;
+        background: #071a1f;
+        color: #f3fffd;
+      }
+      .wordfriends-auth input::placeholder,
+      .wordfriends-auth textarea::placeholder,
+      .wordfriends-question-filters input::placeholder,
+      .wordfriends-site-filters input::placeholder {
+        color: #7ea09f;
+      }
+      .wordfriends-auth input:focus,
+      .wordfriends-auth select:focus,
+      .wordfriends-auth textarea:focus,
+      .wordfriends-question-filters input:focus,
+      .wordfriends-question-filters select:focus,
+      .wordfriends-site-filters input:focus,
+      .wordfriends-site-filters select:focus {
+        border-color: #35c6a5;
+        box-shadow: 0 0 0 3px rgba(53, 198, 165, .14);
+        outline: none;
+      }
+      .wordfriends-button,
+      .wordfriends-pagination .is-active {
+        background: #28a987;
+        border-color: #28a987;
+        color: #05201b;
+      }
+      .wordfriends-button.wordfriends-button-secondary,
+      .wordfriends-question-filters button,
+      .wordfriends-site-filters button {
+        background: #dff8ef;
+        color: #05201b;
+      }
+      .wordfriends-auth-notice,
+      .wordfriends-auth-success {
+        border: 1px solid #2b6e62;
+        background: #102f2c;
+        color: #c9fff1;
+      }
+      .wordfriends-auth-error {
+        border: 1px solid #7f3f3a;
+        background: #351a1b;
+        color: #ffd8d4;
+      }
+      .wordfriends-auth-small,
+      .wordfriends-question-filter-summary,
+      .wordfriends-site-filter-summary,
+      .wordfriends-dashboard-card .wordfriends-dashboard-detail,
+      .wordfriends-site-next span,
+      .wordfriends-site-meta small,
+      .wordfriends-table th,
+      .wordfriends-optional {
+        color: #86aaa8;
+      }
+      .wordfriends-question-card,
+      .wordfriends-site-card,
+      .wordfriends-summary-box,
+      .wordfriends-dashboard-card,
+      .wordfriends-empty {
+        border-color: #24474d;
+        background: #102a30;
+        color: #e6fffb;
+      }
+      .wordfriends-dashboard-card:hover,
+      .wordfriends-dashboard-card:focus-visible {
+        border-color: #35c6a5;
+        background: #12342f;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, .28);
+      }
+      .wordfriends-question-answer,
+      .wordfriends-site-note,
+      .wordfriends-site-next,
+      .wordfriends-site-meta span {
+        border-color: #24474d;
+        background: #071a1f;
+        color: #e6fffb;
+      }
+      .wordfriends-question-status,
+      .wordfriends-dashboard-badge {
+        background: #dff8ef;
+        color: #0f5f50;
+      }
+      .wordfriends-dashboard-badge.neutral {
+        background: #d9e6ed;
+        color: #28404a;
+      }
+      .wordfriends-dashboard-badge.warn {
+        background: #ffe9b5;
+        color: #6d4500;
+      }
+      .wordfriends-card-action,
+      .wordfriends-site-card a.wordfriends-site-link,
+      .wordfriends-site-details summary {
+        color: #4ad6b4;
+      }
+      .wordfriends-site-progress-track {
+        background: #24474d;
+      }
+      .wordfriends-site-progress-fill {
+        background: #35c6a5;
+      }
+      .wordfriends-table th,
+      .wordfriends-table td,
+      .wordfriends-site-details {
+        border-color: #24474d;
+      }
+      .wordfriends-pagination a,
+      .wordfriends-pagination span {
+        border-color: #24474d;
+        background: #102a30;
+        color: #d8f2ee;
+      }
+      .wordfriends-pagination .is-muted {
+        color: #6f918f;
+      }
     ');
 }
 add_action('wp_enqueue_scripts', 'wordfriends_siteops_portal_styles');
