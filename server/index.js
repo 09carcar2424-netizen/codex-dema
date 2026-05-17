@@ -1331,6 +1331,13 @@ function getPublicSitemapStatusLabel(status) {
   return '준비 중';
 }
 
+function getPublicSearchEngineLabel(searchEngine) {
+  if (searchEngine === 'naver') return '네이버';
+  if (searchEngine === 'bing') return 'Bing';
+  if (searchEngine === 'other') return '기타';
+  return 'Google';
+}
+
 function getPublicSettlementStatusLabel(status) {
   if (status === 'paid') return '입금 완료';
   if (status === 'invoiced') return '입금 예정';
@@ -1359,6 +1366,13 @@ function getPublicAdsenseStatusLabel(status) {
   if (status === 'rejected') return '재검토 필요';
   if (status === 'blocked') return '보류';
   return '준비 중';
+}
+
+function getPublicAdsTxtStatusLabel(status) {
+  if (status === 'valid') return 'ads.txt 확인';
+  if (status === 'missing') return 'ads.txt 필요';
+  if (status === 'invalid') return 'ads.txt 수정 필요';
+  return '확인 전';
 }
 
 function getPublicReferralStatusLabel(status) {
@@ -1432,6 +1446,7 @@ function mapPublicSite(row) {
     contentStatus: getPublicContentStatusLabel(row),
     progressPercent,
     content: {
+      totalCount: Number(row.total_content_count || 0),
       publishedCount,
       approvedCount,
       inProgressCount,
@@ -1444,15 +1459,22 @@ function mapPublicSite(row) {
     sitemap: {
       status: row.sitemap_status || 'draft',
       statusLabel: getPublicSitemapStatusLabel(row.sitemap_status),
+      searchEngine: row.search_engine || 'google',
+      searchEngineLabel: getPublicSearchEngineLabel(row.search_engine),
+      sitemapUrl: row.sitemap_url || '',
+      lastSubmittedAt: row.sitemap_last_submitted_at,
       lastCheckedAt: row.sitemap_last_checked_at,
     },
     seo: {
       adsTxtStatus: row.ads_txt_status || 'unknown',
+      adsTxtStatusLabel: getPublicAdsTxtStatusLabel(row.ads_txt_status),
       adsenseStatus: row.adsense_status || 'not_started',
       adsenseStatusLabel: getPublicAdsenseStatusLabel(row.adsense_status),
+      lastCheckedAt: row.adsense_last_checked_at,
       note: '승인, 트래픽, 수익은 보장되지 않으며 운영 현황 기준으로 안내됩니다.',
     },
     settlementStatus: getPublicSettlementStatusLabel(row.settlement_status),
+    settlementMonth: row.settlement_month,
     updatedAt: row.updated_at,
   };
 }
@@ -1491,6 +1513,8 @@ async function listWordfriendsSites(req, res, url) {
         wc.status as wp_status,
         ads.application_status as adsense_status,
         ads.ads_txt_status,
+        to_char(ads.last_checked_at, 'YYYY-MM-DD HH24:MI') as adsense_last_checked_at,
+        cq.total_content_count,
         cq.published_count,
         cq.approved_count,
         cq.in_progress_count,
@@ -1500,14 +1524,24 @@ async function listWordfriendsSites(req, res, url) {
         pub.latest_title,
         pub.latest_url,
         ss.submission_status as sitemap_status,
+        ss.search_engine,
+        ss.sitemap_url,
+        ss.last_submitted_at as sitemap_last_submitted_at,
         ss.last_checked_at as sitemap_last_checked_at,
-        rs.status as settlement_status
+        rs.status as settlement_status,
+        rs.settlement_month
       from sites s
-      join matched_customers mc on mc.id = s.customer_id
       left join wordpress_connections wc on wc.site_id = s.id
-      left join adsense_status ads on ads.site_id = s.id
+      left join lateral (
+        select application_status, ads_txt_status, last_checked_at
+        from adsense_status
+        where site_id = s.id
+        order by coalesce(last_checked_at, updated_at, created_at) desc
+        limit 1
+      ) ads on true
       left join lateral (
         select
+          count(*)::int as total_content_count,
           count(*) filter (where status = 'published')::int as published_count,
           count(*) filter (where status = 'approved')::int as approved_count,
           count(*) filter (where status in ('draft', 'ready', 'processing', 'generated', 'review_required'))::int as in_progress_count,
@@ -1528,20 +1562,29 @@ async function listWordfriendsSites(req, res, url) {
         limit 1
       ) pub on true
       left join lateral (
-        select submission_status, to_char(last_checked_at, 'YYYY-MM-DD HH24:MI') as last_checked_at
+        select
+          submission_status,
+          search_engine,
+          sitemap_url,
+          to_char(last_submitted_at, 'YYYY-MM-DD HH24:MI') as last_submitted_at,
+          to_char(last_checked_at, 'YYYY-MM-DD HH24:MI') as last_checked_at
         from sitemap_submissions
         where site_id = s.id or domain = s.domain
         order by coalesce(last_checked_at, updated_at, created_at) desc
         limit 1
       ) ss on true
       left join lateral (
-        select status
+        select status, to_char(settlement_month, 'YYYY-MM') as settlement_month
         from revenue_settlements
         where site_id = s.id
         order by settlement_month desc, updated_at desc
         limit 1
       ) rs on true
       where s.is_internal_infra = false
+        and (
+          s.customer_id in (select id from matched_customers)
+          or ($2 <> '' and lower(s.contact_email) = $2)
+        )
       order by
         case s.status when 'active' then 1 when 'draft' then 2 when 'paused' then 3 else 4 end,
         s.updated_at desc

@@ -1642,7 +1642,7 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
       <?php elseif (!$sites) : ?>
         <div class="wordfriends-empty">
           <strong>연결된 사이트가 아직 없습니다.</strong>
-          <p class="wordfriends-auth-small">계약과 세팅이 진행되면 이곳에 사이트 현황이 표시됩니다.</p>
+          <p class="wordfriends-auth-small">계약과 세팅이 진행되고 SiteOps에서 고객 연결이 완료되면 이곳에 사이트 현황이 표시됩니다.</p>
         </div>
       <?php else : ?>
         <div class="wordfriends-site-grid">
@@ -1652,6 +1652,7 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
               $content = is_array($site['content'] ?? null) ? $site['content'] : [];
               $sitemap = is_array($site['sitemap'] ?? null) ? $site['sitemap'] : [];
               $seo = is_array($site['seo'] ?? null) ? $site['seo'] : [];
+              $prepared_count = intval($content['approvedCount'] ?? 0) + intval($content['inProgressCount'] ?? 0);
             ?>
             <article class="wordfriends-site-card">
               <header>
@@ -1663,15 +1664,15 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
               <?php endif; ?>
               <div class="wordfriends-site-meta">
                 <span><small>콘텐츠</small><?php echo esc_html($site['contentStatus'] ?? '콘텐츠 준비 중'); ?></span>
-                <span><small>사이트맵/SEO</small><?php echo esc_html($site['sitemap']['statusLabel'] ?? '준비 중'); ?></span>
-                <span><small>애드센스 참고</small><?php echo esc_html($site['seo']['adsenseStatus'] ?? 'not_started'); ?></span>
+                <span><small>사이트맵</small><?php echo esc_html($sitemap['statusLabel'] ?? '준비 중'); ?></span>
+                <span><small>애드센스 참고</small><?php echo esc_html($seo['adsenseStatusLabel'] ?? '준비 중'); ?></span>
                 <span><small>정산 참고</small><?php echo esc_html($site['settlementStatus'] ?? '정산 준비 중'); ?></span>
               </div>
               <div class="wordfriends-site-meta">
                 <span><small>워드프레스</small><?php echo esc_html($site['wpStatusLabel'] ?? '연결 준비'); ?></span>
                 <span><small>운영 점검</small><?php echo esc_html($site['riskLabel'] ?? '기본 점검'); ?></span>
-                <span><small>애드센스 표시</small><?php echo esc_html($seo['adsenseStatusLabel'] ?? $seo['adsenseStatus'] ?? '준비 중'); ?></span>
-                <span><small>사이트맵 확인</small><?php echo esc_html($sitemap['lastCheckedAt'] ?? '확인 전'); ?></span>
+                <span><small>ads.txt</small><?php echo esc_html($seo['adsTxtStatusLabel'] ?? '확인 전'); ?></span>
+                <span><small>검색엔진</small><?php echo esc_html($sitemap['searchEngineLabel'] ?? 'Google'); ?></span>
               </div>
               <div class="wordfriends-site-progress">
                 <div class="wordfriends-site-progress-track" aria-label="콘텐츠 진행률">
@@ -1680,9 +1681,19 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
                 <p class="wordfriends-auth-small">
                   콘텐츠 진행률 <?php echo esc_html($progress); ?>%
                   · 발행 <?php echo esc_html(intval($content['publishedCount'] ?? 0)); ?>건
-                  · 준비 <?php echo esc_html(intval($content['approvedCount'] ?? 0) + intval($content['inProgressCount'] ?? 0)); ?>건
+                  · 준비 <?php echo esc_html($prepared_count); ?>건
+                  · 실패 <?php echo esc_html(intval($content['failedCount'] ?? 0)); ?>건
                 </p>
               </div>
+              <div class="wordfriends-site-meta">
+                <span><small>사이트맵 제출</small><?php echo esc_html($sitemap['lastSubmittedAt'] ?? '제출 전'); ?></span>
+                <span><small>사이트맵 확인</small><?php echo esc_html($sitemap['lastCheckedAt'] ?? '확인 전'); ?></span>
+                <span><small>애드센스 확인</small><?php echo esc_html($seo['lastCheckedAt'] ?? '확인 전'); ?></span>
+                <span><small>최근 정산월</small><?php echo esc_html($site['settlementMonth'] ?? '준비 중'); ?></span>
+              </div>
+              <?php if (!empty($sitemap['sitemapUrl'])) : ?>
+                <p class="wordfriends-auth-small"><a class="wordfriends-site-link" href="<?php echo esc_url($sitemap['sitemapUrl']); ?>" target="_blank" rel="noopener noreferrer">사이트맵 보기</a></p>
+              <?php endif; ?>
               <?php if (!empty($content['latestTitle'])) : ?>
                 <div class="wordfriends-site-note">
                   <strong>최근 발행</strong>
