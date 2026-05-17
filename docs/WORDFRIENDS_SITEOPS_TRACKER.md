@@ -155,6 +155,14 @@ Services page:
 [wordfriends_services]
 ```
 
+Guide / FAQ page:
+
+```text
+[wordfriends_guide]
+```
+
+Use this page for AdSense, domain, WordPress, customer portal, and security education content. Keep all public wording clear that revenue, traffic, ranking, search indexing, and AdSense approval are not guaranteed.
+
 Recommended public menu:
 
 ```text
