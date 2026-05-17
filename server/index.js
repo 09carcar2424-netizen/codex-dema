@@ -2746,8 +2746,9 @@ async function getDashboardData() {
       query(`
         select to_char(settlement_month, 'YYYY-MM') as month,
           coalesce(c.customer_code, 'NO_CUSTOMER') as customer,
-          concat(gross_revenue, ' ', currency) as gross_revenue,
-          concat(agency_fee_amount, ' ', currency) as agency_fee,
+          gross_revenue,
+          agency_fee_amount,
+          currency,
           status
         from revenue_settlements rs
         left join customers c on c.id = rs.customer_id
@@ -3089,8 +3090,8 @@ async function getDashboardData() {
     settlements: settlements.rows.map((row) => ({
       month: row.month,
       customer: row.customer,
-      grossRevenue: row.gross_revenue,
-      agencyFee: row.agency_fee,
+      grossRevenue: formatKrw(row.gross_revenue),
+      agencyFee: formatKrw(row.agency_fee_amount),
       status: row.status?.toUpperCase(),
     })),
     referrals: referrals.rows.map((row) => ({

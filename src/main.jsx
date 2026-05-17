@@ -3724,7 +3724,7 @@ function App() {
                     <div>
                       <strong>{row.customer}</strong>
                       <small>{row.month} · {row.grossRevenue}</small>
-                      <small>{row.agencyFee}</small>
+                      <small>운영 수수료 {row.agencyFee}</small>
                     </div>
                     <StatusPill value={row.status} />
                   </div>
