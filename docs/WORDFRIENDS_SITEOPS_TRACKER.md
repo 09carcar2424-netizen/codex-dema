@@ -143,6 +143,30 @@ It does not expose internal notes, credentials, SMTP errors, admin-only alerts, 
 
 Create WordPress pages and place these shortcodes in the page body.
 
+Home landing page:
+
+```text
+[wordfriends_home]
+```
+
+Recommended public menu:
+
+```text
+HOME / 서비스 / 구축절차 / 사례 / 가이드/FAQ / 문의
+```
+
+Recommended utility menu:
+
+```text
+고객 포털 / 회원가입 / 로그인 / 로그아웃
+```
+
+Customer portal menu after login:
+
+```text
+내 사이트 / 내 문의 / 전자계약 / 정산/추천 / 알림센터
+```
+
 Signup page:
 
 ```text
