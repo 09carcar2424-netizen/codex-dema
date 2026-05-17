@@ -2283,6 +2283,59 @@ async function saveCustomerFollowup(req, res, customerCode) {
   });
 }
 
+async function updateCustomerFollowupStatus(req, res, followupId) {
+  const body = await readJsonBody(req);
+  const id = String(followupId || '').trim();
+  const status = normalizeChoice(body.status, ['planned', 'in_progress', 'done', 'hold', 'canceled'], '');
+
+  if (!id || !status) {
+    return sendJson(req, res, 400, { ok: false, error: 'Follow-up id and status are required.' });
+  }
+
+  const result = await query(
+    `
+      update customer_followups cf
+      set status = $2,
+        completed_at = case
+          when $2 = 'done' then coalesce(cf.completed_at, now())
+          when cf.status = 'done' and $2 <> 'done' then null
+          else cf.completed_at
+        end,
+        updated_at = now()
+      from customers c
+      where cf.customer_id = c.id
+        and cf.id = $1::uuid
+      returning cf.id::text, c.customer_code, c.display_name as customer_name,
+        cf.title, to_char(cf.due_date, 'YYYY-MM-DD') as due_date,
+        cf.status, cf.priority, coalesce(cf.internal_note, '') as internal_note,
+        cf.created_at, cf.updated_at, cf.completed_at
+    `,
+    [id, status],
+  );
+
+  if (result.rowCount === 0) {
+    return sendJson(req, res, 404, { ok: false, error: 'Follow-up was not found.' });
+  }
+
+  const saved = result.rows[0];
+  return sendJson(req, res, 200, {
+    ok: true,
+    followup: {
+      id: saved.id,
+      customerCode: saved.customer_code,
+      customerName: saved.customer_name,
+      title: saved.title,
+      dueDate: saved.due_date,
+      status: saved.status,
+      priority: saved.priority,
+      internalNote: saved.internal_note,
+      createdAt: saved.created_at,
+      updatedAt: saved.updated_at,
+      completedAt: saved.completed_at,
+    },
+  });
+}
+
 function parseMoneyAmount(value, fallback = 0) {
   const normalized = String(value ?? '')
     .replace(/[,\s원]/g, '')
@@ -3764,6 +3817,11 @@ const server = http.createServer(async (req, res) => {
     const customerFollowupMatch = url.pathname.match(/^\/api\/customers\/([^/]+)\/followups$/);
     if (customerFollowupMatch && req.method === 'POST') {
       return saveCustomerFollowup(req, res, decodeURIComponent(customerFollowupMatch[1]));
+    }
+
+    const customerFollowupStatusMatch = url.pathname.match(/^\/api\/customer-followups\/([^/]+)\/status$/);
+    if (customerFollowupStatusMatch && req.method === 'POST') {
+      return updateCustomerFollowupStatus(req, res, decodeURIComponent(customerFollowupStatusMatch[1]));
     }
 
     if (url.pathname === '/api/settlements' && req.method === 'POST') {

@@ -34,6 +34,7 @@ import {
   saveSettlementRecord,
   saveWordfriendsContractRequest,
   saveWordfriendsQuestionReply,
+  updateCustomerFollowupStatus,
   updateSiteCustomer,
   updateNotificationStatus,
 } from './api.js';
@@ -407,6 +408,7 @@ function App() {
   const [customerOpsSaveState, setCustomerOpsSaveState] = useState({});
   const [customerFollowupForm, setCustomerFollowupForm] = useState(emptyCustomerFollowupForm);
   const [customerFollowupSaveState, setCustomerFollowupSaveState] = useState({ status: 'idle', message: '' });
+  const [customerFollowupActionState, setCustomerFollowupActionState] = useState({});
   const [settlementForm, setSettlementForm] = useState(emptySettlementForm);
   const [settlementSaveState, setSettlementSaveState] = useState({ status: 'idle', message: '' });
   const [referralRewardForm, setReferralRewardForm] = useState(emptyReferralRewardForm);
@@ -678,6 +680,34 @@ function App() {
       setCustomerFollowupSaveState({ status: 'saved', message: '후속 조치를 저장했습니다. 고객 화면에는 노출되지 않습니다.' });
     } catch (error) {
       setCustomerFollowupSaveState({ status: 'error', message: `후속 조치 저장 실패: ${error.message}` });
+    }
+  };
+
+  const submitCustomerFollowupStatus = async (followup, status) => {
+    if (!followup?.id) return;
+    setCustomerFollowupActionState((current) => ({
+      ...current,
+      [followup.id]: { status: 'saving', message: '처리 중' },
+    }));
+
+    try {
+      const result = await updateCustomerFollowupStatus(followup.id, { status });
+      const savedFollowup = result.followup;
+      setDashboard((current) => ({
+        ...current,
+        followups: (current.followups || []).map((row) => (
+          row.id === savedFollowup.id ? { ...row, ...savedFollowup } : row
+        )),
+      }));
+      setCustomerFollowupActionState((current) => ({
+        ...current,
+        [followup.id]: { status: 'saved', message: status === 'done' ? '완료됨' : '보류됨' },
+      }));
+    } catch (error) {
+      setCustomerFollowupActionState((current) => ({
+        ...current,
+        [followup.id]: { status: 'error', message: `실패: ${error.message}` },
+      }));
     }
   };
 
@@ -2548,9 +2578,29 @@ function App() {
                       <div className="followup-statuses">
                         <StatusPill value={followup.priority} />
                         <StatusPill value={followup.status} />
+                        {customerFollowupActionState[followup.id]?.message ? (
+                          <small className={`inline-save-state ${customerFollowupActionState[followup.id].status}`}>
+                            {customerFollowupActionState[followup.id].message}
+                          </small>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => submitCustomerFollowupStatus(followup, 'done')}
+                          disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
+                        >
+                          완료
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => submitCustomerFollowupStatus(followup, 'hold')}
+                          disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
+                        >
+                          보류
+                        </button>
                         <button
                           type="button"
                           onClick={() => selectPortalCustomer({ code: followup.customerCode })}
+                          disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
                         >
                           고객 열기
                         </button>
@@ -2736,6 +2786,29 @@ function App() {
                           <div className="followup-statuses">
                             <StatusPill value={followup.priority} />
                             <StatusPill value={followup.status} />
+                            {!['done', 'canceled'].includes(String(followup.status || '').toLowerCase()) ? (
+                              <>
+                                {customerFollowupActionState[followup.id]?.message ? (
+                                  <small className={`inline-save-state ${customerFollowupActionState[followup.id].status}`}>
+                                    {customerFollowupActionState[followup.id].message}
+                                  </small>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => submitCustomerFollowupStatus(followup, 'done')}
+                                  disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
+                                >
+                                  완료
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => submitCustomerFollowupStatus(followup, 'hold')}
+                                  disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
+                                >
+                                  보류
+                                </button>
+                              </>
+                            ) : null}
                           </div>
                         </div>
                       ))}
