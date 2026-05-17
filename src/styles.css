@@ -1024,6 +1024,123 @@ h2 {
   padding-top: 16px;
 }
 
+.customer-select-row {
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.customer-select-row:hover,
+.customer-select-row:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--panel-border));
+  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.customer-select-row.selected {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--panel-border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-soft));
+}
+
+.customer-detail-panel {
+  margin-top: 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--panel-soft);
+}
+
+.customer-detail-panel .section-subheading small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.customer-detail-summary,
+.customer-detail-columns {
+  display: grid;
+  gap: 12px;
+}
+
+.customer-detail-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.customer-detail-summary article,
+.customer-detail-columns article {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-bg);
+}
+
+.customer-detail-summary span,
+.customer-detail-summary small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.customer-detail-summary strong {
+  display: block;
+  margin: 6px 0;
+  font-size: 22px;
+}
+
+.customer-detail-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.customer-detail-columns h4 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.customer-mini-list {
+  display: grid;
+  gap: 8px;
+}
+
+.customer-mini-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 9px;
+  background: var(--panel-soft);
+}
+
+.customer-mini-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.customer-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.customer-detail-actions a {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--panel-bg);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .section-subheading {
   display: flex;
   align-items: center;
@@ -2507,6 +2624,8 @@ h2 {
   .trust-summary-grid,
   .revenue-policy-grid,
   .realtime-card-grid,
+  .customer-detail-summary,
+  .customer-detail-columns,
   .site-filter-grid,
   .site-toolbar,
   .site-workbench,

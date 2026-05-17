@@ -195,6 +195,19 @@ function formatSeoulDateTime(value) {
   }).format(date);
 }
 
+function formatKrwAmount(value) {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  const amount = Number(value);
+  if (Number.isNaN(amount)) {
+    return String(value);
+  }
+
+  return `${amount.toLocaleString('ko-KR')}원`;
+}
+
 const defaultDiscoveryForm = {
   category: 'health',
   keywords: 'bio, care, journal, korea',
@@ -369,6 +382,7 @@ function App() {
   const [contractRequestSaveState, setContractRequestSaveState] = useState({});
   const [siteCustomerDrafts, setSiteCustomerDrafts] = useState({});
   const [siteCustomerSaveState, setSiteCustomerSaveState] = useState({});
+  const [selectedCustomerCode, setSelectedCustomerCode] = useState(null);
   const [settlementForm, setSettlementForm] = useState(emptySettlementForm);
   const [settlementSaveState, setSettlementSaveState] = useState({ status: 'idle', message: '' });
   const [referralRewardForm, setReferralRewardForm] = useState(emptyReferralRewardForm);
@@ -942,6 +956,41 @@ function App() {
   const portalCustomers = (hasLiveDashboard ? dashboard.customers : []).filter((customer) =>
     ['ACTIVE', 'LEAD', 'PENDING', 'SUBMITTED'].includes(String(customer.contractStatus || '').toUpperCase()),
   );
+  const selectedCustomer =
+    portalCustomers.find((customer) => customer.code === selectedCustomerCode) || portalCustomers[0] || null;
+  const selectedCustomerSites = selectedCustomer
+    ? dashboard.sites.filter((site) => site.customerCode === selectedCustomer.code).slice(0, 5)
+    : [];
+  const selectedCustomerQuestions = selectedCustomer
+    ? portalQuestions.filter((question) => question.customerCode === selectedCustomer.code).slice(0, 5)
+    : [];
+  const selectedCustomerContracts = selectedCustomer
+    ? contractRequests
+        .filter((request) =>
+          request.customerCode === selectedCustomer.code || request.requesterCustomerCode === selectedCustomer.code,
+        )
+        .slice(0, 5)
+    : [];
+  const selectedCustomerSettlements = selectedCustomer
+    ? dashboard.settlements.filter((row) => row.customer === selectedCustomer.code).slice(0, 5)
+    : [];
+  const selectedCustomerNotifications = selectedCustomer
+    ? dashboard.notifications.filter((row) => row.customerCode === selectedCustomer.code).slice(0, 5)
+    : [];
+
+  useEffect(() => {
+    if (!portalCustomers.length) {
+      if (selectedCustomerCode) {
+        setSelectedCustomerCode(null);
+      }
+      return;
+    }
+
+    if (!selectedCustomerCode || !portalCustomers.some((customer) => customer.code === selectedCustomerCode)) {
+      setSelectedCustomerCode(portalCustomers[0].code);
+    }
+  }, [dashboard.customers, selectedCustomerCode]);
+
   const siteCustomerOptions = (hasLiveDashboard ? dashboard.customers : [])
     .filter((customer) => customer.code && customer.code !== 'NO_CUSTOMER')
     .sort((a, b) => String(a.code).localeCompare(String(b.code)));
@@ -2117,7 +2166,20 @@ function App() {
                 <span>정산</span>
               </div>
               {portalCustomers.map((customer) => (
-                <div className="ops-row" role="row" key={customer.code}>
+                <div
+                  className={`ops-row customer-select-row ${selectedCustomer?.code === customer.code ? 'selected' : ''}`}
+                  role="row"
+                  key={customer.code}
+                  tabIndex={0}
+                  aria-selected={selectedCustomer?.code === customer.code}
+                  onClick={() => setSelectedCustomerCode(customer.code)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelectedCustomerCode(customer.code);
+                    }
+                  }}
+                >
                   <div>
                     <strong>{customer.name}</strong>
                     <small>{customer.code}{customer.contactEmail ? ` · ${customer.contactEmail}` : ''}</small>
@@ -2132,6 +2194,129 @@ function App() {
             {portalCustomers.length === 0 ? (
               <div className="empty-state">
                 아직 고객 포털에 연결된 고객 데이터가 없습니다. 회원가입, 계약 요청, 문의가 접수되면 이곳에 실제 고객 기준으로 표시됩니다.
+              </div>
+            ) : null}
+            {selectedCustomer ? (
+              <div className="customer-detail-panel">
+                <div className="section-subheading">
+                  <div>
+                    <p className="eyebrow">customer detail</p>
+                    <h3>{selectedCustomer.name || selectedCustomer.code}</h3>
+                    <small>{selectedCustomer.code}{selectedCustomer.contactEmail ? ` · ${selectedCustomer.contactEmail}` : ''}</small>
+                  </div>
+                  <StatusPill value={selectedCustomer.contractStatus} />
+                </div>
+                <div className="customer-detail-summary">
+                  <article>
+                    <span>연결 사이트</span>
+                    <strong>{selectedCustomerSites.length}개</strong>
+                    <small>포털에 공개 가능한 운영 사이트</small>
+                  </article>
+                  <article>
+                    <span>최근 문의</span>
+                    <strong>{selectedCustomerQuestions.length}건</strong>
+                    <small>답변/검토 상태 확인</small>
+                  </article>
+                  <article>
+                    <span>계약 요청</span>
+                    <strong>{selectedCustomerContracts.length}건</strong>
+                    <small>계약 링크와 진행 단계</small>
+                  </article>
+                  <article>
+                    <span>정산/알림</span>
+                    <strong>{selectedCustomerSettlements.length + selectedCustomerNotifications.length}건</strong>
+                    <small>고객 공개 안내 기준</small>
+                  </article>
+                </div>
+                <div className="customer-detail-columns">
+                  <article>
+                    <h4>사이트</h4>
+                    {selectedCustomerSites.length ? (
+                      <div className="customer-mini-list">
+                        {selectedCustomerSites.map((site) => (
+                          <div className="customer-mini-row" key={site.siteKey || site.domain}>
+                            <div>
+                              <strong>{site.domain || site.siteKey}</strong>
+                              <small>{site.siteKey} · {normalizeDisplayValue(site.portfolioStatus, '상태 미정')}</small>
+                            </div>
+                            <StatusPill value={site.status || site.portfolioStatus} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="helper-copy">아직 이 고객에게 연결된 사이트가 없습니다.</p>
+                    )}
+                  </article>
+                  <article>
+                    <h4>문의</h4>
+                    {selectedCustomerQuestions.length ? (
+                      <div className="customer-mini-list">
+                        {selectedCustomerQuestions.map((question) => (
+                          <div className="customer-mini-row" key={question.id}>
+                            <div>
+                              <strong>{normalizeDisplayValue(question.category, '문의')}</strong>
+                              <small>{question.question || question.message || '문의 내용 없음'}</small>
+                            </div>
+                            <StatusPill value={question.status} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="helper-copy">최근 문의가 없습니다.</p>
+                    )}
+                  </article>
+                  <article>
+                    <h4>계약</h4>
+                    {selectedCustomerContracts.length ? (
+                      <div className="customer-mini-list">
+                        {selectedCustomerContracts.map((request) => (
+                          <div className="customer-mini-row" key={request.id}>
+                            <div>
+                              <strong>{request.desiredDomainCount || 1}개 도메인</strong>
+                              <small>{formatSeoulDateTime(request.updatedAt || request.requestedAt)}</small>
+                            </div>
+                            <StatusPill value={request.statusLabel || request.status} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="helper-copy">최근 계약 요청이 없습니다.</p>
+                    )}
+                  </article>
+                  <article>
+                    <h4>정산·알림</h4>
+                    {selectedCustomerSettlements.length || selectedCustomerNotifications.length ? (
+                      <div className="customer-mini-list">
+                        {selectedCustomerSettlements.map((row) => (
+                          <div className="customer-mini-row" key={`settlement-${row.customer}-${row.month}`}>
+                            <div>
+                              <strong>{row.month || '정산 월 미정'}</strong>
+                              <small>{formatKrwAmount(row.grossRevenue)} · 수수료 {formatKrwAmount(row.agencyFee)}</small>
+                            </div>
+                            <StatusPill value={row.status} />
+                          </div>
+                        ))}
+                        {selectedCustomerNotifications.map((row) => (
+                          <div className="customer-mini-row" key={`notice-${row.id || row.title}`}>
+                            <div>
+                              <strong>{row.title || '알림'}</strong>
+                              <small>{formatSeoulDateTime(row.createdAt || row.updatedAt)}</small>
+                            </div>
+                            <StatusPill value={row.status || row.severity} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="helper-copy">최근 정산 기록이나 고객 알림이 없습니다.</p>
+                    )}
+                  </article>
+                </div>
+                <div className="customer-detail-actions">
+                  <a href="#portal">사이트 연결</a>
+                  <a href="#realtime">문의 확인</a>
+                  <a href="#settlements">정산 기록</a>
+                  <a href="#notifications">알림 작성</a>
+                </div>
               </div>
             ) : null}
             <div className="portal-link-workbench">
