@@ -1923,20 +1923,27 @@ h2 {
   gap: 12px;
 }
 
-.notification-compose label {
+.notification-compose label,
+.settlement-compose label {
   display: grid;
   gap: 6px;
 }
 
-.notification-compose label span {
+.notification-compose label span,
+.settlement-compose label span {
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
 .notification-compose input[type='text'],
+.settlement-compose input[type='text'],
+.settlement-compose input[type='number'],
+.settlement-compose input[type='month'],
 .notification-compose select,
-.notification-compose textarea {
+.settlement-compose select,
+.notification-compose textarea,
+.settlement-compose textarea {
   width: 100%;
   border: 1px solid var(--panel-border);
   border-radius: 8px;
@@ -1946,10 +1953,27 @@ h2 {
   font: inherit;
 }
 
-.notification-compose textarea {
+.notification-compose textarea,
+.settlement-compose textarea {
   min-height: 108px;
   resize: vertical;
   line-height: 1.55;
+}
+
+.settlement-compose {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.compose-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .compose-footer {
@@ -2422,6 +2446,7 @@ h2 {
   .reuse-summary,
   .renewal-summary-grid,
   .renewal-controls,
+  .compose-grid,
   .compose-row,
   .portal-grid,
   .portal-rule-grid,

@@ -2119,6 +2119,251 @@ async function updateSiteCustomer(req, res, siteKey) {
   });
 }
 
+function parseMoneyAmount(value, fallback = 0) {
+  const normalized = String(value ?? '')
+    .replace(/[,\s원]/g, '')
+    .trim();
+  if (!normalized) return fallback;
+  const amount = Number(normalized);
+  return Number.isFinite(amount) && amount >= 0 ? amount : fallback;
+}
+
+function parseSettlementMonth(value) {
+  const normalized = String(value || '').trim();
+  const match = normalized.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return '';
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return '';
+  return `${match[1]}-${match[2]}-01`;
+}
+
+function calculateWithholdingEstimate(category, grossAmount) {
+  const estimateType = category === 'business_income_3_3'
+    ? 'business_income_3_3'
+    : category === 'other_income_8_8_reference'
+      ? 'other_income_8_8_reference'
+      : 'manual_review';
+  const rate = estimateType === 'business_income_3_3'
+    ? 0.033
+    : estimateType === 'other_income_8_8_reference'
+      ? 0.088
+      : 0;
+  const totalWithholding = Math.round(grossAmount * rate);
+
+  return {
+    estimateType,
+    grossAmount,
+    incomeTaxAmount: totalWithholding,
+    localIncomeTaxAmount: 0,
+    totalWithholding,
+    netPayableAmount: Math.max(0, grossAmount - totalWithholding),
+  };
+}
+
+async function saveSettlementRecord(req, res) {
+  const body = await readJsonBody(req);
+  const customerCode = String(body.customerCode || body.customer_code || '').trim().slice(0, 80);
+  const siteKey = String(body.siteKey || body.site_key || '').trim().slice(0, 120);
+  const settlementMonth = parseSettlementMonth(body.settlementMonth || body.settlement_month);
+  const status = normalizeChoice(body.status, ['draft', 'confirmed', 'invoiced', 'paid', 'void'], 'draft');
+  const withholdingCategory = normalizeChoice(
+    body.withholdingCategory || body.withholding_category,
+    ['business_income_3_3', 'other_income_8_8_reference', 'invoice_required', 'needs_review'],
+    'needs_review',
+  );
+  const notes = String(body.notes || '').trim().slice(0, 2000);
+  const publishNotification = Boolean(body.publishNotification || body.publish_notification);
+
+  if (!customerCode || !settlementMonth) {
+    return sendJson(req, res, 400, {
+      ok: false,
+      error: 'Customer code and settlement month are required.',
+    });
+  }
+
+  const customerResult = await query(
+    `
+      select id, customer_code, display_name
+      from customers
+      where customer_code = $1
+      limit 1
+    `,
+    [customerCode],
+  );
+
+  if (customerResult.rowCount === 0) {
+    return sendJson(req, res, 404, {
+      ok: false,
+      error: 'Customer code was not found.',
+    });
+  }
+
+  const customer = customerResult.rows[0];
+  let siteId = null;
+  let siteDomain = '';
+  if (siteKey) {
+    const siteResult = await query(
+      `
+        select id, domain
+        from sites
+        where site_key = $1 or domain = $1
+        limit 1
+      `,
+      [siteKey],
+    );
+
+    if (siteResult.rowCount === 0) {
+      return sendJson(req, res, 404, {
+        ok: false,
+        error: 'Site was not found.',
+      });
+    }
+
+    siteId = siteResult.rows[0].id;
+    siteDomain = siteResult.rows[0].domain || siteKey;
+  }
+
+  const grossRevenue = parseMoneyAmount(body.grossRevenue ?? body.gross_revenue);
+  const agencyFeeRate = parseMoneyAmount(body.agencyFeeRate ?? body.agency_fee_rate);
+  const explicitAgencyFee = String(body.agencyFeeAmount ?? body.agency_fee_amount ?? '').trim();
+  const agencyFeeAmount = explicitAgencyFee
+    ? parseMoneyAmount(explicitAgencyFee)
+    : Math.round(grossRevenue * agencyFeeRate / 100);
+
+  const upserted = await query(
+    `
+      with updated as (
+        update revenue_settlements
+        set gross_revenue = $4,
+          agency_fee_rate = $5,
+          agency_fee_amount = $6,
+          status = $7,
+          notes = nullif($8, ''),
+          updated_at = now()
+        where customer_id = $1::uuid
+          and settlement_month = $3::date
+          and (
+            ($2::uuid is null and site_id is null)
+            or site_id = $2::uuid
+          )
+        returning *
+      )
+      insert into revenue_settlements (
+        customer_id, site_id, settlement_month, gross_revenue, agency_fee_rate,
+        agency_fee_amount, currency, status, notes
+      )
+      select $1::uuid, $2::uuid, $3::date, $4, $5, $6, 'KRW', $7, nullif($8, '')
+      where not exists (select 1 from updated)
+      returning *
+    `,
+    [customer.id, siteId, settlementMonth, grossRevenue, agencyFeeRate, agencyFeeAmount, status, notes],
+  );
+
+  const settlement = upserted.rows[0] || (await query(
+    `
+      select *
+      from revenue_settlements
+      where customer_id = $1::uuid
+        and settlement_month = $3::date
+        and (($2::uuid is null and site_id is null) or site_id = $2::uuid)
+      limit 1
+    `,
+    [customer.id, siteId, settlementMonth],
+  )).rows[0];
+
+  await queryOptionalParams(
+    `
+      update tax_profiles
+      set withholding_category = $2,
+        updated_at = now()
+      where id = (
+        select id
+        from tax_profiles
+        where customer_id = $1::uuid
+        order by updated_at desc
+        limit 1
+      )
+    `,
+    [customer.id, withholdingCategory],
+  );
+
+  await queryOptionalParams(
+    `
+      insert into tax_profiles (customer_id, withholding_category, memo)
+      select $1::uuid, $2, 'Created from SiteOps settlement form.'
+      where not exists (
+        select 1 from tax_profiles where customer_id = $1::uuid
+      )
+    `,
+    [customer.id, withholdingCategory],
+  );
+
+  const estimate = calculateWithholdingEstimate(withholdingCategory, agencyFeeAmount);
+  await queryOptionalParams(
+    `
+      delete from withholding_estimates
+      where settlement_id = $1::uuid
+    `,
+    [settlement.id],
+  );
+  await queryOptionalParams(
+    `
+      insert into withholding_estimates (
+        settlement_id, customer_id, estimate_type, gross_amount, income_tax_amount,
+        local_income_tax_amount, total_withholding_amount, net_payable_amount, currency
+      )
+      values ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, 'KRW')
+    `,
+    [
+      settlement.id,
+      customer.id,
+      estimate.estimateType,
+      estimate.grossAmount,
+      estimate.incomeTaxAmount,
+      estimate.localIncomeTaxAmount,
+      estimate.totalWithholding,
+      estimate.netPayableAmount,
+    ],
+  );
+
+  if (publishNotification && ['confirmed', 'invoiced', 'paid'].includes(status)) {
+    const monthLabel = String(body.settlementMonth || body.settlement_month || '').trim();
+    await queryOptionalParams(
+      `
+        insert into notifications (
+          customer_id, audience_type, visibility, category, severity,
+          title, message, channel, marketing_message, send_status, sent_at, metadata
+        )
+        values ($1::uuid, 'customer', 'public_to_customer', 'settlement', 'info',
+          $2, $3, 'portal', false, 'sent', now(), $4::jsonb)
+      `,
+      [
+        customer.id,
+        `${monthLabel} 정산 참고 안내`,
+        `${monthLabel} 정산 참고 내역이 업데이트되었습니다. 고객 포털 정산/추천 화면에서 확인해 주세요.`,
+        JSON.stringify({ source: 'settlement_record', settlementId: settlement.id, siteKey, status }),
+      ],
+    );
+  }
+
+  return sendJson(req, res, 200, {
+    ok: true,
+    settlement: {
+      id: settlement.id,
+      customerCode: customer.customer_code,
+      customerName: customer.display_name,
+      siteKey,
+      domain: siteDomain,
+      settlementMonth: String(body.settlementMonth || body.settlement_month || '').trim(),
+      grossRevenue,
+      agencyFeeRate,
+      agencyFeeAmount,
+      status,
+      withholdingCategory,
+    },
+  });
+}
+
 async function getN8nSiteRuntime(req, res, url) {
   const siteKey = String(url.searchParams.get('siteKey') || url.searchParams.get('site_key') || '').trim();
 
@@ -3099,6 +3344,10 @@ const server = http.createServer(async (req, res) => {
     const siteCustomerMatch = url.pathname.match(/^\/api\/sites\/([^/]+)\/customer$/);
     if (siteCustomerMatch && req.method === 'POST') {
       return updateSiteCustomer(req, res, decodeURIComponent(siteCustomerMatch[1]));
+    }
+
+    if (url.pathname === '/api/settlements' && req.method === 'POST') {
+      return saveSettlementRecord(req, res);
     }
 
     if (url.pathname === '/api/n8n/site-runtime') {

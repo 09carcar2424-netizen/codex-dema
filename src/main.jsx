@@ -28,6 +28,7 @@ import {
   getApiBaseUrl,
   saveApiBaseUrl,
   saveDomainCandidates,
+  saveSettlementRecord,
   saveWordfriendsContractRequest,
   saveWordfriendsQuestionReply,
   updateSiteCustomer,
@@ -128,6 +129,19 @@ const emptyContractRequestForm = {
   publicMessage: '',
   internalNote: '',
   contractDocumentUrl: '',
+};
+
+const emptySettlementForm = {
+  customerCode: '',
+  siteKey: '',
+  settlementMonth: new Date().toISOString().slice(0, 7),
+  grossRevenue: '',
+  agencyFeeRate: '40',
+  agencyFeeAmount: '',
+  status: 'draft',
+  withholdingCategory: 'needs_review',
+  notes: '',
+  publishNotification: false,
 };
 
 const siteStatusFilters = [
@@ -343,6 +357,8 @@ function App() {
   const [contractRequestSaveState, setContractRequestSaveState] = useState({});
   const [siteCustomerDrafts, setSiteCustomerDrafts] = useState({});
   const [siteCustomerSaveState, setSiteCustomerSaveState] = useState({});
+  const [settlementForm, setSettlementForm] = useState(emptySettlementForm);
+  const [settlementSaveState, setSettlementSaveState] = useState({ status: 'idle', message: '' });
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -463,6 +479,32 @@ function App() {
         ...current,
         [site.siteKey]: { status: 'error', message: `고객 연결 저장 실패: ${error.message}` },
       }));
+    }
+  };
+
+  const updateSettlementForm = (field, value) => {
+    setSettlementForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'customerCode' ? { siteKey: '' } : {}),
+    }));
+  };
+
+  const submitSettlementRecord = async (event) => {
+    event.preventDefault();
+    setSettlementSaveState({ status: 'saving', message: '정산 참고 내역을 저장하는 중입니다.' });
+
+    try {
+      await saveSettlementRecord(settlementForm);
+      setSettlementForm((current) => ({
+        ...emptySettlementForm,
+        customerCode: current.customerCode,
+        settlementMonth: current.settlementMonth,
+      }));
+      setSettlementSaveState({ status: 'saved', message: '정산 참고 내역이 저장되었습니다. 고객 포털 정산/추천 화면에도 반영됩니다.' });
+      reloadDashboard();
+    } catch (error) {
+      setSettlementSaveState({ status: 'error', message: `정산 저장 실패: ${error.message}` });
     }
   };
 
@@ -863,6 +905,10 @@ function App() {
   const siteCustomerOptions = (hasLiveDashboard ? dashboard.customers : [])
     .filter((customer) => customer.code && customer.code !== 'NO_CUSTOMER')
     .sort((a, b) => String(a.code).localeCompare(String(b.code)));
+  const settlementSiteOptions = dashboard.sites
+    .filter((site) => !settlementForm.customerCode || site.customerCode === settlementForm.customerCode)
+    .filter((site) => site.siteKey || site.domain)
+    .sort((a, b) => String(a.domain || a.siteKey).localeCompare(String(b.domain || b.siteKey)));
   const portalReportableSites = dashboard.sites.filter((site) =>
     ['Customer owned', 'Customer portal'].includes(site.owner) &&
     site.portfolioStatus !== 'high_risk_hold' &&
@@ -3551,6 +3597,126 @@ function App() {
               </div>
               <span className="status-pill active">1단계만 활성</span>
             </div>
+            <form className="settlement-compose" onSubmit={submitSettlementRecord}>
+              <div className="compose-grid">
+                <label>
+                  <span>고객</span>
+                  <select
+                    value={settlementForm.customerCode}
+                    onChange={(event) => updateSettlementForm('customerCode', event.target.value)}
+                    required
+                  >
+                    <option value="">고객 선택</option>
+                    {siteCustomerOptions.map((customer) => (
+                      <option value={customer.code} key={customer.code}>
+                        {customer.code} · {customer.name || customer.contactEmail || '고객'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>사이트</span>
+                  <select
+                    value={settlementForm.siteKey}
+                    onChange={(event) => updateSettlementForm('siteKey', event.target.value)}
+                  >
+                    <option value="">포트폴리오 전체</option>
+                    {settlementSiteOptions.map((site) => (
+                      <option value={site.siteKey || site.domain} key={site.siteKey || site.domain}>
+                        {site.domain || site.siteKey}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>정산 월</span>
+                  <input
+                    type="month"
+                    value={settlementForm.settlementMonth}
+                    onChange={(event) => updateSettlementForm('settlementMonth', event.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  <span>상태</span>
+                  <select
+                    value={settlementForm.status}
+                    onChange={(event) => updateSettlementForm('status', event.target.value)}
+                  >
+                    <option value="draft">초안</option>
+                    <option value="confirmed">확정</option>
+                    <option value="invoiced">입금 예정</option>
+                    <option value="paid">지급 완료</option>
+                    <option value="void">취소</option>
+                  </select>
+                </label>
+                <label>
+                  <span>총 참고 금액</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="예: 1200000"
+                    value={settlementForm.grossRevenue}
+                    onChange={(event) => updateSettlementForm('grossRevenue', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>운영 수수료율(%)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={settlementForm.agencyFeeRate}
+                    onChange={(event) => updateSettlementForm('agencyFeeRate', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>운영 수수료 직접 입력</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="비워두면 요율로 계산"
+                    value={settlementForm.agencyFeeAmount}
+                    onChange={(event) => updateSettlementForm('agencyFeeAmount', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>세액 참고</span>
+                  <select
+                    value={settlementForm.withholdingCategory}
+                    onChange={(event) => updateSettlementForm('withholdingCategory', event.target.value)}
+                  >
+                    <option value="needs_review">세무 확인 필요</option>
+                    <option value="business_income_3_3">사업소득 3.3% 참고</option>
+                    <option value="other_income_8_8_reference">기타소득 8.8% 참고</option>
+                    <option value="invoice_required">세금계산서 필요</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                <span>내부 메모</span>
+                <textarea
+                  value={settlementForm.notes}
+                  onChange={(event) => updateSettlementForm('notes', event.target.value)}
+                  placeholder="정산 근거, 보류 사유, 세무 확인 메모를 남깁니다."
+                />
+              </label>
+              <div className="compose-footer">
+                <label className="inline-check">
+                  <input
+                    type="checkbox"
+                    checked={settlementForm.publishNotification}
+                    onChange={(event) => updateSettlementForm('publishNotification', event.target.checked)}
+                  />
+                  고객 알림센터에 정산 업데이트 공개
+                </label>
+                <button className="primary-action" type="submit">정산 기록 저장</button>
+              </div>
+              {settlementSaveState.message ? (
+                <p className={`form-status ${settlementSaveState.status}`}>{settlementSaveState.message}</p>
+              ) : null}
+            </form>
             <div className="split-grid">
               <div className="stack-list">
                 {dashboard.settlements.map((row) => (

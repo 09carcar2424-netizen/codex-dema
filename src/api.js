@@ -190,3 +190,25 @@ export async function updateSiteCustomer(siteKey, payload, apiBaseUrl = getApiBa
 
   return response.json();
 }
+
+export async function saveSettlementRecord(payload, apiBaseUrl = getApiBaseUrl()) {
+  const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/+$/, '');
+  const requestUrl = normalizedBaseUrl ? `${normalizedBaseUrl}/api/settlements` : '/api/settlements';
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const requestError = new Error(error.detail || error.error || 'Settlement save failed');
+    requestError.payload = error;
+    throw requestError;
+  }
+
+  return response.json();
+}
