@@ -1143,6 +1143,16 @@ function App() {
   const selectedCustomerNotifications = selectedCustomer
     ? dashboard.notifications.filter((row) => row.customerCode === selectedCustomer.code).slice(0, 5)
     : [];
+  const selectedCustomerReferralOutgoing = selectedCustomer
+    ? dashboard.referrals.filter((row) => row.referrer === selectedCustomer.code)
+    : [];
+  const selectedCustomerReferralIncoming = selectedCustomer
+    ? dashboard.referrals.filter((row) => row.referred === selectedCustomer.code)
+    : [];
+  const selectedCustomerReferralRewards = selectedCustomerReferralOutgoing.reduce((sum, row) => {
+    const amount = Number(String(row.rewardAmount || '').replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
   const selectedCustomerTimeline = selectedCustomer
     ? [
         ...selectedCustomerContracts.flatMap((request) => [
@@ -2502,6 +2512,62 @@ function App() {
                     <strong>{selectedCustomerSettlements.length + selectedCustomerNotifications.length}건</strong>
                     <small>고객 공개 안내 기준</small>
                   </article>
+                </div>
+                <div className="customer-referral-panel">
+                  <div className="section-subheading">
+                    <div>
+                      <p className="eyebrow">referral map</p>
+                      <h3>추천인 명단 및 구조</h3>
+                      <small>1단계 추천 관계와 보상 상태를 고객별로 확인합니다.</small>
+                    </div>
+                    <StatusPill value={selectedCustomerReferralOutgoing.length ? 'active' : 'none'} />
+                  </div>
+                  <div className="referral-summary-grid">
+                    <article>
+                      <span>이 고객의 추천인</span>
+                      <strong>{selectedCustomerReferralIncoming.length || '없음'}</strong>
+                      <small>
+                        {selectedCustomerReferralIncoming[0]
+                          ? `${selectedCustomerReferralIncoming[0].referrerName || selectedCustomerReferralIncoming[0].referrer} (${selectedCustomerReferralIncoming[0].referrer})`
+                          : '등록된 상위 추천인이 없습니다.'}
+                      </small>
+                    </article>
+                    <article>
+                      <span>추천한 고객</span>
+                      <strong>{selectedCustomerReferralOutgoing.length}명</strong>
+                      <small>1단계 추천 보상 대상</small>
+                    </article>
+                    <article>
+                      <span>추천 보상 합계</span>
+                      <strong>{formatKrwAmount(selectedCustomerReferralRewards)}</strong>
+                      <small>현재 등록된 보상 기준</small>
+                    </article>
+                  </div>
+                  {selectedCustomerReferralOutgoing.length ? (
+                    <div className="referral-map">
+                      <div className="referral-node primary-node">
+                        <strong>{selectedCustomer.name || selectedCustomer.code}</strong>
+                        <small>{selectedCustomer.code}</small>
+                      </div>
+                      <div className="referral-branches">
+                        {selectedCustomerReferralOutgoing.map((row) => (
+                          <div className="referral-branch" key={`${row.referrer}-${row.referred}-${row.depth}-${row.rewardMonth || 'none'}`}>
+                            <span className="referral-line" aria-hidden="true" />
+                            <div className="referral-node">
+                              <strong>{row.referredName || row.referred}</strong>
+                              <small>{row.referred} · {row.rewardMonth || '보상월 미정'}</small>
+                              <small>{row.rewardAmount || row.rule}</small>
+                              <StatusPill value={row.status} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="empty-state compact-empty">
+                      아직 이 고객이 추천한 고객이 없습니다. 정산/추천 메뉴에서 추천 보상을 등록하면 이곳에 표시됩니다.
+                    </div>
+                  )}
                 </div>
                 <div className="customer-timeline">
                   <div className="section-subheading">

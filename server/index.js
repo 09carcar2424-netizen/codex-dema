@@ -3052,7 +3052,8 @@ async function getDashboardData() {
         limit 50
       `),
       query(`
-        select rc.customer_code as referrer, cc.customer_code as referred,
+        select rc.customer_code as referrer, rc.display_name as referrer_name,
+          cc.customer_code as referred, cc.display_name as referred_name,
           rr.depth, coalesce(rule.rule_name, 'Referral rule not set') as rule,
           coalesce(rule.active, false) as active, rr.status,
           to_char(rew.reward_month, 'YYYY-MM') as reward_month,
@@ -3399,7 +3400,9 @@ async function getDashboardData() {
     })),
     referrals: referrals.rows.map((row) => ({
       referrer: row.referrer,
+      referrerName: row.referrer_name,
       referred: row.referred,
+      referredName: row.referred_name,
       depth: row.depth,
       rule: row.rule,
       active: row.active,
