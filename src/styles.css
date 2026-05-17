@@ -1183,6 +1183,34 @@ h2 {
   gap: 8px;
 }
 
+.followup-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.followup-filter-grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.followup-filter-grid span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.followup-filter-grid select {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+  color: var(--text-main);
+  font: inherit;
+}
+
 .followup-board-item {
   display: flex;
   align-items: center;
@@ -1251,7 +1279,7 @@ h2 {
 .followup-summary-grid,
 .followup-form-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -3093,6 +3121,7 @@ h2 {
   .customer-detail-columns,
   .customer-ops-grid,
   .followup-board-summary,
+  .followup-filter-grid,
   .followup-summary-grid,
   .followup-form-grid,
   .referral-summary-grid,

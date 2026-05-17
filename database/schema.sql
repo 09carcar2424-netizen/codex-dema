@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS customer_followups (
   customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   due_date DATE,
+  reminder_date DATE,
+  assigned_to TEXT,
   status TEXT NOT NULL DEFAULT 'planned',
   priority TEXT NOT NULL DEFAULT 'normal',
   internal_note TEXT,
@@ -38,6 +40,10 @@ CREATE TABLE IF NOT EXISTS customer_followups (
   CHECK (status IN ('planned', 'in_progress', 'done', 'hold', 'canceled')),
   CHECK (priority IN ('low', 'normal', 'high', 'urgent'))
 );
+
+ALTER TABLE customer_followups
+  ADD COLUMN IF NOT EXISTS reminder_date DATE,
+  ADD COLUMN IF NOT EXISTS assigned_to TEXT;
 
 CREATE TABLE IF NOT EXISTS customer_portal_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

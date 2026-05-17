@@ -162,6 +162,8 @@ const emptyReferralRewardForm = {
 const emptyCustomerFollowupForm = {
   title: '',
   dueDate: '',
+  reminderDate: '',
+  assignedTo: 'BOSS SiteOps',
   status: 'planned',
   priority: 'normal',
   internalNote: '',
@@ -407,6 +409,7 @@ function App() {
   const [customerOpsDrafts, setCustomerOpsDrafts] = useState({});
   const [customerOpsSaveState, setCustomerOpsSaveState] = useState({});
   const [customerFollowupForm, setCustomerFollowupForm] = useState(emptyCustomerFollowupForm);
+  const [customerFollowupFilter, setCustomerFollowupFilter] = useState({ assignee: 'all', status: 'active' });
   const [customerFollowupSaveState, setCustomerFollowupSaveState] = useState({ status: 'idle', message: '' });
   const [customerFollowupActionState, setCustomerFollowupActionState] = useState({});
   const [settlementForm, setSettlementForm] = useState(emptySettlementForm);
@@ -661,6 +664,10 @@ function App() {
 
   const updateCustomerFollowupForm = (field, value) => {
     setCustomerFollowupForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const updateCustomerFollowupFilter = (field, value) => {
+    setCustomerFollowupFilter((current) => ({ ...current, [field]: value }));
   };
 
   const submitCustomerFollowup = async (event, customer) => {
@@ -1219,12 +1226,24 @@ function App() {
   const activeCustomerFollowups = (dashboard.followups || []).filter((row) =>
     !['done', 'canceled'].includes(String(row.status || '').toLowerCase()),
   );
+  const customerFollowupAssignees = Array.from(new Set(
+    (dashboard.followups || []).map((row) => row.assignedTo).filter(Boolean),
+  )).sort((a, b) => a.localeCompare(b));
   const overdueCustomerFollowups = activeCustomerFollowups.filter((row) =>
     row.dueDate && row.dueDate < todayDateKey,
   );
   const dueTodayCustomerFollowups = activeCustomerFollowups.filter((row) => row.dueDate === todayDateKey);
+  const filteredCustomerFollowups = (dashboard.followups || []).filter((row) => {
+    const rowStatus = String(row.status || '').toLowerCase();
+    const assigneeMatch = customerFollowupFilter.assignee === 'all'
+      || (row.assignedTo || '미지정') === customerFollowupFilter.assignee;
+    const statusMatch = customerFollowupFilter.status === 'all'
+      || (customerFollowupFilter.status === 'active' && !['done', 'canceled'].includes(rowStatus))
+      || rowStatus === customerFollowupFilter.status;
+    return assigneeMatch && statusMatch;
+  });
   const priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
-  const customerFollowupBoard = [...activeCustomerFollowups]
+  const customerFollowupBoard = [...filteredCustomerFollowups]
     .sort((a, b) => {
       const aOverdue = a.dueDate && a.dueDate < todayDateKey ? 0 : 1;
       const bOverdue = b.dueDate && b.dueDate < todayDateKey ? 0 : 1;
@@ -2565,6 +2584,35 @@ function App() {
                   <strong>{overdueCustomerFollowups.length}건</strong>
                 </article>
               </div>
+              <div className="followup-filter-grid">
+                <label>
+                  <span>담당자</span>
+                  <select
+                    value={customerFollowupFilter.assignee}
+                    onChange={(event) => updateCustomerFollowupFilter('assignee', event.target.value)}
+                  >
+                    <option value="all">전체 담당자</option>
+                    <option value="미지정">미지정</option>
+                    {customerFollowupAssignees.map((assignee) => (
+                      <option value={assignee} key={assignee}>{assignee}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>상태</span>
+                  <select
+                    value={customerFollowupFilter.status}
+                    onChange={(event) => updateCustomerFollowupFilter('status', event.target.value)}
+                  >
+                    <option value="active">진행 중만</option>
+                    <option value="planned">예정</option>
+                    <option value="in_progress">진행 중</option>
+                    <option value="hold">보류</option>
+                    <option value="done">완료</option>
+                    <option value="all">전체</option>
+                  </select>
+                </label>
+              </div>
               {customerFollowupBoard.length ? (
                 <div className="followup-board-list">
                   {customerFollowupBoard.map((followup) => (
@@ -2572,7 +2620,8 @@ function App() {
                       <div>
                         <strong>{followup.title}</strong>
                         <small>
-                          {followup.customerName || followup.customerCode} · {followup.dueDate || '예정일 없음'}
+                          {followup.customerName || followup.customerCode} · 담당 {followup.assignedTo || '미지정'} · 마감 {followup.dueDate || '없음'}
+                          {followup.reminderDate ? ` · 알림 ${followup.reminderDate}` : ''}
                         </small>
                       </div>
                       <div className="followup-statuses">
@@ -2583,20 +2632,24 @@ function App() {
                             {customerFollowupActionState[followup.id].message}
                           </small>
                         ) : null}
-                        <button
-                          type="button"
-                          onClick={() => submitCustomerFollowupStatus(followup, 'done')}
-                          disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
-                        >
-                          완료
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => submitCustomerFollowupStatus(followup, 'hold')}
-                          disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
-                        >
-                          보류
-                        </button>
+                        {!['done', 'canceled'].includes(String(followup.status || '').toLowerCase()) ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => submitCustomerFollowupStatus(followup, 'done')}
+                              disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
+                            >
+                              완료
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => submitCustomerFollowupStatus(followup, 'hold')}
+                              disabled={customerFollowupActionState[followup.id]?.status === 'saving'}
+                            >
+                              보류
+                            </button>
+                          </>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => selectPortalCustomer({ code: followup.customerCode })}
@@ -2729,6 +2782,23 @@ function App() {
                         />
                       </label>
                       <label>
+                        <span>알림 예정일</span>
+                        <input
+                          type="date"
+                          value={customerFollowupForm.reminderDate}
+                          onChange={(event) => updateCustomerFollowupForm('reminderDate', event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        <span>담당자</span>
+                        <input
+                          type="text"
+                          value={customerFollowupForm.assignedTo}
+                          placeholder="예: BOSS SiteOps"
+                          onChange={(event) => updateCustomerFollowupForm('assignedTo', event.target.value)}
+                        />
+                      </label>
+                      <label>
                         <span>상태</span>
                         <select
                           value={customerFollowupForm.status}
@@ -2781,7 +2851,10 @@ function App() {
                         <div className="followup-row" key={followup.id}>
                           <div>
                             <strong>{followup.title}</strong>
-                            <small>{followup.dueDate || '예정일 없음'} · {followup.internalNote || '메모 없음'}</small>
+                            <small>
+                              담당 {followup.assignedTo || '미지정'} · 마감 {followup.dueDate || '없음'}
+                              {followup.reminderDate ? ` · 알림 ${followup.reminderDate}` : ''} · {followup.internalNote || '메모 없음'}
+                            </small>
                           </div>
                           <div className="followup-statuses">
                             <StatusPill value={followup.priority} />

@@ -2226,6 +2226,8 @@ async function saveCustomerFollowup(req, res, customerCode) {
   const code = String(customerCode || '').trim().slice(0, 80);
   const title = String(body.title || '').trim().slice(0, 160);
   const dueDate = normalizeDateOnly(body.dueDate || body.due_date);
+  const reminderDate = normalizeDateOnly(body.reminderDate || body.reminder_date);
+  const assignedTo = String(body.assignedTo || body.assigned_to || '').trim().slice(0, 80);
   const status = normalizeChoice(body.status, ['planned', 'in_progress', 'done', 'hold', 'canceled'], 'planned');
   const priority = normalizeChoice(body.priority, ['low', 'normal', 'high', 'urgent'], 'normal');
   const internalNote = String(body.internalNote || body.internal_note || '').trim().slice(0, 1200);
@@ -2251,17 +2253,19 @@ async function saveCustomerFollowup(req, res, customerCode) {
   const result = await query(
     `
       insert into customer_followups (
-        customer_id, title, due_date, status, priority, internal_note, completed_at
+        customer_id, title, due_date, reminder_date, assigned_to, status, priority, internal_note, completed_at
       )
       values (
-        $1::uuid, $2, $3::date, $4, $5, $6,
-        case when $4 = 'done' then now() else null end
+        $1::uuid, $2, $3::date, $4::date, nullif($5, ''), $6, $7, $8,
+        case when $6 = 'done' then now() else null end
       )
       returning id::text, title, to_char(due_date, 'YYYY-MM-DD') as due_date,
+        to_char(reminder_date, 'YYYY-MM-DD') as reminder_date,
+        coalesce(assigned_to, '') as assigned_to,
         status, priority, coalesce(internal_note, '') as internal_note,
         created_at, updated_at, completed_at
     `,
-    [customerResult.rows[0].id, title, dueDate, status, priority, internalNote],
+    [customerResult.rows[0].id, title, dueDate, reminderDate, assignedTo, status, priority, internalNote],
   );
 
   const saved = result.rows[0];
@@ -2273,6 +2277,8 @@ async function saveCustomerFollowup(req, res, customerCode) {
       customerName: customerResult.rows[0].display_name,
       title: saved.title,
       dueDate: saved.due_date,
+      reminderDate: saved.reminder_date,
+      assignedTo: saved.assigned_to,
       status: saved.status,
       priority: saved.priority,
       internalNote: saved.internal_note,
@@ -2307,6 +2313,8 @@ async function updateCustomerFollowupStatus(req, res, followupId) {
         and cf.id = $1::uuid
       returning cf.id::text, c.customer_code, c.display_name as customer_name,
         cf.title, to_char(cf.due_date, 'YYYY-MM-DD') as due_date,
+        to_char(cf.reminder_date, 'YYYY-MM-DD') as reminder_date,
+        coalesce(cf.assigned_to, '') as assigned_to,
         cf.status, cf.priority, coalesce(cf.internal_note, '') as internal_note,
         cf.created_at, cf.updated_at, cf.completed_at
     `,
@@ -2326,6 +2334,8 @@ async function updateCustomerFollowupStatus(req, res, followupId) {
       customerName: saved.customer_name,
       title: saved.title,
       dueDate: saved.due_date,
+      reminderDate: saved.reminder_date,
+      assignedTo: saved.assigned_to,
       status: saved.status,
       priority: saved.priority,
       internalNote: saved.internal_note,
@@ -3175,6 +3185,8 @@ async function getDashboardData() {
       query(`
         select cf.id::text, c.customer_code, c.display_name as customer_name,
           cf.title, to_char(cf.due_date, 'YYYY-MM-DD') as due_date,
+          to_char(cf.reminder_date, 'YYYY-MM-DD') as reminder_date,
+          coalesce(cf.assigned_to, '') as assigned_to,
           cf.status, cf.priority, coalesce(cf.internal_note, '') as internal_note,
           cf.created_at, cf.updated_at, cf.completed_at
         from customer_followups cf
@@ -3188,6 +3200,7 @@ async function getDashboardData() {
             when 'canceled' then 5
             else 6
           end,
+          cf.reminder_date nulls last,
           cf.due_date nulls last,
           cf.updated_at desc
         limit 100
@@ -3545,6 +3558,8 @@ async function getDashboardData() {
       customerName: row.customer_name,
       title: row.title,
       dueDate: row.due_date,
+      reminderDate: row.reminder_date,
+      assignedTo: row.assigned_to,
       status: row.status,
       priority: row.priority,
       internalNote: row.internal_note,
