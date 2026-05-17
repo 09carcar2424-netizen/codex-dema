@@ -393,6 +393,7 @@ function App() {
   const [siteCustomerDrafts, setSiteCustomerDrafts] = useState({});
   const [siteCustomerSaveState, setSiteCustomerSaveState] = useState({});
   const [selectedCustomerCode, setSelectedCustomerCode] = useState(null);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [customerOpsDrafts, setCustomerOpsDrafts] = useState({});
   const [customerOpsSaveState, setCustomerOpsSaveState] = useState({});
   const [settlementForm, setSettlementForm] = useState(emptySettlementForm);
@@ -1105,8 +1106,24 @@ function App() {
   const portalCustomers = (hasLiveDashboard ? dashboard.customers : []).filter((customer) =>
     ['ACTIVE', 'LEAD', 'PENDING', 'SUBMITTED'].includes(String(customer.contractStatus || '').toUpperCase()),
   );
+  const normalizedCustomerSearch = customerSearchQuery.trim().toLowerCase();
+  const searchedPortalCustomers = normalizedCustomerSearch
+    ? portalCustomers.filter((customer) => [
+        customer.code,
+        customer.name,
+        customer.contactEmail,
+        customer.contractStatus,
+        customer.priority,
+        customer.internalNote,
+        ...(customer.tags || []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedCustomerSearch))
+    : portalCustomers;
   const selectedCustomer =
-    portalCustomers.find((customer) => customer.code === selectedCustomerCode) || portalCustomers[0] || null;
+    searchedPortalCustomers.find((customer) => customer.code === selectedCustomerCode) || searchedPortalCustomers[0] || null;
   const selectedCustomerSites = selectedCustomer
     ? dashboard.sites.filter((site) => site.customerCode === selectedCustomer.code).slice(0, 5)
     : [];
@@ -1203,17 +1220,17 @@ function App() {
     : { status: 'idle', message: '' };
 
   useEffect(() => {
-    if (!portalCustomers.length) {
+    if (!searchedPortalCustomers.length) {
       if (selectedCustomerCode) {
         setSelectedCustomerCode(null);
       }
       return;
     }
 
-    if (!selectedCustomerCode || !portalCustomers.some((customer) => customer.code === selectedCustomerCode)) {
-      setSelectedCustomerCode(portalCustomers[0].code);
+    if (!selectedCustomerCode || !searchedPortalCustomers.some((customer) => customer.code === selectedCustomerCode)) {
+      setSelectedCustomerCode(searchedPortalCustomers[0].code);
     }
-  }, [dashboard.customers, selectedCustomerCode]);
+  }, [dashboard.customers, customerSearchQuery, selectedCustomerCode]);
 
   const siteCustomerOptions = (hasLiveDashboard ? dashboard.customers : [])
     .filter((customer) => customer.code && customer.code !== 'NO_CUSTOMER')
@@ -2396,6 +2413,25 @@ function App() {
                 <span>{portalSummary.safetyDefault}</span>
               </div>
             </div>
+            <div className="customer-search-bar">
+              <label>
+                <span>고객 검색</span>
+                <input
+                  type="search"
+                  value={customerSearchQuery}
+                  placeholder="이름, 이메일, 고객코드, 태그로 검색"
+                  onChange={(event) => setCustomerSearchQuery(event.target.value)}
+                />
+              </label>
+              <small>
+                {searchedPortalCustomers.length}명 표시 / 전체 {portalCustomers.length}명
+              </small>
+              {customerSearchQuery ? (
+                <button type="button" onClick={() => setCustomerSearchQuery('')}>
+                  초기화
+                </button>
+              ) : null}
+            </div>
             <div className="ops-table customer-table" role="table">
               <div className="ops-row ops-head" role="row">
                 <span>고객</span>
@@ -2404,7 +2440,7 @@ function App() {
                 <span>애드센스</span>
                 <span>정산</span>
               </div>
-              {portalCustomers.map((customer) => (
+              {searchedPortalCustomers.map((customer) => (
                 <div
                   className={`ops-row customer-select-row ${selectedCustomer?.code === customer.code ? 'selected' : ''}`}
                   role="row"
@@ -2430,7 +2466,7 @@ function App() {
                 </div>
               ))}
             </div>
-            {portalCustomers.length === 0 ? (
+            {searchedPortalCustomers.length === 0 ? (
               <div className="empty-state">
                 아직 고객 포털에 연결된 고객 데이터가 없습니다. 회원가입, 계약 요청, 문의가 접수되면 이곳에 실제 고객 기준으로 표시됩니다.
               </div>

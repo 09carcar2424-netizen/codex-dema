@@ -1024,6 +1024,51 @@ h2 {
   padding-top: 16px;
 }
 
+.customer-search-bar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  margin: 16px 0 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-soft);
+}
+
+.customer-search-bar label {
+  display: grid;
+  gap: 6px;
+}
+
+.customer-search-bar label span,
+.customer-search-bar small {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.customer-search-bar input {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-bg);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.customer-search-bar button {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--panel-bg);
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
 .customer-select-row {
   cursor: pointer;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
@@ -2751,6 +2796,7 @@ h2 {
   .trust-summary-grid,
   .revenue-policy-grid,
   .realtime-card-grid,
+  .customer-search-bar,
   .customer-detail-summary,
   .customer-detail-columns,
   .customer-ops-grid,
