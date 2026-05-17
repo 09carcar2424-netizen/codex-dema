@@ -505,6 +505,33 @@ function wordfriends_siteops_portal_styles() {
         font-size: 12px;
         font-weight: 800;
       }
+      .wordfriends-site-progress {
+        margin-top: 12px;
+      }
+      .wordfriends-site-progress-track {
+        overflow: hidden;
+        height: 9px;
+        border-radius: 999px;
+        background: #d9e2e7;
+      }
+      .wordfriends-site-progress-fill {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #1f8a70;
+      }
+      .wordfriends-site-note {
+        margin-top: 12px;
+        border-left: 3px solid #1f8a70;
+        padding: 10px 12px;
+        background: #fff;
+      }
+      .wordfriends-site-card a.wordfriends-site-link {
+        color: #126451;
+        font-weight: 800;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
       .wordfriends-summary-row {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1464,17 +1491,51 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
       <?php else : ?>
         <div class="wordfriends-site-grid">
           <?php foreach ($sites as $site) : ?>
+            <?php
+              $progress = max(0, min(100, intval($site['progressPercent'] ?? 0)));
+              $content = is_array($site['content'] ?? null) ? $site['content'] : [];
+              $sitemap = is_array($site['sitemap'] ?? null) ? $site['sitemap'] : [];
+              $seo = is_array($site['seo'] ?? null) ? $site['seo'] : [];
+            ?>
             <article class="wordfriends-site-card">
               <header>
                 <h3><?php echo esc_html($site['domain'] ?? $site['siteName'] ?? 'Wordfriends 사이트'); ?></h3>
                 <span class="wordfriends-question-status"><?php echo esc_html($site['statusLabel'] ?? '준비 중'); ?></span>
               </header>
+              <?php if (!empty($site['websiteUrl'])) : ?>
+                <p class="wordfriends-auth-small"><a class="wordfriends-site-link" href="<?php echo esc_url($site['websiteUrl']); ?>" target="_blank" rel="noopener noreferrer">사이트 열기</a></p>
+              <?php endif; ?>
               <div class="wordfriends-site-meta">
                 <span><small>콘텐츠</small><?php echo esc_html($site['contentStatus'] ?? '콘텐츠 준비 중'); ?></span>
                 <span><small>사이트맵/SEO</small><?php echo esc_html($site['sitemap']['statusLabel'] ?? '준비 중'); ?></span>
                 <span><small>애드센스 참고</small><?php echo esc_html($site['seo']['adsenseStatus'] ?? 'not_started'); ?></span>
                 <span><small>정산 참고</small><?php echo esc_html($site['settlementStatus'] ?? '정산 준비 중'); ?></span>
               </div>
+              <div class="wordfriends-site-meta">
+                <span><small>워드프레스</small><?php echo esc_html($site['wpStatusLabel'] ?? '연결 준비'); ?></span>
+                <span><small>운영 점검</small><?php echo esc_html($site['riskLabel'] ?? '기본 점검'); ?></span>
+                <span><small>애드센스 표시</small><?php echo esc_html($seo['adsenseStatusLabel'] ?? $seo['adsenseStatus'] ?? '준비 중'); ?></span>
+                <span><small>사이트맵 확인</small><?php echo esc_html($sitemap['lastCheckedAt'] ?? '확인 전'); ?></span>
+              </div>
+              <div class="wordfriends-site-progress">
+                <div class="wordfriends-site-progress-track" aria-label="콘텐츠 진행률">
+                  <span class="wordfriends-site-progress-fill" style="width: <?php echo esc_attr($progress); ?>%;"></span>
+                </div>
+                <p class="wordfriends-auth-small">
+                  콘텐츠 진행률 <?php echo esc_html($progress); ?>%
+                  · 발행 <?php echo esc_html(intval($content['publishedCount'] ?? 0)); ?>건
+                  · 준비 <?php echo esc_html(intval($content['approvedCount'] ?? 0) + intval($content['inProgressCount'] ?? 0)); ?>건
+                </p>
+              </div>
+              <?php if (!empty($content['latestTitle'])) : ?>
+                <div class="wordfriends-site-note">
+                  <strong>최근 발행</strong>
+                  <p><?php echo esc_html($content['latestTitle']); ?></p>
+                  <?php if (!empty($content['latestUrl'])) : ?>
+                    <a class="wordfriends-site-link" href="<?php echo esc_url($content['latestUrl']); ?>" target="_blank" rel="noopener noreferrer">게시글 보기</a>
+                  <?php endif; ?>
+                </div>
+              <?php endif; ?>
               <?php if (!empty($site['content']['nextScheduledAt'])) : ?>
                 <p class="wordfriends-auth-small">다음 예약: <?php echo esc_html($site['content']['nextScheduledAt']); ?></p>
               <?php endif; ?>

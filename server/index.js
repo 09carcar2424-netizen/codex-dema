@@ -1339,6 +1339,28 @@ function getPublicSettlementStatusLabel(status) {
   return '정산 준비 중';
 }
 
+function getPublicRiskLabel(riskLevel) {
+  if (riskLevel === 'low') return '안정';
+  if (riskLevel === 'medium') return '확인 중';
+  if (['high', 'critical'].includes(riskLevel)) return '운영 검토';
+  return '기본 점검';
+}
+
+function getPublicWpStatusLabel(status) {
+  if (status === 'verified') return '연결 확인';
+  if (status === 'failed') return '확인 필요';
+  if (status === 'disabled') return '비활성';
+  return '연결 준비';
+}
+
+function getPublicAdsenseStatusLabel(status) {
+  if (status === 'approved') return '승인 확인';
+  if (status === 'submitted') return '검토 제출';
+  if (status === 'rejected') return '재검토 필요';
+  if (status === 'blocked') return '보류';
+  return '준비 중';
+}
+
 function getPublicReferralStatusLabel(status) {
   if (status === 'paid') return '지급 완료';
   if (status === 'payable') return '지급 예정';
@@ -1385,20 +1407,39 @@ function mapPublicReferralReward(row) {
 }
 
 function mapPublicSite(row) {
+  const publishedCount = Number(row.published_count || 0);
+  const approvedCount = Number(row.approved_count || 0);
+  const inProgressCount = Number(row.in_progress_count || 0);
+  const failedCount = Number(row.failed_count || 0);
+  const totalTrackedCount = publishedCount + approvedCount + inProgressCount + failedCount;
+  const progressPercent = totalTrackedCount > 0
+    ? Math.min(100, Math.round(((publishedCount + approvedCount * 0.7 + inProgressCount * 0.35) / totalTrackedCount) * 100))
+    : 0;
+  const websiteUrl = row.wp_base_url || (row.domain ? `https://${row.domain}` : '');
+
   return {
     siteKey: row.site_key,
     domain: row.domain,
     siteName: row.site_name || row.domain,
+    websiteUrl,
     status: row.status,
     statusLabel: getPublicSiteStatusLabel(row.status),
     wpStatus: row.wp_status || 'pending',
+    wpStatusLabel: getPublicWpStatusLabel(row.wp_status),
+    riskLabel: getPublicRiskLabel(row.risk_level),
+    approvalStatus: row.approval_status || 'not_submitted',
+    monetizeMode: row.monetize_mode || 'not_set',
     contentStatus: getPublicContentStatusLabel(row),
+    progressPercent,
     content: {
-      publishedCount: Number(row.published_count || 0),
-      approvedCount: Number(row.approved_count || 0),
-      inProgressCount: Number(row.in_progress_count || 0),
-      failedCount: Number(row.failed_count || 0),
+      publishedCount,
+      approvedCount,
+      inProgressCount,
+      failedCount,
       nextScheduledAt: row.next_scheduled_at,
+      lastPublishedAt: row.last_published_at,
+      latestTitle: row.latest_title || '',
+      latestUrl: row.latest_url || '',
     },
     sitemap: {
       status: row.sitemap_status || 'draft',
@@ -1408,6 +1449,7 @@ function mapPublicSite(row) {
     seo: {
       adsTxtStatus: row.ads_txt_status || 'unknown',
       adsenseStatus: row.adsense_status || 'not_started',
+      adsenseStatusLabel: getPublicAdsenseStatusLabel(row.adsense_status),
       note: '승인, 트래픽, 수익은 보장되지 않으며 운영 현황 기준으로 안내됩니다.',
     },
     settlementStatus: getPublicSettlementStatusLabel(row.settlement_status),
@@ -1444,6 +1486,8 @@ async function listWordfriendsSites(req, res, url) {
         where $2 <> '' and lower(email) = $2
       )
       select s.site_key, s.domain, s.site_name, s.status, s.updated_at,
+        s.risk_level, s.approval_status, s.monetize_mode,
+        wc.wp_base_url,
         wc.status as wp_status,
         ads.application_status as adsense_status,
         ads.ads_txt_status,
@@ -1452,6 +1496,9 @@ async function listWordfriendsSites(req, res, url) {
         cq.in_progress_count,
         cq.failed_count,
         cq.next_scheduled_at,
+        pub.last_published_at,
+        pub.latest_title,
+        pub.latest_url,
         ss.submission_status as sitemap_status,
         ss.last_checked_at as sitemap_last_checked_at,
         rs.status as settlement_status
@@ -1469,6 +1516,17 @@ async function listWordfriendsSites(req, res, url) {
         from content_queue
         where site_id = s.id or site_key = s.site_key
       ) cq on true
+      left join lateral (
+        select
+          to_char(cp.published_at, 'YYYY-MM-DD HH24:MI') as last_published_at,
+          coalesce(cp.title->>'ko', cp.title->>'title', cq2.my_title, cq2.keyword) as latest_title,
+          cp.post_url as latest_url
+        from content_publications cp
+        join content_queue cq2 on cq2.id = cp.content_queue_id
+        where cq2.site_id = s.id or cq2.site_key = s.site_key
+        order by cp.published_at desc nulls last, cp.updated_at desc
+        limit 1
+      ) pub on true
       left join lateral (
         select submission_status, to_char(last_checked_at, 'YYYY-MM-DD HH24:MI') as last_checked_at
         from sitemap_submissions
