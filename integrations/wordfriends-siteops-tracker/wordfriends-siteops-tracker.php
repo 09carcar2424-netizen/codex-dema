@@ -467,13 +467,13 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-site-grid {
         display: grid;
-        gap: 14px;
+        gap: 12px;
         margin-top: 18px;
       }
       .wordfriends-site-card {
         border: 1px solid #d9e2e7;
         border-radius: 8px;
-        padding: 16px;
+        padding: 14px;
         background: #f8fbfc;
       }
       .wordfriends-site-card header {
@@ -481,38 +481,40 @@ function wordfriends_siteops_portal_styles() {
         flex-wrap: wrap;
         justify-content: space-between;
         gap: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
       }
       .wordfriends-site-card h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: 17px;
         line-height: 1.35;
       }
       .wordfriends-site-meta {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 10px;
-        margin-top: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+        gap: 8px;
+        margin-top: 10px;
       }
       .wordfriends-site-meta span {
         display: grid;
         gap: 3px;
         border-radius: 8px;
-        padding: 10px;
+        padding: 9px;
         background: #fff;
         color: #17212b;
+        font-size: 15px;
+        line-height: 1.35;
       }
       .wordfriends-site-meta small {
         color: #64748b;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
       }
       .wordfriends-site-progress {
-        margin-top: 12px;
+        margin-top: 10px;
       }
       .wordfriends-site-progress-track {
         overflow: hidden;
-        height: 9px;
+        height: 7px;
         border-radius: 999px;
         background: #d9e2e7;
       }
@@ -527,6 +529,17 @@ function wordfriends_siteops_portal_styles() {
         border-left: 3px solid #1f8a70;
         padding: 10px 12px;
         background: #fff;
+      }
+      .wordfriends-site-details {
+        margin-top: 10px;
+        border-top: 1px solid #d9e2e7;
+        padding-top: 10px;
+      }
+      .wordfriends-site-details summary {
+        cursor: pointer;
+        color: #126451;
+        font-size: 13px;
+        font-weight: 800;
       }
       .wordfriends-site-card a.wordfriends-site-link {
         color: #126451;
@@ -1665,14 +1678,8 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
               <div class="wordfriends-site-meta">
                 <span><small>콘텐츠</small><?php echo esc_html($site['contentStatus'] ?? '콘텐츠 준비 중'); ?></span>
                 <span><small>사이트맵</small><?php echo esc_html($sitemap['statusLabel'] ?? '준비 중'); ?></span>
-                <span><small>애드센스 참고</small><?php echo esc_html($seo['adsenseStatusLabel'] ?? '준비 중'); ?></span>
+                <span><small>애드센스</small><?php echo esc_html($seo['adsenseStatusLabel'] ?? '준비 중'); ?></span>
                 <span><small>정산 참고</small><?php echo esc_html($site['settlementStatus'] ?? '정산 준비 중'); ?></span>
-              </div>
-              <div class="wordfriends-site-meta">
-                <span><small>워드프레스</small><?php echo esc_html($site['wpStatusLabel'] ?? '연결 준비'); ?></span>
-                <span><small>운영 점검</small><?php echo esc_html($site['riskLabel'] ?? '기본 점검'); ?></span>
-                <span><small>ads.txt</small><?php echo esc_html($seo['adsTxtStatusLabel'] ?? '확인 전'); ?></span>
-                <span><small>검색엔진</small><?php echo esc_html($sitemap['searchEngineLabel'] ?? 'Google'); ?></span>
               </div>
               <div class="wordfriends-site-progress">
                 <div class="wordfriends-site-progress-track" aria-label="콘텐츠 진행률">
@@ -1685,27 +1692,34 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
                   · 실패 <?php echo esc_html(intval($content['failedCount'] ?? 0)); ?>건
                 </p>
               </div>
-              <div class="wordfriends-site-meta">
-                <span><small>사이트맵 제출</small><?php echo esc_html($sitemap['lastSubmittedAt'] ?? '제출 전'); ?></span>
-                <span><small>사이트맵 확인</small><?php echo esc_html($sitemap['lastCheckedAt'] ?? '확인 전'); ?></span>
-                <span><small>애드센스 확인</small><?php echo esc_html($seo['lastCheckedAt'] ?? '확인 전'); ?></span>
-                <span><small>최근 정산월</small><?php echo esc_html($site['settlementMonth'] ?? '준비 중'); ?></span>
-              </div>
-              <?php if (!empty($sitemap['sitemapUrl'])) : ?>
-                <p class="wordfriends-auth-small"><a class="wordfriends-site-link" href="<?php echo esc_url($sitemap['sitemapUrl']); ?>" target="_blank" rel="noopener noreferrer">사이트맵 보기</a></p>
-              <?php endif; ?>
-              <?php if (!empty($content['latestTitle'])) : ?>
-                <div class="wordfriends-site-note">
-                  <strong>최근 발행</strong>
-                  <p><?php echo esc_html($content['latestTitle']); ?></p>
-                  <?php if (!empty($content['latestUrl'])) : ?>
-                    <a class="wordfriends-site-link" href="<?php echo esc_url($content['latestUrl']); ?>" target="_blank" rel="noopener noreferrer">게시글 보기</a>
-                  <?php endif; ?>
+              <details class="wordfriends-site-details">
+                <summary>세부 현황 보기</summary>
+                <div class="wordfriends-site-meta">
+                  <span><small>워드프레스</small><?php echo esc_html($site['wpStatusLabel'] ?? '연결 준비'); ?></span>
+                  <span><small>운영 점검</small><?php echo esc_html($site['riskLabel'] ?? '기본 점검'); ?></span>
+                  <span><small>ads.txt</small><?php echo esc_html($seo['adsTxtStatusLabel'] ?? '확인 전'); ?></span>
+                  <span><small>검색엔진</small><?php echo esc_html($sitemap['searchEngineLabel'] ?? 'Google'); ?></span>
+                  <span><small>사이트맵 제출</small><?php echo esc_html($sitemap['lastSubmittedAt'] ?? '제출 전'); ?></span>
+                  <span><small>사이트맵 확인</small><?php echo esc_html($sitemap['lastCheckedAt'] ?? '확인 전'); ?></span>
+                  <span><small>애드센스 확인</small><?php echo esc_html($seo['lastCheckedAt'] ?? '확인 전'); ?></span>
+                  <span><small>최근 정산월</small><?php echo esc_html($site['settlementMonth'] ?? '준비 중'); ?></span>
                 </div>
-              <?php endif; ?>
-              <?php if (!empty($site['content']['nextScheduledAt'])) : ?>
-                <p class="wordfriends-auth-small">다음 예약: <?php echo esc_html($site['content']['nextScheduledAt']); ?></p>
-              <?php endif; ?>
+                <?php if (!empty($sitemap['sitemapUrl'])) : ?>
+                  <p class="wordfriends-auth-small"><a class="wordfriends-site-link" href="<?php echo esc_url($sitemap['sitemapUrl']); ?>" target="_blank" rel="noopener noreferrer">사이트맵 보기</a></p>
+                <?php endif; ?>
+                <?php if (!empty($content['latestTitle'])) : ?>
+                  <div class="wordfriends-site-note">
+                    <strong>최근 발행</strong>
+                    <p><?php echo esc_html($content['latestTitle']); ?></p>
+                    <?php if (!empty($content['latestUrl'])) : ?>
+                      <a class="wordfriends-site-link" href="<?php echo esc_url($content['latestUrl']); ?>" target="_blank" rel="noopener noreferrer">게시글 보기</a>
+                    <?php endif; ?>
+                  </div>
+                <?php endif; ?>
+                <?php if (!empty($site['content']['nextScheduledAt'])) : ?>
+                  <p class="wordfriends-auth-small">다음 예약: <?php echo esc_html($site['content']['nextScheduledAt']); ?></p>
+                <?php endif; ?>
+              </details>
               <p class="wordfriends-auth-small">승인, 트래픽, 수익은 보장되지 않으며 운영 현황과 검토 결과를 기준으로 안내됩니다.</p>
             </article>
           <?php endforeach; ?>

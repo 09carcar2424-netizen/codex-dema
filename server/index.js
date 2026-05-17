@@ -1361,9 +1361,9 @@ function getPublicWpStatusLabel(status) {
 }
 
 function getPublicAdsenseStatusLabel(status) {
-  if (status === 'approved') return '승인 확인';
-  if (status === 'submitted') return '검토 제출';
-  if (status === 'rejected') return '재검토 필요';
+  if (status === 'approved') return '상태 확인됨';
+  if (status === 'submitted') return '검토 중';
+  if (status === 'rejected') return '재확인 필요';
   if (status === 'blocked') return '보류';
   return '준비 중';
 }
