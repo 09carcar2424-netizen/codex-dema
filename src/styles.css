@@ -1143,6 +1143,82 @@ h2 {
   background: var(--panel-bg);
 }
 
+.customer-followup-board {
+  margin: 14px 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 14px;
+  background: var(--panel-bg);
+}
+
+.followup-board-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+
+.followup-board-summary article {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+}
+
+.followup-board-summary span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.followup-board-summary strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 20px;
+}
+
+.followup-board-list {
+  display: grid;
+  gap: 8px;
+}
+
+.followup-board-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+}
+
+.followup-board-item small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.followup-board-item button {
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--panel-bg);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.followup-board-item button:hover,
+.followup-board-item button:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--panel-border));
+  color: var(--accent);
+  outline: none;
+}
+
 .customer-followup-panel {
   margin-top: 14px;
   border: 1px solid var(--panel-border);
@@ -2977,6 +3053,7 @@ h2 {
   .customer-detail-summary,
   .customer-detail-columns,
   .customer-ops-grid,
+  .followup-board-summary,
   .followup-summary-grid,
   .followup-form-grid,
   .referral-summary-grid,

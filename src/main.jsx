@@ -1185,7 +1185,32 @@ function App() {
   const activeSelectedCustomerFollowups = selectedCustomerFollowups.filter((row) =>
     !['done', 'canceled'].includes(String(row.status || '').toLowerCase()),
   );
-  const todayDateKey = new Date().toISOString().slice(0, 10);
+  const todayDateKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
+  const activeCustomerFollowups = (dashboard.followups || []).filter((row) =>
+    !['done', 'canceled'].includes(String(row.status || '').toLowerCase()),
+  );
+  const overdueCustomerFollowups = activeCustomerFollowups.filter((row) =>
+    row.dueDate && row.dueDate < todayDateKey,
+  );
+  const dueTodayCustomerFollowups = activeCustomerFollowups.filter((row) => row.dueDate === todayDateKey);
+  const priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
+  const customerFollowupBoard = [...activeCustomerFollowups]
+    .sort((a, b) => {
+      const aOverdue = a.dueDate && a.dueDate < todayDateKey ? 0 : 1;
+      const bOverdue = b.dueDate && b.dueDate < todayDateKey ? 0 : 1;
+      if (aOverdue !== bOverdue) return aOverdue - bOverdue;
+
+      const aToday = a.dueDate === todayDateKey ? 0 : 1;
+      const bToday = b.dueDate === todayDateKey ? 0 : 1;
+      if (aToday !== bToday) return aToday - bToday;
+
+      const aPriority = priorityRank[String(a.priority || 'normal').toLowerCase()] ?? 2;
+      const bPriority = priorityRank[String(b.priority || 'normal').toLowerCase()] ?? 2;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+
+      return String(a.dueDate || '9999-12-31').localeCompare(String(b.dueDate || '9999-12-31'));
+    })
+    .slice(0, 6);
   const selectedCustomerOverdueFollowups = activeSelectedCustomerFollowups.filter((row) =>
     row.dueDate && row.dueDate < todayDateKey,
   );
@@ -2487,6 +2512,57 @@ function App() {
                   초기화
                 </button>
               ) : null}
+            </div>
+            <div className="customer-followup-board">
+              <div className="section-subheading">
+                <div>
+                  <p className="eyebrow">customer follow-up</p>
+                  <h3>오늘 볼 고객 후속 조치</h3>
+                </div>
+                <StatusPill value={overdueCustomerFollowups.length ? 'urgent' : 'planned'} />
+              </div>
+              <div className="followup-board-summary">
+                <article>
+                  <span>전체 진행</span>
+                  <strong>{activeCustomerFollowups.length}건</strong>
+                </article>
+                <article>
+                  <span>오늘 예정</span>
+                  <strong>{dueTodayCustomerFollowups.length}건</strong>
+                </article>
+                <article>
+                  <span>지연</span>
+                  <strong>{overdueCustomerFollowups.length}건</strong>
+                </article>
+              </div>
+              {customerFollowupBoard.length ? (
+                <div className="followup-board-list">
+                  {customerFollowupBoard.map((followup) => (
+                    <div className="followup-board-item" key={followup.id}>
+                      <div>
+                        <strong>{followup.title}</strong>
+                        <small>
+                          {followup.customerName || followup.customerCode} · {followup.dueDate || '예정일 없음'}
+                        </small>
+                      </div>
+                      <div className="followup-statuses">
+                        <StatusPill value={followup.priority} />
+                        <StatusPill value={followup.status} />
+                        <button
+                          type="button"
+                          onClick={() => selectPortalCustomer({ code: followup.customerCode })}
+                        >
+                          고객 열기
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state compact">
+                  현재 진행 중인 고객 후속 조치가 없습니다. 고객 상세에서 다음 연락이나 확인 일을 등록하면 여기에 표시됩니다.
+                </div>
+              )}
             </div>
             <div className="ops-table customer-table" role="table">
               <div className="ops-row ops-head" role="row">
