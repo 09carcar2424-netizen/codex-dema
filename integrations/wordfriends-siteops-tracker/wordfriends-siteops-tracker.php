@@ -1014,6 +1014,97 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-pagination .is-muted {
         color: #6f918f;
       }
+      body:has(.wordfriends-auth) .entry-content {
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      .wordfriends-auth {
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .wordfriends-auth h2 {
+        font-size: 26px;
+        line-height: 1.25;
+        margin-bottom: 10px;
+      }
+      .wordfriends-auth h3,
+      .wordfriends-question-card h3 {
+        font-size: 16px;
+        line-height: 1.35;
+      }
+      .wordfriends-auth p {
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      .wordfriends-auth label {
+        font-size: 14px;
+      }
+      .wordfriends-auth input[type="text"],
+      .wordfriends-auth input[type="email"],
+      .wordfriends-auth input[type="tel"],
+      .wordfriends-auth input[type="number"],
+      .wordfriends-auth input[type="password"],
+      .wordfriends-auth select,
+      .wordfriends-auth textarea,
+      .wordfriends-question-filters input,
+      .wordfriends-question-filters select,
+      .wordfriends-site-filters input,
+      .wordfriends-site-filters select {
+        min-height: 40px;
+        font-size: 14px;
+      }
+      .wordfriends-auth textarea {
+        min-height: 132px;
+      }
+      .wordfriends-button,
+      .wordfriends-question-filters button,
+      .wordfriends-site-filters button {
+        min-height: 40px;
+        font-size: 13px;
+      }
+      .wordfriends-dashboard-card {
+        min-height: 122px;
+        padding: 14px;
+      }
+      .wordfriends-dashboard-card strong {
+        font-size: 18px;
+        line-height: 1.25;
+      }
+      .wordfriends-dashboard-card span {
+        font-size: 15px;
+        line-height: 1.45;
+      }
+      .wordfriends-dashboard-card .wordfriends-dashboard-detail,
+      .wordfriends-summary-box small,
+      .wordfriends-auth-small,
+      .wordfriends-question-filter-summary,
+      .wordfriends-site-filter-summary {
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .wordfriends-summary-box strong {
+        font-size: 16px;
+      }
+      .wordfriends-question-card p,
+      .wordfriends-question-answer,
+      .wordfriends-table td {
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .wordfriends-question-answer strong {
+        font-size: 15px;
+      }
+      @media (max-width: 640px) {
+        .wordfriends-auth h2 {
+          font-size: 24px;
+        }
+        .wordfriends-auth p {
+          font-size: 14px;
+        }
+        .wordfriends-dashboard-card strong {
+          font-size: 17px;
+        }
+      }
     ');
 }
 add_action('wp_enqueue_scripts', 'wordfriends_siteops_portal_styles');
