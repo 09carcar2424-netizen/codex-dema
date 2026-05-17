@@ -711,6 +711,18 @@ function wordfriends_siteops_portal_styles() {
         flex-wrap: wrap;
         gap: 10px;
       }
+      .wordfriends-services-actions .wordfriends-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 1 auto;
+        min-width: 110px;
+        line-height: 1.2;
+        text-align: center;
+      }
+      .wordfriends-services-actions .wordfriends-button.wordfriends-button-secondary {
+        min-width: 150px;
+      }
       .wordfriends-services h3 {
         margin: 0;
         color: inherit;
@@ -765,19 +777,22 @@ function wordfriends_siteops_portal_styles() {
         list-style: none;
       }
       .wordfriends-service-list li {
+        display: grid;
+        grid-template-columns: 6px 1fr;
+        align-items: start;
+        column-gap: 8px;
         color: #dffdf8;
         font-size: 14px;
         line-height: 1.55;
       }
       .wordfriends-service-list li::before {
         content: "";
-        display: inline-block;
+        display: block;
         width: 6px;
         height: 6px;
-        margin-right: 8px;
+        margin-top: 8px;
         border-radius: 999px;
         background: #2bd4b7;
-        vertical-align: 2px;
       }
       .wordfriends-service-flow {
         display: grid;
