@@ -554,6 +554,37 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-summary-box strong {
         font-size: 18px;
       }
+      .wordfriends-dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin: 18px 0;
+      }
+      .wordfriends-dashboard-card {
+        display: grid;
+        gap: 8px;
+        border: 1px solid #d9e2e7;
+        border-radius: 8px;
+        padding: 16px;
+        background: #f8fbfc;
+        color: #17212b;
+        text-decoration: none;
+      }
+      .wordfriends-dashboard-card:hover {
+        border-color: #1f8a70;
+      }
+      .wordfriends-dashboard-card small {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .wordfriends-dashboard-card strong {
+        font-size: 22px;
+      }
+      .wordfriends-dashboard-card span {
+        color: #5b6872;
+        line-height: 1.5;
+      }
       .wordfriends-table {
         width: 100%;
         border-collapse: collapse;
@@ -957,7 +988,10 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
     ], $atts, 'wordfriends_signup');
 
     if (is_user_logged_in()) {
-        return '<div class="wordfriends-auth"><h2>이미 로그인되어 있습니다.</h2><p>내 사이트 현황과 계약 진행 화면은 순차적으로 연결됩니다.</p></div>';
+        return wordfriends_siteops_dashboard_shortcode([
+            'title' => '고객 포털',
+            'subtitle' => '내 사이트, 문의, 정산/추천, 알림 상태를 한 번에 확인할 수 있습니다.',
+        ]);
     }
 
     $message = $GLOBALS['wordfriends_signup_message'] ?? '';
@@ -1071,7 +1105,10 @@ function wordfriends_siteops_login_shortcode($atts = []) {
     ], $atts, 'wordfriends_login');
 
     if (is_user_logged_in()) {
-        return '<div class="wordfriends-auth"><h2>로그인되어 있습니다.</h2><p>고객용 대시보드가 준비되는 대로 이 계정에 연결됩니다.</p></div>';
+        return wordfriends_siteops_dashboard_shortcode([
+            'title' => '고객 포털',
+            'subtitle' => '내 사이트, 문의, 정산/추천, 알림 상태를 한 번에 확인할 수 있습니다.',
+        ]);
     }
 
     $error = $GLOBALS['wordfriends_login_error'] ?? '';
@@ -1362,6 +1399,96 @@ function wordfriends_siteops_question_category_label($category) {
 
     return $labels[$category] ?? '일반 문의';
 }
+
+function wordfriends_siteops_dashboard_shortcode($atts = []) {
+    $atts = shortcode_atts([
+        'title' => '고객 포털',
+        'subtitle' => '내 사이트, 문의, 정산/추천, 알림 상태를 한 번에 확인할 수 있습니다.',
+    ], $atts, 'wordfriends_dashboard');
+
+    if (!is_user_logged_in()) {
+        return '<section class="wordfriends-auth"><h2>로그인이 필요합니다.</h2><p>고객 포털은 로그인 후 확인할 수 있습니다.</p><a class="wordfriends-button wordfriends-button-secondary" href="' . esc_url(wordfriends_siteops_login_page_url()) . '">로그인</a></section>';
+    }
+
+    $user = wp_get_current_user();
+    $customer_code = wordfriends_siteops_customer_code();
+    $query = [
+        'customerCode' => $customer_code,
+        'email' => $user->user_email,
+    ];
+
+    $sites = [];
+    $questions = [];
+    $timeline = [];
+    $settlements = [];
+    $referral_code = null;
+
+    $sites_result = wordfriends_siteops_get('/api/wordfriends/sites', $query);
+    if (!is_wp_error($sites_result)) {
+        $body = json_decode(wp_remote_retrieve_body($sites_result), true);
+        $sites = is_array($body['sites'] ?? null) ? $body['sites'] : [];
+    }
+
+    $questions_result = wordfriends_siteops_get('/api/wordfriends/questions', $query);
+    if (!is_wp_error($questions_result)) {
+        $body = json_decode(wp_remote_retrieve_body($questions_result), true);
+        $questions = is_array($body['questions'] ?? null) ? $body['questions'] : [];
+    }
+
+    $timeline_result = wordfriends_siteops_get('/api/wordfriends/timeline', $query);
+    if (!is_wp_error($timeline_result)) {
+        $body = json_decode(wp_remote_retrieve_body($timeline_result), true);
+        $timeline = is_array($body['timeline'] ?? null) ? $body['timeline'] : [];
+    }
+
+    $settlement_result = wordfriends_siteops_get('/api/wordfriends/settlement-referrals', $query);
+    if (!is_wp_error($settlement_result)) {
+        $body = json_decode(wp_remote_retrieve_body($settlement_result), true);
+        $settlements = is_array($body['settlements'] ?? null) ? $body['settlements'] : [];
+        $referral_code = is_array($body['referralCode'] ?? null) ? $body['referralCode'] : null;
+    }
+
+    $open_questions = array_filter($questions, function ($question) {
+        return !in_array($question['status'] ?? '', ['answered', 'closed'], true);
+    });
+    $latest_site = $sites[0] ?? null;
+    $latest_question = $questions[0] ?? null;
+    $latest_notice = $timeline[0] ?? null;
+    $latest_settlement = $settlements[0] ?? null;
+
+    ob_start();
+    ?>
+    <section class="wordfriends-auth">
+      <h2><?php echo esc_html($atts['title']); ?></h2>
+      <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <div class="wordfriends-dashboard-grid">
+        <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_my_sites_page_url()); ?>">
+          <small>내 사이트</small>
+          <strong><?php echo esc_html(count($sites)); ?>개</strong>
+          <span><?php echo esc_html($latest_site ? (($latest_site['domain'] ?? '') . ' · ' . ($latest_site['statusLabel'] ?? '준비 중')) : '연결된 사이트가 표시됩니다.'); ?></span>
+        </a>
+        <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_my_questions_page_url()); ?>">
+          <small>내 문의</small>
+          <strong><?php echo esc_html(count($open_questions)); ?>건 확인 중</strong>
+          <span><?php echo esc_html($latest_question ? (($latest_question['categoryLabel'] ?? '문의') . ' · ' . ($latest_question['statusLabel'] ?? '접수')) : '새 문의와 답변 상태를 확인합니다.'); ?></span>
+        </a>
+        <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_settlement_referrals_page_url()); ?>">
+          <small>정산/추천</small>
+          <strong><?php echo esc_html($latest_settlement['statusLabel'] ?? '준비 중'); ?></strong>
+          <span><?php echo esc_html($referral_code ? ('추천 코드 ' . ($referral_code['code'] ?? '확인 중')) : '정산 참고와 추천 보상을 확인합니다.'); ?></span>
+        </a>
+        <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_timeline_page_url()); ?>">
+          <small>알림센터</small>
+          <strong><?php echo esc_html(count($timeline)); ?>건</strong>
+          <span><?php echo esc_html($latest_notice ? (($latest_notice['title'] ?? '알림') . ' · ' . ($latest_notice['statusLabel'] ?? '안내')) : '새 알림이 이곳에 표시됩니다.'); ?></span>
+        </a>
+      </div>
+      <p class="wordfriends-auth-small">수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황과 검토 결과를 기준으로 안내됩니다.</p>
+    </section>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('wordfriends_dashboard', 'wordfriends_siteops_dashboard_shortcode');
 
 function wordfriends_siteops_my_questions_shortcode($atts = []) {
     $atts = shortcode_atts([
