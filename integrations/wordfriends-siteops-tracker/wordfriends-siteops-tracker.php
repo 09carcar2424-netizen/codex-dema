@@ -1018,18 +1018,26 @@ function wordfriends_siteops_portal_styles() {
         font-size: 15px;
         line-height: 1.55;
       }
+      body:has(.wordfriends-auth) .wp-block-post-title,
+      body:has(.wordfriends-auth) .entry-title,
+      body:has(.wordfriends-auth) main h1 {
+        font-size: clamp(30px, 3vw, 36px);
+        line-height: 1.15;
+        font-weight: 700;
+      }
       .wordfriends-auth {
         font-size: 14px;
         line-height: 1.55;
       }
       .wordfriends-auth h2 {
-        font-size: 26px;
+        font-size: 22px;
         line-height: 1.25;
         margin-bottom: 10px;
       }
       .wordfriends-auth h3,
-      .wordfriends-question-card h3 {
-        font-size: 16px;
+      .wordfriends-question-card h3,
+      .wordfriends-site-card h3 {
+        font-size: 15px;
         line-height: 1.35;
       }
       .wordfriends-auth p {
@@ -1067,11 +1075,11 @@ function wordfriends_siteops_portal_styles() {
         padding: 14px;
       }
       .wordfriends-dashboard-card strong {
-        font-size: 18px;
+        font-size: 16px;
         line-height: 1.25;
       }
       .wordfriends-dashboard-card span {
-        font-size: 15px;
+        font-size: 14px;
         line-height: 1.45;
       }
       .wordfriends-dashboard-card .wordfriends-dashboard-detail,
@@ -1095,14 +1103,19 @@ function wordfriends_siteops_portal_styles() {
         font-size: 15px;
       }
       @media (max-width: 640px) {
+        body:has(.wordfriends-auth) .wp-block-post-title,
+        body:has(.wordfriends-auth) .entry-title,
+        body:has(.wordfriends-auth) main h1 {
+          font-size: 28px;
+        }
         .wordfriends-auth h2 {
-          font-size: 24px;
+          font-size: 21px;
         }
         .wordfriends-auth p {
           font-size: 14px;
         }
         .wordfriends-dashboard-card strong {
-          font-size: 17px;
+          font-size: 15px;
         }
       }
     ');
@@ -1188,11 +1201,12 @@ function wordfriends_siteops_handle_auth_posts() {
 
         $name = sanitize_text_field(wp_unslash($_POST['wordfriends_name'] ?? ''));
         $email = sanitize_email(wp_unslash($_POST['wordfriends_email'] ?? ''));
+        $phone = sanitize_text_field(wp_unslash($_POST['wordfriends_phone'] ?? ''));
         $password = (string) ($_POST['wordfriends_password'] ?? '');
         $agree = isset($_POST['wordfriends_agree']);
 
-        if (!$name || !$email || !$password) {
-            $GLOBALS['wordfriends_signup_error'] = '이름, 이메일, 비밀번호를 모두 입력해 주세요.';
+        if (!$name || !$email || !$phone || !$password) {
+            $GLOBALS['wordfriends_signup_error'] = '이름, 이메일, 전화번호, 비밀번호를 모두 입력해 주세요.';
             return;
         }
 
@@ -1229,11 +1243,16 @@ function wordfriends_siteops_handle_auth_posts() {
 
         $customer_code = 'WF-' . str_pad((string) $user_id, 6, '0', STR_PAD_LEFT);
         update_user_meta($user_id, 'customer_code', $customer_code);
+        update_user_meta($user_id, 'wordfriends_phone', $phone);
+        update_user_meta($user_id, 'billing_phone', $phone);
         update_user_meta($user_id, 'wordfriends_signup_source', 'shortcode');
 
         wordfriends_siteops_send('/api/wordfriends/events', [
             'eventType' => 'signup_completed',
             'customerCode' => $customer_code,
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
             'sessionId' => isset($_COOKIE['wordfriends_session_id']) ? sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])) : '',
             'pagePath' => isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '',
             'payload' => [
@@ -1473,11 +1492,12 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
         } else {
             $name = sanitize_text_field(wp_unslash($_POST['wordfriends_name'] ?? ''));
             $email = sanitize_email(wp_unslash($_POST['wordfriends_email'] ?? ''));
+            $phone = sanitize_text_field(wp_unslash($_POST['wordfriends_phone'] ?? ''));
             $password = (string) ($_POST['wordfriends_password'] ?? '');
             $agree = isset($_POST['wordfriends_agree']);
 
-            if (!$name || !$email || !$password) {
-                $error = '이름, 이메일, 비밀번호를 모두 입력해 주세요.';
+            if (!$name || !$email || !$phone || !$password) {
+                $error = '이름, 이메일, 전화번호, 비밀번호를 모두 입력해 주세요.';
             } elseif (!$agree) {
                 $error = '약관과 개인정보처리방침 동의가 필요합니다.';
             } elseif (!is_email($email)) {
@@ -1501,11 +1521,16 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
 
                     $customer_code = 'WF-' . str_pad((string) $user_id, 6, '0', STR_PAD_LEFT);
                     update_user_meta($user_id, 'customer_code', $customer_code);
+                    update_user_meta($user_id, 'wordfriends_phone', $phone);
+                    update_user_meta($user_id, 'billing_phone', $phone);
                     update_user_meta($user_id, 'wordfriends_signup_source', 'shortcode');
 
                     wordfriends_siteops_send('/api/wordfriends/events', [
                         'eventType' => 'signup_completed',
                         'customerCode' => $customer_code,
+                        'name' => $name,
+                        'email' => $email,
+                        'phone' => $phone,
                         'sessionId' => isset($_COOKIE['wordfriends_session_id']) ? sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])) : '',
                         'pagePath' => isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '',
                         'payload' => [
@@ -1543,6 +1568,10 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
           <label>
             이메일
             <input type="email" name="wordfriends_email" autocomplete="email" required />
+          </label>
+          <label>
+            전화번호
+            <input type="tel" name="wordfriends_phone" autocomplete="tel" inputmode="tel" placeholder="010-0000-0000" required />
           </label>
           <label>
             비밀번호

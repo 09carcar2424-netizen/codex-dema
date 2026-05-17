@@ -1051,10 +1051,22 @@ async function createWordfriendsEvent(req, res) {
     });
   }
 
-  const customerId = await findCustomerIdByCodeOrEmail(
-    body.customerCode || body.customer_code,
-    body.email || body.requesterEmail || body.requester_email,
-  );
+  const customerCode = body.customerCode || body.customer_code;
+  const eventEmail = body.email || body.requesterEmail || body.requester_email;
+  let customerId = null;
+
+  if (eventType === 'signup_completed') {
+    customerId = await ensurePortalCustomer({
+      customerCode,
+      email: eventEmail,
+      name: body.name || body.requesterName || body.requester_name,
+      phone: body.phone || body.requesterPhone || body.requester_phone,
+    });
+  }
+
+  if (!customerId) {
+    customerId = await findCustomerIdByCodeOrEmail(customerCode, eventEmail);
+  }
   const sessionId = String(body.sessionId || body.session_id || '').trim().slice(0, 120);
   const pagePath = String(body.pagePath || body.page_path || '').trim().slice(0, 500);
   const payload = {
