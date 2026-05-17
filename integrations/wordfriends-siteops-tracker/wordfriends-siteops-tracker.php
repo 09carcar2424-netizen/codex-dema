@@ -470,6 +470,48 @@ function wordfriends_siteops_portal_styles() {
         gap: 12px;
         margin-top: 18px;
       }
+      .wordfriends-site-filters {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(120px, 180px) minmax(92px, 130px) auto;
+        gap: 8px;
+        align-items: end;
+        margin: 18px 0 4px;
+      }
+      .wordfriends-site-filters label {
+        display: grid;
+        gap: 5px;
+        margin: 0;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .wordfriends-site-filters input,
+      .wordfriends-site-filters select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #fff;
+        color: #17212b;
+        font-size: 14px;
+      }
+      .wordfriends-site-filters button {
+        min-height: 42px;
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 16px;
+        background: #17212b;
+        color: #fff;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .wordfriends-site-filter-summary {
+        margin: 10px 0 0;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+      }
       .wordfriends-site-card {
         border: 1px solid #d9e2e7;
         border-radius: 8px;
@@ -569,6 +611,11 @@ function wordfriends_siteops_portal_styles() {
         font-weight: 800;
         text-decoration: underline;
         text-underline-offset: 3px;
+      }
+      @media (max-width: 720px) {
+        .wordfriends-site-filters {
+          grid-template-columns: 1fr;
+        }
       }
       .wordfriends-summary-row {
         display: grid;
@@ -1736,7 +1783,46 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
         }
     }
 
-    $site_pagination = wordfriends_siteops_paginate_items($sites, 'wfsites_page', 4);
+    $site_query = sanitize_text_field(wp_unslash($_GET['wfsites_q'] ?? ''));
+    $site_status = sanitize_text_field(wp_unslash($_GET['wfsites_status'] ?? 'all'));
+    $site_per_page = absint($_GET['wfsites_per_page'] ?? 4);
+    $site_per_page = in_array($site_per_page, [4, 8, 12], true) ? $site_per_page : 4;
+    $all_site_count = count($sites);
+    $status_options = [
+        'all' => '전체',
+        '세팅 준비' => '세팅 준비',
+        '운영 준비' => '운영 준비',
+        '운영 안정' => '운영 안정',
+        '확인 필요' => '확인 필요',
+    ];
+    if (!array_key_exists($site_status, $status_options)) {
+        $site_status = 'all';
+    }
+
+    if ($site_query !== '') {
+        $needle = strtolower($site_query);
+        $sites = array_values(array_filter($sites, function ($site) use ($needle) {
+            $haystack = implode(' ', [
+                $site['domain'] ?? '',
+                $site['siteName'] ?? '',
+                $site['siteKey'] ?? '',
+                $site['statusLabel'] ?? '',
+                $site['healthSummary'] ?? '',
+                $site['contentStatus'] ?? '',
+                $site['nextAction'] ?? '',
+            ]);
+            return stripos($haystack, $needle) !== false;
+        }));
+    }
+
+    if ($site_status !== 'all') {
+        $sites = array_values(array_filter($sites, function ($site) use ($site_status) {
+            return ($site['healthSummary'] ?? '') === $site_status;
+        }));
+    }
+
+    $filtered_site_count = count($sites);
+    $site_pagination = wordfriends_siteops_paginate_items($sites, 'wfsites_page', $site_per_page);
     $sites = $site_pagination['items'];
 
     ob_start();
@@ -1746,12 +1832,38 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
       <p><?php echo esc_html($atts['subtitle']); ?></p>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
-      <?php elseif (!$sites) : ?>
-        <div class="wordfriends-empty">
-          <strong>연결된 사이트가 아직 없습니다.</strong>
-          <p class="wordfriends-auth-small">계약과 세팅이 진행되고 SiteOps에서 고객 연결이 완료되면 이곳에 사이트 현황이 표시됩니다.</p>
-        </div>
       <?php else : ?>
+        <form class="wordfriends-site-filters" method="get">
+          <label>
+            사이트 검색
+            <input type="search" name="wfsites_q" value="<?php echo esc_attr($site_query); ?>" placeholder="도메인, 상태, 다음 안내">
+          </label>
+          <label>
+            상태
+            <select name="wfsites_status">
+              <?php foreach ($status_options as $value => $label) : ?>
+                <option value="<?php echo esc_attr($value); ?>" <?php selected($site_status, $value); ?>><?php echo esc_html($label); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <label>
+            표시
+            <select name="wfsites_per_page">
+              <?php foreach ([4, 8, 12] as $count) : ?>
+                <option value="<?php echo esc_attr((string) $count); ?>" <?php selected($site_per_page, $count); ?>><?php echo esc_html((string) $count); ?>개</option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <button type="submit">적용</button>
+        </form>
+        <p class="wordfriends-site-filter-summary">전체 <?php echo esc_html((string) $all_site_count); ?>개 중 <?php echo esc_html((string) $filtered_site_count); ?>개 표시</p>
+      <?php endif; ?>
+      <?php if (!$error && !$sites) : ?>
+        <div class="wordfriends-empty">
+          <strong><?php echo $all_site_count ? '조건에 맞는 사이트가 없습니다.' : '연결된 사이트가 아직 없습니다.'; ?></strong>
+          <p class="wordfriends-auth-small"><?php echo $all_site_count ? '검색어 또는 상태 필터를 조정해 주세요.' : '계약과 세팅이 진행되고 SiteOps에서 고객 연결이 완료되면 이곳에 사이트 현황이 표시됩니다.'; ?></p>
+        </div>
+      <?php elseif (!$error) : ?>
         <div class="wordfriends-site-grid">
           <?php foreach ($sites as $site) : ?>
             <?php
