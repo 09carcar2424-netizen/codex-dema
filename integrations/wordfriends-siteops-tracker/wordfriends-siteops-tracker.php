@@ -1334,7 +1334,7 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-guide-category-row {
         display: grid;
-        grid-template-columns: minmax(170px, .55fr) minmax(0, 1fr);
+        grid-template-columns: minmax(170px, .52fr) minmax(0, 1fr);
         gap: 12px;
         align-items: start;
         min-width: 0;
@@ -1366,7 +1366,7 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-guide-category-row ul {
         display: grid;
         gap: 5px;
-        grid-column: 1 / -1;
+        grid-column: 2;
         grid-row: 2;
         margin: 0;
         padding-left: 16px;
@@ -3612,45 +3612,8 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
         </div>
 
         <div class="wordfriends-guide-section">
-            <h3>가이드/FAQ 글 허브</h3>
-            <p>처음 방문한 고객이 필요한 글을 빠르게 찾을 수 있도록 주제를 크게 나눕니다. 발행 글은 상단 추천 영역에서 먼저 보여주고, 아래에는 상담 전 확인할 주제 흐름을 정리합니다.</p>
-            <div class="wordfriends-guide-hub">
-                <article class="wordfriends-guide-hub-card">
-                    <small>ADSENSE</small>
-                    <strong>애드센스 준비</strong>
-                    <p>승인 보장이 아니라 신청 전 확인해야 할 필수 페이지, 정책 리스크, 콘텐츠 품질 기준을 다룹니다.</p>
-                </article>
-                <article class="wordfriends-guide-hub-card">
-                    <small>DOMAIN</small>
-                    <strong>도메인/호스팅</strong>
-                    <p>도메인 소유권, 운영 이력 후보, 네임서버, DNS, SSL 연결처럼 막히기 쉬운 준비 과정을 정리합니다.</p>
-                </article>
-                <article class="wordfriends-guide-hub-card">
-                    <small>WORDPRESS</small>
-                    <strong>WordPress 구축</strong>
-                    <p>필수 페이지, 메뉴 구조, 사이트맵, Search Console, ads.txt 확인 순서를 안내합니다.</p>
-                </article>
-                <article class="wordfriends-guide-hub-card">
-                    <small>CONTENT</small>
-                    <strong>콘텐츠 운영</strong>
-                    <p>AI 초안, 사람 검토, 발행 큐, 금지 소재, 카테고리 설계를 운영 기준으로 나눕니다.</p>
-                </article>
-                <article class="wordfriends-guide-hub-card">
-                    <small>PORTAL</small>
-                    <strong>고객 포털 사용</strong>
-                    <p>내 사이트, 내 문의, 전자계약, 알림센터, 정산/추천 화면을 어디서 확인하는지 안내합니다.</p>
-                </article>
-                <article class="wordfriends-guide-hub-card">
-                    <small>FAQ</small>
-                    <strong>자주 묻는 질문</strong>
-                    <p>도메인 수, 고객 계정 소유, 보장 금지, 계약 전 준비 사항처럼 상담 전에 반복되는 질문을 모읍니다.</p>
-                </article>
-            </div>
-        </div>
-
-        <div class="wordfriends-guide-section">
-            <h3>블로그 카테고리 설계</h3>
-            <p>실제 글은 아래 카테고리 기준으로 쌓습니다. 고객이 검색해서 들어와도 상담, 구축절차, 고객 포털 안내로 자연스럽게 이어지도록 구성합니다.</p>
+            <h3>구글 애드센스 카테고리 설계</h3>
+            <p>애드센스 준비에 필요한 글을 아래 카테고리 기준으로 정리합니다. 고객이 검색해서 들어와도 상담, 구축절차, 고객 포털 안내로 자연스럽게 이어지도록 구성합니다.</p>
             <div class="wordfriends-guide-category-map">
                 <article class="wordfriends-guide-category-row">
                     <div><small>CATEGORY 01</small><strong>애드센스 가이드</strong></div>
@@ -3671,16 +3634,6 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                     <div><small>CATEGORY 04</small><strong>수익형 사이트 운영</strong></div>
                     <p>콘텐츠 주제 설계, 발행 큐, 사람 검토, 금지 소재, 운영 점검 루틴을 보장 문구 없이 안내합니다.</p>
                     <ul><li>콘텐츠 운영 루틴</li><li>금지 소재 점검</li><li>발행 후 점검</li></ul>
-                </article>
-                <article class="wordfriends-guide-category-row">
-                    <div><small>CATEGORY 05</small><strong>자동화 n8n/MAKE</strong></div>
-                    <p>자동화는 운영 보조 도구로 설명합니다. 글 초안, 알림, 점검 리포트처럼 사람 검토가 필요한 지점을 분리합니다.</p>
-                    <ul><li>자동화로 할 일</li><li>사람 검토가 필요한 일</li><li>알림/리포트 흐름</li></ul>
-                </article>
-                <article class="wordfriends-guide-category-row">
-                    <div><small>CATEGORY 06</small><strong>FAQ/공지</strong></div>
-                    <p>반복 질문, 계약 전 확인, 고객 포털 사용법, 서비스 업데이트를 짧고 명확하게 정리합니다.</p>
-                    <ul><li>자주 묻는 질문</li><li>고객 포털 사용 안내</li><li>공지/업데이트</li></ul>
                 </article>
             </div>
         </div>
