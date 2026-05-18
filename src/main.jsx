@@ -1504,6 +1504,56 @@ function App() {
     row.searchEngine === 'google' && ['submitted', 'verified'].includes(row.status),
   );
   const portalStatus = portalCustomers.length || contractRequests.length || portalQuestions.length ? 'ACTIVE' : 'READY';
+  const portalOpsFlow = [
+    {
+      step: '01',
+      title: '문의 접수',
+      metric: `${portalQuestions.length}건`,
+      target: 'realtime',
+      wordfriends: '문의/상담으로 요청을 남기고 답변은 알림센터와 내 문의에서 확인',
+      siteops: '문의 분류, 담당자 검토, 공개 답변 여부와 후속 작업 판단',
+    },
+    {
+      step: '02',
+      title: '계약 요청',
+      metric: `${contractRequests.length}건`,
+      target: 'portal-admin',
+      wordfriends: '전자계약 요청 후 안내 문구와 진행 상태 확인',
+      siteops: '계약 범위, 도메인 수, 안내 링크, 내부 메모와 상태 정리',
+    },
+    {
+      step: '03',
+      title: '사이트 연결',
+      metric: `${portalReportableSites.length}개`,
+      target: 'portal',
+      wordfriends: '내 사이트에서 도메인별 준비 상태와 다음 안내 확인',
+      siteops: '고객 코드와 사이트를 연결하고 공개 가능한 운영 상태만 노출',
+    },
+    {
+      step: '04',
+      title: '알림 발행',
+      metric: `${customerNotifications.length}건`,
+      target: 'notifications',
+      wordfriends: '알림센터에서 계약, 문의, 사이트 운영, 정산 안내를 통합 확인',
+      siteops: '고객 공개 공지 작성, 긴급도 지정, 숨김/보관 처리',
+    },
+    {
+      step: '05',
+      title: '정산/추천',
+      metric: `${portalSettlementRows.length + portalReferralRows.length}건`,
+      target: 'settlements',
+      wordfriends: '정산 참고 내역과 추천 상태를 보장 표현 없이 확인',
+      siteops: '계약 기준, 지급 보류 사유, 검토 상태와 정산 참고값 관리',
+    },
+    {
+      step: '06',
+      title: '글 발행 준비',
+      metric: '준비 예정',
+      target: 'queue',
+      wordfriends: '가이드/FAQ와 교육형 글은 홈페이지 구조 완성 후 순차 공개',
+      siteops: '영업 준비 화면을 먼저 완성하고 이후 글 발행 큐로 연결',
+    },
+  ];
   const portalPrograms = [
     {
       name: '회원가입 / 로그인',
@@ -3339,6 +3389,28 @@ function App() {
                 <h2>Wordfriends 공유 프로그램 산정</h2>
               </div>
               <span className="status-pill planned">MVP 2단계</span>
+            </div>
+            <div className="portal-flow-grid">
+              {portalOpsFlow.map((item) => (
+                <button
+                  type="button"
+                  className="portal-flow-card"
+                  key={item.step}
+                  onClick={() => scrollToSection(item.target)}
+                >
+                  <small>{item.step}</small>
+                  <strong>{item.title}</strong>
+                  <span>{item.metric}</span>
+                  <p>
+                    <b>고객 화면</b>
+                    {item.wordfriends}
+                  </p>
+                  <p>
+                    <b>관리자</b>
+                    {item.siteops}
+                  </p>
+                </button>
+              ))}
             </div>
             <div className="ops-table portal-program-table" role="table">
               <div className="ops-row ops-head" role="row">

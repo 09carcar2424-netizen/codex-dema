@@ -1805,6 +1805,68 @@ h2 {
   margin-top: 14px;
 }
 
+.portal-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.portal-flow-card {
+  display: grid;
+  gap: 8px;
+  min-height: 220px;
+  padding: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.portal-flow-card:hover {
+  border-color: rgba(52, 211, 153, 0.7);
+  background: rgba(52, 211, 153, 0.08);
+  transform: translateY(-2px);
+}
+
+.portal-flow-card small {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.portal-flow-card strong {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.portal-flow-card span {
+  width: fit-content;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(219, 252, 243, 0.12);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.portal-flow-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.portal-flow-card b {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text);
+}
+
 .portal-program-table {
   margin-top: 18px;
 }
@@ -3240,6 +3302,7 @@ h2 {
   .compose-grid,
   .compose-row,
   .portal-grid,
+  .portal-flow-grid,
   .portal-rule-grid,
   .proxy-readiness-grid,
   .proxy-rule-grid,
