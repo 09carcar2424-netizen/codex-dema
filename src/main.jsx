@@ -1221,6 +1221,53 @@ function App() {
       note: '정산, 세금, AdSense, 정책성 질문은 사람 검토로 전환',
     },
   ];
+  const openContractRequests = contractRequests.filter((request) =>
+    !['closed', 'canceled'].includes(String(request.status || '').toLowerCase()),
+  );
+  const contractRequestsMissingDocument = openContractRequests.filter((request) =>
+    ['requested', 'document_sent'].includes(String(request.status || '').toLowerCase()) && !request.contractDocumentUrl,
+  );
+  const questionsNeedingReply = portalQuestions.filter((question) =>
+    !isArchivableQuestion(question),
+  );
+  const notificationDrafts = customerNotifications.filter((row) =>
+    ['draft', 'queued', 'pending'].includes(String(row.status || row.sendStatus || '').toLowerCase()),
+  );
+  const unlinkedPortalSites = dashboard.sites.filter((site) =>
+    !site.customerCode && ['customer_portal', 'operating_ready', 'setup_pipeline'].includes(site.portfolioStatus),
+  );
+  const dailyOpsActions = [
+    {
+      label: '문의 답변',
+      value: questionsNeedingReply.length,
+      detail: questionsNeedingReply.length ? '답변 초안 또는 수동 처리 필요' : '대기 중인 문의 없음',
+      tone: questionsNeedingReply.length ? 'warning' : 'done',
+      target: 'realtime',
+    },
+    {
+      label: '계약 요청',
+      value: openContractRequests.length,
+      detail: contractRequestsMissingDocument.length
+        ? `계약서 링크 필요한 요청 ${contractRequestsMissingDocument.length}건`
+        : '계약 요청 처리 상태 정상',
+      tone: contractRequestsMissingDocument.length ? 'warning' : openContractRequests.length ? 'active' : 'done',
+      target: 'realtime',
+    },
+    {
+      label: '고객 알림',
+      value: notificationDrafts.length,
+      detail: notificationDrafts.length ? '발행 대기 알림 확인' : '발행 대기 알림 없음',
+      tone: notificationDrafts.length ? 'planned' : 'done',
+      target: 'notifications',
+    },
+    {
+      label: '사이트 연결',
+      value: unlinkedPortalSites.length,
+      detail: unlinkedPortalSites.length ? '고객 포털 연결 후보 확인' : '미연결 포털 후보 없음',
+      tone: unlinkedPortalSites.length ? 'active' : 'done',
+      target: 'portal',
+    },
+  ];
   const hasLiveDashboard = dashboard.source === 'postgres';
   const portalCustomers = (hasLiveDashboard ? dashboard.customers : []).filter((customer) =>
     ['ACTIVE', 'LEAD', 'PENDING', 'SUBMITTED'].includes(String(customer.contractStatus || '').toUpperCase()),
@@ -3371,6 +3418,29 @@ function App() {
                   <small>{card.detail}</small>
                 </article>
               ))}
+            </div>
+            <div className="daily-ops-board" aria-label="오늘 처리할 운영 항목">
+              <div className="section-subheading">
+                <div>
+                  <p className="eyebrow">today ops</p>
+                  <h3>오늘 처리할 일</h3>
+                </div>
+                <span>문의·계약·알림·사이트 연결 우선 확인</span>
+              </div>
+              <div className="daily-ops-grid">
+                {dailyOpsActions.map((item) => (
+                  <button
+                    className="daily-ops-card"
+                    key={item.label}
+                    type="button"
+                    onClick={() => scrollToSection(item.target)}
+                  >
+                    <span className={`status-pill ${item.tone}`}>{item.label}</span>
+                    <strong>{item.value}</strong>
+                    <small>{item.detail}</small>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="ops-table realtime-progress-table" role="table">
               <div className="ops-row ops-head" role="row">

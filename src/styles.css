@@ -1980,6 +1980,51 @@ h2 {
   font-size: 28px;
 }
 
+.daily-ops-board {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--panel-soft);
+}
+
+.daily-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.daily-ops-card {
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel-bg);
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+}
+
+.daily-ops-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--panel-border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-bg));
+}
+
+.daily-ops-card strong {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.daily-ops-card small {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .realtime-progress-table,
 .derived-question-table {
   margin-top: 16px;
@@ -3202,6 +3247,7 @@ h2 {
   .trust-summary-grid,
   .revenue-policy-grid,
   .realtime-card-grid,
+  .daily-ops-grid,
   .customer-search-bar,
   .customer-detail-summary,
   .customer-detail-columns,
