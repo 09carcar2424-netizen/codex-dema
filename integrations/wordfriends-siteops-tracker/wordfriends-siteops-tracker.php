@@ -1284,6 +1284,49 @@ function wordfriends_siteops_portal_styles() {
         font-weight: 900;
         white-space: nowrap;
       }
+      .wordfriends-guide-category-map {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .wordfriends-guide-category-row {
+        display: grid;
+        grid-template-columns: minmax(150px, .55fr) minmax(0, 1.2fr) minmax(160px, .65fr);
+        gap: 12px;
+        align-items: start;
+        min-width: 0;
+        border: 1px solid rgba(106, 173, 178, 0.35);
+        border-radius: 8px;
+        padding: 14px;
+        background: rgba(5, 30, 33, 0.72);
+      }
+      .wordfriends-guide-category-row small {
+        color: #2bd4b7;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .wordfriends-guide-category-row strong {
+        display: block;
+        margin-top: 4px;
+        color: #f8ffff;
+        font-size: 16px;
+        line-height: 1.35;
+      }
+      .wordfriends-guide-category-row p {
+        margin: 0;
+        color: #c7f2ee;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .wordfriends-guide-category-row ul {
+        display: grid;
+        gap: 5px;
+        margin: 0;
+        padding-left: 16px;
+        color: #dffdf8;
+        font-size: 13px;
+        line-height: 1.45;
+      }
       .wordfriends-guide-card {
         display: grid;
         gap: 8px;
@@ -1575,6 +1618,9 @@ function wordfriends_siteops_portal_styles() {
         .wordfriends-guide-draft-card em {
           grid-column: 2;
           width: fit-content;
+        }
+        .wordfriends-guide-category-row {
+          grid-template-columns: 1fr;
         }
         .wordfriends-portal-nav {
           display: grid;
@@ -3507,6 +3553,43 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                 <article class="wordfriends-guide-draft-card"><span>03</span><div><small>고객 안내</small><strong>네임서버 연결</strong><p>도메인을 구매한 뒤 호스팅과 사이트가 연결되는 흐름을 쉬운 말로 안내합니다.</p></div><em>구축절차</em></article>
                 <article class="wordfriends-guide-draft-card"><span>04</span><div><small>교육형 SEO</small><strong>필수 페이지 준비</strong><p>서비스 소개, 문의, 약관, 개인정보처리방침이 왜 필요한지 설명합니다.</p></div><em>서비스</em></article>
                 <article class="wordfriends-guide-draft-card"><span>05</span><div><small>보류/검수</small><strong>승인 준비 체크리스트</strong><p>AdSense 신청 전 점검할 항목을 정리하되 승인이나 수익을 보장하지 않는 기준으로 작성합니다.</p></div><em>문의</em></article>
+            </div>
+        </div>
+
+        <div class="wordfriends-guide-section">
+            <h3>블로그 카테고리 설계</h3>
+            <p>실제 글은 아래 카테고리 기준으로 쌓습니다. 고객이 검색해서 들어와도 상담, 구축절차, 고객 포털 안내로 자연스럽게 이어지도록 구성합니다.</p>
+            <div class="wordfriends-guide-category-map">
+                <article class="wordfriends-guide-category-row">
+                    <div><small>CATEGORY 01</small><strong>애드센스 가이드</strong></div>
+                    <p>AdSense 신청 전 이해해야 할 기본 개념, 필수 페이지, 정책 리스크, 콘텐츠 품질 기준을 설명합니다.</p>
+                    <ul><li>애드센스 기본 이해</li><li>승인 준비 체크리스트</li><li>정책 위반 소재 확인</li></ul>
+                </article>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>CATEGORY 02</small><strong>도메인/호스팅/서버</strong></div>
+                    <p>도메인 구매, 운영 이력 후보, 네임서버, DNS, SSL, 호스팅 연결처럼 초기 세팅에서 막히는 지점을 다룹니다.</p>
+                    <ul><li>도메인 구매 전 체크</li><li>네임서버 연결</li><li>SSL과 DNS 기본</li></ul>
+                </article>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>CATEGORY 03</small><strong>WordPress 구축</strong></div>
+                    <p>WordPress 기본 구조, 필수 페이지, 메뉴, 사이트맵, Search Console, ads.txt 확인 순서를 정리합니다.</p>
+                    <ul><li>필수 페이지 준비</li><li>사이트맵 제출</li><li>Search Console 연결</li></ul>
+                </article>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>CATEGORY 04</small><strong>수익형 사이트 운영</strong></div>
+                    <p>콘텐츠 주제 설계, 발행 큐, 사람 검토, 금지 소재, 운영 점검 루틴을 보장 문구 없이 안내합니다.</p>
+                    <ul><li>콘텐츠 운영 루틴</li><li>금지 소재 점검</li><li>발행 후 점검</li></ul>
+                </article>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>CATEGORY 05</small><strong>자동화 n8n/MAKE</strong></div>
+                    <p>자동화는 운영 보조 도구로 설명합니다. 글 초안, 알림, 점검 리포트처럼 사람 검토가 필요한 지점을 분리합니다.</p>
+                    <ul><li>자동화로 할 일</li><li>사람 검토가 필요한 일</li><li>알림/리포트 흐름</li></ul>
+                </article>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>CATEGORY 06</small><strong>FAQ/공지</strong></div>
+                    <p>반복 질문, 계약 전 확인, 고객 포털 사용법, 서비스 업데이트를 짧고 명확하게 정리합니다.</p>
+                    <ul><li>자주 묻는 질문</li><li>고객 포털 사용 안내</li><li>공지/업데이트</li></ul>
+                </article>
             </div>
         </div>
 
