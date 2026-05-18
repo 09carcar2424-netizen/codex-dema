@@ -2055,6 +2055,50 @@ function App() {
     'Search Console 기초',
     '고객 포털 사용 안내',
   ];
+  const contentQueueStatusSummary = [
+    {
+      label: '준비/대기',
+      value: dashboard.contentQueue.filter((item) =>
+        ['draft', 'queued', 'pending', 'ready'].includes(String(item.status || '').toLowerCase()),
+      ).length,
+      note: '구조 완성 후 순차 검수',
+    },
+    {
+      label: '검수 필요',
+      value: validationFailedContent.length,
+      note: '정책/표현/품질 확인',
+    },
+    {
+      label: '자동 발행 후보',
+      value: dashboard.contentQueue.filter((item) =>
+        ['auto', 'scheduled', 'wordpress'].includes(String(item.publishMode || '').toLowerCase()),
+      ).length,
+      note: 'N8N 연결 전 수동 확인',
+    },
+    {
+      label: '전체 큐',
+      value: dashboard.contentQueue.length,
+      note: '운영 후보 글 총량',
+    },
+  ];
+  const editorialPurposeRules = [
+    {
+      title: '영업 준비 글',
+      body: '서비스 이해, 구축 절차, 사례, 문의 전 확인 사항처럼 상담 전 신뢰를 만드는 글',
+    },
+    {
+      title: '고객 안내 글',
+      body: '계약 후 포털 사용법, 내 사이트 확인, 문의/알림/정산 확인 방법을 안내하는 글',
+    },
+    {
+      title: '교육형 SEO 글',
+      body: '애드센스, 도메인, WordPress, Search Console을 초보자 눈높이로 설명하는 글',
+    },
+    {
+      title: '보류/검수 글',
+      body: '수익, 승인, 트래픽, 순위 보장처럼 오해될 수 있는 표현은 발행 전 사람 검토',
+    },
+  ];
   const adsenseReadySites = dashboard.sites.filter((site) =>
     ['approved', 'ready'].includes(String(site.adsense || '').toLowerCase()),
   );
@@ -3995,6 +4039,26 @@ function App() {
                   <span key={topic}>{topic}</span>
                 ))}
               </div>
+            </div>
+            <div className="content-ops-summary">
+              {contentQueueStatusSummary.map((item) => (
+                <article className="content-ops-card" key={item.label}>
+                  <strong>{item.value}</strong>
+                  <span>{item.label}</span>
+                  <p>{item.note}</p>
+                </article>
+              ))}
+            </div>
+            <div className="editorial-purpose-grid">
+              {editorialPurposeRules.map((rule) => (
+                <article className="editorial-purpose-card" key={rule.title}>
+                  <CheckCircle2 size={17} />
+                  <div>
+                    <strong>{rule.title}</strong>
+                    <p>{rule.body}</p>
+                  </div>
+                </article>
+              ))}
             </div>
             <div className="ops-table queue-table" role="table">
               <div className="ops-row ops-head" role="row">
