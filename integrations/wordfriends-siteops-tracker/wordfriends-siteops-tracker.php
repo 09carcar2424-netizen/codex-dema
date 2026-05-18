@@ -1197,6 +1197,106 @@ function wordfriends_siteops_portal_styles() {
         font-size: 15px;
         line-height: 1.7;
       }
+      .wordfriends-guide-featured {
+        border-color: rgba(43, 212, 183, 0.62);
+        background: linear-gradient(135deg, rgba(43, 212, 183, .14), rgba(18, 54, 58, .9) 58%, rgba(5, 30, 33, .96));
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+      }
+      .wordfriends-guide-featured-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+      }
+      .wordfriends-guide-featured-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        border: 1px solid rgba(43, 212, 183, 0.55);
+        border-radius: 999px;
+        padding: 0 10px;
+        background: rgba(223, 253, 244, 0.1);
+        color: #dffdf4;
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .wordfriends-guide-featured-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .wordfriends-guide-featured-card {
+        display: grid;
+        gap: 9px;
+        min-width: 0;
+        border: 1px solid rgba(106, 173, 178, 0.42);
+        border-radius: 8px;
+        padding: 16px;
+        background: rgba(3, 26, 29, 0.78);
+        color: inherit;
+        text-decoration: none;
+        transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      }
+      .wordfriends-guide-featured-card:hover,
+      .wordfriends-guide-featured-card:focus-visible {
+        transform: translateY(-2px);
+        border-color: #2bd4b7;
+        background: rgba(10, 45, 48, 0.92);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+        outline: none;
+      }
+      .wordfriends-guide-featured-card small {
+        color: #2bd4b7;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+      .wordfriends-guide-featured-card strong {
+        color: #f8ffff;
+        font-size: 18px;
+        line-height: 1.35;
+      }
+      .wordfriends-guide-featured-card p {
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .wordfriends-guide-featured-card span {
+        color: #dffdf4;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .wordfriends-guide-quicklinks {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .wordfriends-guide-quicklinks a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        border: 1px solid rgba(106, 173, 178, 0.35);
+        border-radius: 8px;
+        padding: 0 12px;
+        background: rgba(223, 253, 244, 0.94);
+        color: #063034;
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1.25;
+        text-align: center;
+        text-decoration: none;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .wordfriends-guide-quicklinks a:hover,
+      .wordfriends-guide-quicklinks a:focus-visible {
+        transform: translateY(-2px);
+        border-color: #2bd4b7;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+        outline: none;
+      }
       .wordfriends-guide-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1611,6 +1711,29 @@ function wordfriends_siteops_portal_styles() {
         }
         .wordfriends-guide-hub {
           grid-template-columns: 1fr;
+        }
+        .wordfriends-guide-featured-head {
+          grid-template-columns: 1fr;
+        }
+        .wordfriends-guide-featured-badge {
+          width: fit-content;
+        }
+        .wordfriends-guide-featured-grid,
+        .wordfriends-guide-quicklinks {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .wordfriends-guide-featured-card {
+          padding: 12px;
+        }
+        .wordfriends-guide-featured-card strong {
+          font-size: 15px;
+        }
+        .wordfriends-guide-featured-card p {
+          font-size: 12px;
+        }
+        .wordfriends-guide-featured-card span,
+        .wordfriends-guide-quicklinks a {
+          font-size: 12px;
         }
         .wordfriends-guide-draft-card {
           grid-template-columns: 34px minmax(0, 1fr);
@@ -3488,11 +3611,57 @@ function wordfriends_siteops_services_shortcode($atts = []) {
 }
 add_shortcode('wordfriends_services', 'wordfriends_siteops_services_shortcode');
 
+function wordfriends_siteops_post_url($slug) {
+    static $cache = [];
+
+    if (isset($cache[$slug])) {
+        return $cache[$slug];
+    }
+
+    $post = get_page_by_path($slug, OBJECT, 'post');
+
+    if ($post && $post->post_status === 'publish') {
+        $cache[$slug] = get_permalink($post);
+        return $cache[$slug];
+    }
+
+    $cache[$slug] = home_url('/' . trim($slug, '/') . '/');
+    return $cache[$slug];
+}
+
 function wordfriends_siteops_guide_shortcode($atts = []) {
     $atts = shortcode_atts([
         'title' => '처음 준비하는 고객을 위한 가이드',
         'subtitle' => '도메인, WordPress, AdSense 준비, 콘텐츠 운영, 보안 원칙을 상담 전에 먼저 이해할 수 있도록 쉬운 순서로 정리합니다.',
     ], $atts, 'wordfriends_guide');
+
+    $featured_posts = [
+        [
+            'label' => '처음 추천',
+            'title' => '애드센스 기본 이해',
+            'summary' => '사이트를 시작하기 전에 계정 소유, 필수 페이지, 정책 리스크를 먼저 확인합니다.',
+            'slug' => 'adsense-basic-guide',
+        ],
+        [
+            'label' => '도메인 준비',
+            'title' => '도메인 구매 전 체크',
+            'summary' => '도메인 소유권, 운영 목적, 네임서버 연결 준비를 구매 전에 점검합니다.',
+            'slug' => 'domain-before-buy-checklist',
+        ],
+        [
+            'label' => '신청 전 점검',
+            'title' => 'AdSense 신청 전 체크리스트',
+            'summary' => '승인 보장이 아니라 신청 전에 빠뜨리기 쉬운 구조와 콘텐츠 기준을 정리합니다.',
+            'slug' => 'adsense-readiness-checklist',
+        ],
+    ];
+    $guide_links = [
+        ['애드센스 기본 이해', 'adsense-basic-guide'],
+        ['도메인 구매 전 체크', 'domain-before-buy-checklist'],
+        ['네임서버 연결 이해하기', 'nameserver-dns-setup-guide'],
+        ['필수 페이지 준비', 'wordpress-required-pages'],
+        ['AdSense 신청 전 체크리스트', 'adsense-readiness-checklist'],
+    ];
 
     ob_start();
     ?>
@@ -3507,9 +3676,34 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
             </div>
         </div>
 
+        <div class="wordfriends-guide-section wordfriends-guide-featured">
+            <div class="wordfriends-guide-featured-head">
+                <div>
+                    <h3>처음 읽을 가이드</h3>
+                    <p>모바일에서도 첫 화면 안에서 바로 찾을 수 있도록, 상담 전에 가장 많이 확인하는 글을 먼저 배치했습니다.</p>
+                </div>
+                <span class="wordfriends-guide-featured-badge">발행 글 연결</span>
+            </div>
+            <div class="wordfriends-guide-featured-grid">
+                <?php foreach ($featured_posts as $post_item): ?>
+                    <a class="wordfriends-guide-featured-card" href="<?php echo esc_url(wordfriends_siteops_post_url($post_item['slug'])); ?>">
+                        <small><?php echo esc_html($post_item['label']); ?></small>
+                        <strong><?php echo esc_html($post_item['title']); ?></strong>
+                        <p><?php echo esc_html($post_item['summary']); ?></p>
+                        <span>글 보기</span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+            <div class="wordfriends-guide-quicklinks" aria-label="Wordfriends published guide links">
+                <?php foreach ($guide_links as $guide_link): ?>
+                    <a href="<?php echo esc_url(wordfriends_siteops_post_url($guide_link[1])); ?>"><?php echo esc_html($guide_link[0]); ?></a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <div class="wordfriends-guide-section">
             <h3>가이드/FAQ 글 허브</h3>
-            <p>처음 방문한 고객이 필요한 글을 빠르게 찾을 수 있도록 주제를 크게 나눕니다. 지금은 영업 준비와 안내 구조를 먼저 완성하고, 이후 실제 글을 순서대로 연결합니다.</p>
+            <p>처음 방문한 고객이 필요한 글을 빠르게 찾을 수 있도록 주제를 크게 나눕니다. 발행 글은 상단 추천 영역에서 먼저 보여주고, 아래에는 상담 전 확인할 주제 흐름을 정리합니다.</p>
             <div class="wordfriends-guide-hub">
                 <article class="wordfriends-guide-hub-card">
                     <small>ADSENSE</small>
@@ -3541,18 +3735,6 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                     <strong>자주 묻는 질문</strong>
                     <p>도메인 수, 고객 계정 소유, 보장 금지, 계약 전 준비 사항처럼 상담 전에 반복되는 질문을 모읍니다.</p>
                 </article>
-            </div>
-        </div>
-
-        <div class="wordfriends-guide-section">
-            <h3>먼저 준비할 글 5개</h3>
-            <p>아래 글은 실제 발행 전 초안 후보입니다. 상담 흐름과 연결되는 교육형 글부터 쌓고, 보장형 표현은 사람 검토 후 발행합니다.</p>
-            <div class="wordfriends-guide-drafts">
-                <article class="wordfriends-guide-draft-card"><span>01</span><div><small>교육형 SEO</small><strong>애드센스 기본 이해</strong><p>애드센스 사이트를 시작하기 전에 필수 페이지, 정책, 콘텐츠 준비를 먼저 설명합니다.</p></div><em>가이드/FAQ</em></article>
-                <article class="wordfriends-guide-draft-card"><span>02</span><div><small>영업 준비</small><strong>도메인 구매 전 체크</strong><p>도메인 소유권, 운영 이력 후보, 네임서버, 비용 확인 기준을 상담 전에 정리합니다.</p></div><em>문의</em></article>
-                <article class="wordfriends-guide-draft-card"><span>03</span><div><small>고객 안내</small><strong>네임서버 연결</strong><p>도메인을 구매한 뒤 호스팅과 사이트가 연결되는 흐름을 쉬운 말로 안내합니다.</p></div><em>구축절차</em></article>
-                <article class="wordfriends-guide-draft-card"><span>04</span><div><small>교육형 SEO</small><strong>필수 페이지 준비</strong><p>서비스 소개, 문의, 약관, 개인정보처리방침이 왜 필요한지 설명합니다.</p></div><em>서비스</em></article>
-                <article class="wordfriends-guide-draft-card"><span>05</span><div><small>보류/검수</small><strong>승인 준비 체크리스트</strong><p>AdSense 신청 전 점검할 항목을 정리하되 승인이나 수익을 보장하지 않는 기준으로 작성합니다.</p></div><em>문의</em></article>
             </div>
         </div>
 
