@@ -1235,9 +1235,9 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-guide-quicklinks a:hover,
       .wordfriends-guide-quicklinks a:focus-visible {
         transform: translateY(-2px);
-        border-color: #dffdf4;
+        border-color: #063034;
         background: linear-gradient(135deg, #f3fffb, #bdf5e4);
-        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
+        box-shadow: 0 0 0 2px #2bd4b7, 0 14px 28px rgba(0, 0, 0, 0.24);
         outline: none;
       }
       .wordfriends-guide-grid {
@@ -1334,7 +1334,7 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-guide-category-row {
         display: grid;
-        grid-template-columns: minmax(150px, .55fr) minmax(0, 1.2fr) minmax(160px, .65fr);
+        grid-template-columns: minmax(170px, .55fr) minmax(0, 1fr);
         gap: 12px;
         align-items: start;
         min-width: 0;
@@ -1356,6 +1356,8 @@ function wordfriends_siteops_portal_styles() {
         line-height: 1.35;
       }
       .wordfriends-guide-category-row p {
+        grid-column: 2;
+        grid-row: 1;
         margin: 0;
         color: #c7f2ee;
         font-size: 14px;
@@ -1364,6 +1366,8 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-guide-category-row ul {
         display: grid;
         gap: 5px;
+        grid-column: 1 / -1;
+        grid-row: 2;
         margin: 0;
         padding-left: 16px;
         color: #dffdf8;
@@ -1675,6 +1679,11 @@ function wordfriends_siteops_portal_styles() {
         }
         .wordfriends-guide-category-row {
           grid-template-columns: 1fr;
+        }
+        .wordfriends-guide-category-row p,
+        .wordfriends-guide-category-row ul {
+          grid-column: auto;
+          grid-row: auto;
         }
         .wordfriends-portal-nav {
           display: grid;
@@ -3740,32 +3749,6 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                         <li>API 키·토큰 비공개</li>
                     </ul>
                 </article>
-            </div>
-        </div>
-
-        <div class="wordfriends-guide-section">
-            <h3>추천 글 발행 순서</h3>
-            <p>블로그에는 고객이 실제로 막히는 순서대로 글을 쌓는 편이 좋습니다. 아래 순서는 상담 전 이해도를 높이기 위한 교육형 콘텐츠 흐름입니다.</p>
-            <div class="wordfriends-guide-path" aria-label="Wordfriends guide content order">
-                <div class="wordfriends-guide-step"><span>1</span><strong>도메인 구매 전 확인</strong><small>샌드박스 경과, 운영 이력, 네임서버 개념을 쉽게 설명합니다.</small></div>
-                <div class="wordfriends-guide-step"><span>2</span><strong>호스팅과 서버 연결</strong><small>DNS, SSL, WordPress 설치 전 준비를 안내합니다.</small></div>
-                <div class="wordfriends-guide-step"><span>3</span><strong>WordPress 기본 세팅</strong><small>필수 페이지, 메뉴, 플러그인, 사이트맵을 점검합니다.</small></div>
-                <div class="wordfriends-guide-step"><span>4</span><strong>AdSense 준비</strong><small>정책 위반 요소와 콘텐츠 품질 기준을 먼저 확인합니다.</small></div>
-                <div class="wordfriends-guide-step"><span>5</span><strong>운영과 자동화</strong><small>AI 초안, 사람 검토, 발행 스케줄의 역할을 나눕니다.</small></div>
-                <div class="wordfriends-guide-step"><span>6</span><strong>정산/추천 확인</strong><small>포털에서 참고 금액과 추천 보상 상태를 확인합니다.</small></div>
-            </div>
-        </div>
-
-        <div class="wordfriends-guide-section">
-            <h3>발행하면 좋은 글 주제</h3>
-            <p>고객이 검색하거나 상담 전에 자주 묻는 질문을 글 제목으로 바꾸면, 교육 콘텐츠와 상담 흐름을 함께 만들 수 있습니다.</p>
-            <div class="wordfriends-cases-map-grid">
-                <article><small>ADSENSE</small><strong>애드센스 금지사항</strong><span>본인 광고 클릭, 부정 클릭, 저품질 글, 복사글처럼 피해야 할 기준을 정리합니다.</span></article>
-                <article><small>DOMAIN</small><strong>애드센스용 도메인 구매 전 체크</strong><span>소유권, 네임서버, 운영 이력 후보, 비용 확인 기준을 정리합니다.</span></article>
-                <article><small>DNS</small><strong>네임서버와 DNS 연결 이해하기</strong><span>도메인을 샀는데 사이트가 안 열리는 상황을 쉽게 설명합니다.</span></article>
-                <article><small>WORDPRESS</small><strong>WordPress 필수 페이지 구성</strong><span>문의, 약관, 개인정보처리방침, 사이트 구조를 준비하는 이유를 안내합니다.</span></article>
-                <article><small>CONTENT</small><strong>콘텐츠 주제와 금지 소재 정리</strong><span>AI 초안과 사람 검토, 정책 위험 소재, 발행 큐를 구분합니다.</span></article>
-                <article><small>PORTAL</small><strong>고객 포털에서 확인할 수 있는 것</strong><span>내 사이트, 문의 답변, 전자계약, 알림, 정산 참고 정보를 안내합니다.</span></article>
             </div>
         </div>
 
