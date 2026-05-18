@@ -3687,7 +3687,7 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
 
         <div class="wordfriends-guide-section">
             <h3>먼저 볼 주제</h3>
-            <p>광고 수익을 보장하는 설명이 아니라, 고객이 준비해야 할 계정·도메인·콘텐츠·운영 기준을 쉬운 말로 정리합니다.</p>
+            <p>고객이 준비해야 할 계정·도메인·콘텐츠·운영 기준을 쉬운 말로 정리합니다.</p>
             <div class="wordfriends-guide-grid">
                 <article class="wordfriends-guide-card">
                     <small>ADSENSE BASIC</small>
