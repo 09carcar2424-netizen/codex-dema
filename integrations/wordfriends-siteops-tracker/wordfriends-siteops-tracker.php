@@ -3966,8 +3966,8 @@ add_shortcode('wordfriends_start_guide', 'wordfriends_siteops_start_guide_shortc
 
 function wordfriends_siteops_cases_shortcode($atts = []) {
     $atts = shortcode_atts([
-        'title' => '고객 상황별 운영 사례',
-        'subtitle' => '실제 고객 정보를 노출하지 않고, Wordfriends가 어떤 문제를 어떤 순서로 정리하는지 유형별 예시로 안내합니다.',
+        'title' => '고객 문제 해결 사례',
+        'subtitle' => '구축절차는 실행 순서, 사례는 고객이 왜 Wordfriends에 운영을 맡기는지 이해할 수 있는 상황별 시나리오로 정리합니다.',
     ], $atts, 'wordfriends_cases');
 
     ob_start();
@@ -3984,88 +3984,98 @@ function wordfriends_siteops_cases_shortcode($atts = []) {
         </div>
 
         <div class="wordfriends-guide-section wordfriends-cases-map">
-            <h3>사례를 보는 방법</h3>
-            <p>아래 사례는 성과 사례가 아니라 상담 전 상황을 이해하기 위한 유형 예시입니다. 내 상황과 비슷한 유형을 찾고, 필요한 준비 항목을 확인하는 용도로 봐 주세요.</p>
+            <h3>왜 Wordfriends에 맡기나요?</h3>
+            <p>고객은 도메인, WordPress, 콘텐츠, 정책, 계정 관리가 한 번에 얽히는 지점에서 어려움을 느낍니다. Wordfriends는 고객 소유 계정을 기준으로 필요한 작업을 정리하고, 정책에 맞는 운영 가이드를 제시합니다.</p>
             <div class="wordfriends-cases-map-grid">
-                <article><small>1</small><strong>현재 막힌 지점</strong><span>도메인, WordPress, 콘텐츠, 계약, 보안 중 어디서 멈췄는지 확인합니다.</span></article>
-                <article><small>2</small><strong>정리할 항목</strong><span>고객 소유 계정, 필수 페이지, 정책 리스크, 포털 공유 항목을 분리합니다.</span></article>
-                <article><small>3</small><strong>다음 행동</strong><span>상담 문의, 전자계약 요청, 가이드 확인 중 필요한 다음 단계를 정합니다.</span></article>
+                <article><small>OWNERSHIP</small><strong>고객 소유 원칙</strong><span>Google, 도메인, 호스팅, AdSense는 고객 소유를 기준으로 안내합니다.</span></article>
+                <article><small>GUIDE</small><strong>정책 맞춤 운영</strong><span>승인이나 수익을 보장하지 않고, Google 정책에 맞춘 준비 항목을 점검합니다.</span></article>
+                <article><small>PORTAL</small><strong>한곳에서 확인</strong><span>사이트 현황, 문의 답변, 계약, 정산 참고 정보를 고객 포털에서 확인합니다.</span></article>
             </div>
         </div>
 
         <div class="wordfriends-guide-section">
-            <h3>대표 운영 유형</h3>
-            <p>아래 사례는 이해를 돕기 위한 유형 예시입니다. 개별 결과는 도메인 상태, 콘텐츠 품질, 정책, 운영 기간에 따라 달라집니다.</p>
+            <h3>대표 고객 시나리오</h3>
+            <p>아래 내용은 실제 고객 정보를 공개하는 수익 사례가 아니라, 상담에서 자주 만나는 문제와 Wordfriends가 정리하는 운영 범위를 설명하는 예시입니다.</p>
             <div class="wordfriends-guide-grid">
                 <article class="wordfriends-guide-card">
                     <small>CASE 01</small>
-                    <strong>처음 시작하는 고객</strong>
-                    <p>도메인과 호스팅 개념이 낯선 고객에게 소유권, 네임서버, WordPress 기본 구성을 순서대로 안내합니다.</p>
+                    <strong>AdSense가 처음인 고객</strong>
+                    <p>AdSense가 무엇인지, 왜 광고 정산 구조가 생기는지, 고객이 직접 소유해야 할 계정이 무엇인지 먼저 정리합니다.</p>
                     <ul class="wordfriends-guide-list">
-                        <li>고객 소유 계정 원칙 안내</li>
-                        <li>필수 페이지와 메뉴 구성</li>
-                        <li>고객 포털 계정 연결</li>
+                        <li>AdSense 기본 구조 안내</li>
+                        <li>고객 소유 계정 원칙</li>
+                        <li>수익·승인 보장 금지 고지</li>
                     </ul>
                 </article>
                 <article class="wordfriends-guide-card">
                     <small>CASE 02</small>
-                    <strong>운영 이력 도메인 검토</strong>
-                    <p>운영 이력이나 샌드박스 경과가 있는 후보를 검토하되, 검색 노출이나 승인 유리함을 보장하지 않습니다.</p>
+                    <strong>도메인 선택이 어려운 고객</strong>
+                    <p>Wordfriends가 검토 가능한 도메인 후보와 운영 이력 참고 자료를 정리해 고객이 판단할 수 있도록 돕습니다.</p>
                     <ul class="wordfriends-guide-list">
-                        <li>도메인 이력 참고 검토</li>
-                        <li>스팸/정책 리스크 확인</li>
-                        <li>구매 전 고객 판단 자료 정리</li>
+                        <li>도메인 소유권 확인</li>
+                        <li>운영 이력 참고 검토</li>
+                        <li>구매 전 판단 자료 정리</li>
                     </ul>
                 </article>
                 <article class="wordfriends-guide-card">
                     <small>CASE 03</small>
-                    <strong>AdSense 준비 점검</strong>
-                    <p>승인 보장 대신 필수 페이지, 콘텐츠 품질, 정책 위반 가능성을 점검하고 부족한 항목을 정리합니다.</p>
+                    <strong>WordPress 운영이 부담인 고객</strong>
+                    <p>설치, 필수 페이지, 메뉴, 사이트맵, Search Console, ads.txt처럼 초기에 헷갈리는 항목을 순서대로 정리합니다.</p>
                     <ul class="wordfriends-guide-list">
-                        <li>필수 페이지 확인</li>
-                        <li>콘텐츠 품질 체크</li>
-                        <li>정책 리스크 안내</li>
+                        <li>기본 세팅 점검</li>
+                        <li>필수 페이지 구성</li>
+                        <li>검색 도구 연결 안내</li>
                     </ul>
                 </article>
                 <article class="wordfriends-guide-card">
                     <small>CASE 04</small>
-                    <strong>운영 중단 사이트 정리</strong>
-                    <p>사이트맵, 플러그인, 콘텐츠 발행 상태가 멈춘 사이트를 점검하고 운영 재개 순서를 제안합니다.</p>
+                    <strong>콘텐츠와 정책이 걱정인 고객</strong>
+                    <p>복사글, 금지 클릭, 과장 표현, 저품질 콘텐츠처럼 운영 중 문제가 될 수 있는 기준을 먼저 점검합니다.</p>
                     <ul class="wordfriends-guide-list">
-                        <li>기술 상태 점검</li>
-                        <li>콘텐츠 큐 재정리</li>
-                        <li>알림센터로 진행 공유</li>
+                        <li>콘텐츠 주제 정리</li>
+                        <li>정책 리스크 점검</li>
+                        <li>발행 후 관리 기준 안내</li>
                     </ul>
                 </article>
                 <article class="wordfriends-guide-card">
                     <small>CASE 05</small>
-                    <strong>계약/정산 확인 고객</strong>
-                    <p>전자계약 요청, 문의 답변, 정산 참고, 추천 보상 상태를 고객 포털 중심으로 정리합니다.</p>
+                    <strong>진행 상황을 보고 싶은 고객</strong>
+                    <p>작업을 맡긴 뒤에도 내 사이트, 문의 답변, 전자계약, 정산 참고, 알림을 포털에서 확인할 수 있게 정리합니다.</p>
                     <ul class="wordfriends-guide-list">
-                        <li>계약 요청 상태 표시</li>
-                        <li>정산 참고 정보 안내</li>
-                        <li>추천 보상 1단계 기준 확인</li>
+                        <li>고객 포털 안내</li>
+                        <li>알림센터 공유</li>
+                        <li>문의·계약 흐름 연결</li>
                     </ul>
                 </article>
                 <article class="wordfriends-guide-card">
                     <small>CASE 06</small>
-                    <strong>보안 기준 재정리</strong>
-                    <p>비밀번호, API 키, 관리자 계정 정보를 노출하지 않도록 권한 확인 방식과 운영 기준을 다시 정리합니다.</p>
+                    <strong>장기 운영을 준비하는 고객</strong>
+                    <p>단기 작업보다 꾸준한 관리 기준이 중요합니다. Wordfriends는 글로벌 운영 관점에서 콘텐츠, 기술, 계정 상태를 함께 봅니다.</p>
                     <ul class="wordfriends-guide-list">
-                        <li>민감정보 공유 금지</li>
-                        <li>계정 소유권 확인</li>
-                        <li>필요 권한만 분리 안내</li>
+                        <li>운영 루틴 정리</li>
+                        <li>계정·보안 기준 확인</li>
+                        <li>장기 관리 방향 제안</li>
                     </ul>
                 </article>
             </div>
         </div>
 
         <div class="wordfriends-guide-section">
-            <h3>상담 전에 준비하면 좋은 정보</h3>
+            <h3>Wordfriends가 정리하는 범위</h3>
             <div class="wordfriends-cases-map-grid">
-                <article><small>DOMAIN</small><strong>도메인 상태</strong><span>구매 전 후보인지, 이미 보유 중인지, 운영 이력이 있는지 알려주세요.</span></article>
-                <article><small>ACCOUNT</small><strong>계정 준비</strong><span>호스팅, Google 계정, AdSense 준비 여부를 확인해 주세요.</span></article>
-                <article><small>GOAL</small><strong>운영 목적</strong><span>원하는 주제, 피하고 싶은 소재, 현재 가장 막힌 부분을 적어 주세요.</span></article>
+                <article><small>DATA</small><strong>상태 정리</strong><span>도메인, 계정, 사이트, 문의, 계약 상태를 고객이 이해하기 쉬운 기준으로 정리합니다.</span></article>
+                <article><small>CONTENT</small><strong>콘텐츠 운영</strong><span>글 주제, 발행 기준, 금지 소재, 품질 점검 기준을 운영 흐름에 맞게 안내합니다.</span></article>
+                <article><small>TECH</small><strong>기술 지원</strong><span>WordPress, 플러그인, 사이트맵, 검색 도구, 보안 기준을 점검합니다.</span></article>
+            </div>
+        </div>
+
+        <div class="wordfriends-guide-section">
+            <h3>고객이 편해지는 지점</h3>
+            <p>고객은 계정과 도메인을 직접 소유하고, Wordfriends는 운영 대행과 기술 지원을 통해 복잡한 절차를 한 흐름으로 정리합니다.</p>
+            <div class="wordfriends-cases-map-grid">
+                <article><small>1</small><strong>설명보다 실행</strong><span>무엇을 해야 하는지 흩어진 정보를 찾는 대신, 필요한 작업 순서를 안내받습니다.</span></article>
+                <article><small>2</small><strong>고객 포털 확인</strong><span>사이트 상태와 문의 답변, 계약, 알림을 한곳에서 확인합니다.</span></article>
+                <article><small>3</small><strong>정책 기준 운영</strong><span>금지 클릭, 복사 콘텐츠, 과장 표현처럼 위험한 운영 방식을 피하도록 안내합니다.</span></article>
             </div>
         </div>
 
@@ -4087,7 +4097,7 @@ function wordfriends_siteops_cases_shortcode($atts = []) {
             </div>
         </div>
 
-        <div class="wordfriends-guide-callout">사례는 의사결정을 돕는 참고 자료입니다. 결과는 고객 계정 상태, 도메인 이력, 콘텐츠 품질, 플랫폼 정책, 운영 기간에 따라 달라질 수 있습니다.</div>
+        <div class="wordfriends-guide-callout">사례는 의사결정을 돕는 참고 자료입니다. AdSense 승인, 수익, 트래픽, 검색 순위는 보장하지 않으며 결과는 고객 계정 상태, 도메인 이력, 콘텐츠 품질, 플랫폼 정책, 운영 기간에 따라 달라질 수 있습니다.</div>
         <div class="wordfriends-service-cta">
             <strong>내 상황과 비슷한 사례가 있다면 상담으로 이어가세요</strong>
             <span>도메인 준비 상태와 운영 목적을 남겨주시면 어떤 범위부터 정리하면 좋을지 안내드립니다.</span>
