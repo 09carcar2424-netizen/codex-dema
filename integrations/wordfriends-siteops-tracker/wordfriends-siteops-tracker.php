@@ -4084,7 +4084,7 @@ function wordfriends_siteops_cases_shortcode($atts = []) {
             <div class="wordfriends-guide-faq">
                 <details open>
                     <summary>사례가 실제 수익을 의미하나요?</summary>
-                    <p>아니요. 사례는 운영 유형과 작업 범위를 설명하기 위한 예시이며 수익, 트래픽, 승인, 검색 순위를 보장하지 않습니다.</p>
+                    <p>아니요. 사례는 운영 유형과 작업 범위를 설명하기 위한 예시이며 수익, 트래픽, 승인, 검색 순위를 보장하지 않습니다. 다만 고객이 직접 관리하기 어려운 콘텐츠 발행, 정책 점검, 사이트 운영을 Wordfriends가 정리해 장기적으로 안정적인 운영 기반을 만드는 데 집중합니다.</p>
                 </details>
                 <details>
                     <summary>내 상황과 비슷한 사례를 상담할 수 있나요?</summary>
