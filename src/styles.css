@@ -306,6 +306,90 @@ h2 {
   font-size: 26px;
 }
 
+.sales-readiness-panel {
+  margin-bottom: 18px;
+}
+
+.readiness-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.38fr);
+  gap: 16px;
+  align-items: center;
+  margin-top: 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--panel-soft);
+}
+
+.readiness-overview strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.readiness-overview p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.readiness-progress {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-border) 70%, transparent);
+}
+
+.readiness-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.readiness-card {
+  display: grid;
+  gap: 8px;
+  min-height: 150px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel-bg);
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+}
+
+.readiness-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--panel-border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-bg));
+}
+
+.readiness-card svg {
+  color: var(--accent);
+}
+
+.readiness-card strong {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.readiness-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
@@ -3095,6 +3179,8 @@ h2 {
   .api-config-panel,
   .content-grid,
   .delivery-grid,
+  .readiness-overview,
+  .readiness-grid,
   .setup-grid,
   .setup-filter-grid,
   .inventory-controls,

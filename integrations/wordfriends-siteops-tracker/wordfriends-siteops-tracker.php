@@ -143,6 +143,7 @@ function wordfriends_siteops_enqueue_tracker() {
         'contractGuideUrl' => wordfriends_siteops_contract_guide_page_url(),
         'termsUrl' => wordfriends_siteops_terms_page_url(),
         'privacyUrl' => wordfriends_siteops_privacy_page_url(),
+        'isLoggedIn' => is_user_logged_in(),
     ]);
 
     wp_add_inline_script('wordfriends-siteops-tracker', <<<'JS'
@@ -225,15 +226,32 @@ JS);
 (function () {
   if (!window.WordfriendsSiteOps) return;
 
-  function ensurePortalLink(text, href) {
+  function normalizeLabel(text) {
+    return String(text || '').replace(/[\s·ㆍ\/]/g, '').trim().toLowerCase();
+  }
+
+  function findPortalLink(text, aliases) {
+    var labels = [text].concat(aliases || []).map(normalizeLabel);
+    var nav = document.querySelector('header nav, .wp-block-navigation, nav');
+    if (!nav) return null;
+
+    var links = Array.prototype.slice.call(nav.querySelectorAll('a'));
+    return links.find(function (link) {
+      return labels.indexOf(normalizeLabel(link.textContent)) !== -1;
+    }) || null;
+  }
+
+  function ensurePortalLink(text, href, aliases) {
     if (!href) return;
     var nav = document.querySelector('header nav, .wp-block-navigation, nav');
     if (!nav) return;
 
-    var hasLink = Array.prototype.some.call(nav.querySelectorAll('a'), function (link) {
-      return (link.textContent || '').replace(/\s+/g, '').trim() === text.replace(/\s+/g, '');
-    });
-    if (hasLink) return;
+    var existingLink = findPortalLink(text, aliases);
+    if (existingLink) {
+      existingLink.href = href;
+      existingLink.textContent = text;
+      return;
+    }
 
     var lastLink = nav.querySelector('a:last-of-type');
     if (!lastLink || !lastLink.parentNode) return;
@@ -255,32 +273,51 @@ JS);
   }
 
   function ensurePortalLinks() {
-    ensurePortalLink('HOME', WordfriendsSiteOps.homeUrl || '/');
-    ensurePortalLink('\uc11c\ube44\uc2a4', WordfriendsSiteOps.servicesUrl);
-    ensurePortalLink('\uad6c\ucd95\uc808\ucc28', WordfriendsSiteOps.startGuideUrl);
-    ensurePortalLink('\uc0ac\ub840', WordfriendsSiteOps.casesUrl);
-    ensurePortalLink('\uac00\uc774\ub4dc/FAQ', WordfriendsSiteOps.guideUrl);
-    ensurePortalLink('\ubb38\uc758', WordfriendsSiteOps.inquiryUrl);
-    ensurePortalLink('\uace0\uac1d \ud3ec\ud138', WordfriendsSiteOps.dashboardUrl);
-    ensurePortalLink('\ud68c\uc6d0\uac00\uc785', WordfriendsSiteOps.signupUrl);
-    ensurePortalLink('\ub85c\uadf8\uc778', WordfriendsSiteOps.loginUrl);
-    ensurePortalLink('\ub85c\uadf8\uc544\uc6c3', WordfriendsSiteOps.logoutUrl);
+    var nav = document.querySelector('header nav, .wp-block-navigation, nav');
+    var list = nav ? nav.querySelector('ul, .wp-block-navigation__container') : null;
+    var publicLinks = [
+      ['\ud648', WordfriendsSiteOps.homeUrl || '/', ['HOME']],
+      ['\uc11c\ube44\uc2a4', WordfriendsSiteOps.servicesUrl],
+      ['\uad6c\ucd95\uc808\ucc28', WordfriendsSiteOps.startGuideUrl],
+      ['\uc0ac\ub840', WordfriendsSiteOps.casesUrl],
+      ['\uac00\uc774\ub4dc/FAQ', WordfriendsSiteOps.guideUrl, ['\uac00\uc774\ub4dc', 'FAQ']],
+      ['\ubb38\uc758', WordfriendsSiteOps.inquiryUrl]
+    ];
+    var customerLinks = WordfriendsSiteOps.isLoggedIn ? [
+      ['\uace0\uac1d\ud3ec\ud138', WordfriendsSiteOps.dashboardUrl, ['\uace0\uac1d \ud3ec\ud138']],
+      ['\ub85c\uadf8\uc544\uc6c3', WordfriendsSiteOps.logoutUrl]
+    ] : [
+      ['\uace0\uac1d\ud3ec\ud138', WordfriendsSiteOps.dashboardUrl, ['\uace0\uac1d \ud3ec\ud138']],
+      ['\ub85c\uadf8\uc778', WordfriendsSiteOps.loginUrl],
+      ['\ud68c\uc6d0\uac00\uc785', WordfriendsSiteOps.signupUrl]
+    ];
+
+    publicLinks.concat(customerLinks).forEach(function (item) {
+      ensurePortalLink(item[0], item[1], item[2]);
+    });
+
+    if (list) {
+      publicLinks.concat(customerLinks).forEach(function (item) {
+        var link = findPortalLink(item[0], item[2]);
+        var node = link ? (link.closest('li') || link) : null;
+        if (node && node.parentNode === list) {
+          list.appendChild(node);
+        }
+      });
+    }
   }
 
   function hideOperationalHeaderLinks() {
     var nav = document.querySelector('header nav, .wp-block-navigation, nav');
     if (!nav) return;
 
-    var hiddenLabels = [
-      '\ub0b4\uc0ac\uc774\ud2b8',
-      '\ub0b4\ubb38\uc758',
-      '\uc815\uc0b0/\ucd94\ucc9c',
-      '\uc54c\ub9bc\uc13c\ud130',
-      '\uc804\uc790\uacc4\uc57d'
-    ];
+    var hiddenLabels = WordfriendsSiteOps.isLoggedIn
+      ? ['\ub85c\uadf8\uc778', '\ud68c\uc6d0\uac00\uc785', '\ub0b4\uc0ac\uc774\ud2b8', '\ub0b4\ubb38\uc758', '\uc815\uc0b0/\ucd94\ucc9c', '\uc815\uc0b0\u00b7\ucd94\ucc9c', '\uc815\uc0b0\ucd94\ucc9c', '\uc54c\ub9bc\uc13c\ud130', '\uc804\uc790\uacc4\uc57d']
+      : ['\ub0b4\uc0ac\uc774\ud2b8', '\ub0b4\ubb38\uc758', '\uc815\uc0b0/\ucd94\ucc9c', '\uc815\uc0b0\u00b7\ucd94\ucc9c', '\uc815\uc0b0\ucd94\ucc9c', '\uc54c\ub9bc\uc13c\ud130', '\uc804\uc790\uacc4\uc57d', '\ub85c\uadf8\uc544\uc6c3'];
+    hiddenLabels = hiddenLabels.map(normalizeLabel);
 
     Array.prototype.forEach.call(nav.querySelectorAll('a'), function (link) {
-      var label = (link.textContent || '').replace(/\s+/g, '').trim();
+      var label = normalizeLabel(link.textContent);
       if (hiddenLabels.indexOf(label) === -1) return;
 
       var item = link.closest('li') || link;
@@ -293,38 +330,137 @@ JS);
     var footer = document.querySelector('footer, .wp-block-template-part footer');
     if (!footer) return;
 
-    var links = [
+    if (footer.querySelector('[data-wordfriends-footer]')) return;
+
+    Array.prototype.forEach.call(footer.children, function (child) {
+      child.style.display = 'none';
+      child.setAttribute('data-wordfriends-footer-hidden', '1');
+    });
+    footer.classList.add('wordfriends-footer-ready');
+
+    var wrap = document.createElement('div');
+    wrap.className = 'wordfriends-site-footer';
+    wrap.setAttribute('data-wordfriends-footer', '1');
+
+    var brand = document.createElement('div');
+    brand.className = 'wordfriends-site-footer-brand';
+
+    var brandName = document.createElement('strong');
+    brandName.textContent = '\uc6cc\ub4dc\ud504\ub79c\uc988';
+    brand.appendChild(brandName);
+
+    var brandText = document.createElement('p');
+    brandText.textContent = '\uace0\uac1d \uc18c\uc720 \ub3c4\uba54\uc778\uacfc \uacc4\uc815\uc744 \uae30\uc900\uc73c\ub85c WordPress \uad6c\ucd95, \ucf58\ud150\uce20 \uc6b4\uc601, \uae30\uc220\uc9c0\uc6d0\uc744 \uc815\ub9ac\ud569\ub2c8\ub2e4.';
+    brand.appendChild(brandText);
+
+    var linkGroups = document.createElement('div');
+    linkGroups.className = 'wordfriends-site-footer-groups';
+
+    var publicNav = document.createElement('nav');
+    publicNav.className = 'wordfriends-site-footer-links';
+    publicNav.setAttribute('aria-label', 'Wordfriends');
+
+    [
+      ['\uc11c\ube44\uc2a4', WordfriendsSiteOps.servicesUrl],
+      ['\uad6c\ucd95\uc808\ucc28', WordfriendsSiteOps.startGuideUrl],
+      ['\uc0ac\ub840', WordfriendsSiteOps.casesUrl],
+      ['\uac00\uc774\ub4dc/FAQ', WordfriendsSiteOps.guideUrl],
+      ['\ubb38\uc758', WordfriendsSiteOps.inquiryUrl],
+      ['\uace0\uac1d\ud3ec\ud138', WordfriendsSiteOps.dashboardUrl]
+    ].forEach(function (item) {
+      appendFooterLink(publicNav, item[0], item[1]);
+    });
+
+    var policyNav = document.createElement('nav');
+    policyNav.className = 'wordfriends-site-footer-links wordfriends-site-footer-policy';
+    policyNav.setAttribute('aria-label', 'Policy');
+
+    [
       ['\uc804\uc790\uacc4\uc57d \uc548\ub0b4', WordfriendsSiteOps.contractGuideUrl],
       ['\uc774\uc6a9\uc57d\uad00', WordfriendsSiteOps.termsUrl],
       ['\uac1c\uc778\uc815\ubcf4\ucc98\ub9ac\ubc29\uce68', WordfriendsSiteOps.privacyUrl]
-    ].filter(function (item) { return item[1]; });
-
-    if (!links.length || footer.querySelector('[data-wordfriends-policy-links]')) return;
-
-    var wrap = document.createElement('nav');
-    wrap.setAttribute('data-wordfriends-policy-links', '1');
-    wrap.style.marginTop = '12px';
-    wrap.style.display = 'flex';
-    wrap.style.flexWrap = 'wrap';
-    wrap.style.gap = '10px';
-
-    links.forEach(function (item) {
-      var link = document.createElement('a');
-      link.href = item[1];
-      link.textContent = item[0];
-      wrap.appendChild(link);
+    ].forEach(function (item) {
+      appendFooterLink(policyNav, item[0], item[1]);
     });
+
+    linkGroups.appendChild(publicNav);
+    linkGroups.appendChild(policyNav);
+
+    var info = document.createElement('div');
+    info.className = 'wordfriends-site-footer-info';
+
+    [
+      '(\uc8fc)\uc2a4\ud0c0\uc77c\ucef4\ud37c\ub2c8',
+      '\uc0ac\uc5c5\uc790\ub4f1\ub85d\ubc88\ud638: 620-88-01252',
+      '\ud1b5\uc2e0\ud310\ub9e4\uc5c5 \uc2e0\uace0\ubc88\ud638: \uc81c 2019-\uc131\ub0a8\uc911\uc6d0-0577\ud638'
+    ].forEach(function (text) {
+      var item = document.createElement('span');
+      item.textContent = text;
+      info.appendChild(item);
+    });
+
+    var email = document.createElement('a');
+    email.className = 'wordfriends-site-footer-email';
+    email.href = 'mailto:talk@wordfriends.co.kr';
+    email.textContent = '\uc774\uba54\uc77c: talk@wordfriends.co.kr';
+    info.appendChild(email);
+
+    var notice = document.createElement('p');
+    notice.className = 'wordfriends-site-footer-notice';
+    notice.textContent = 'Wordfriends\ub294 \uc6b4\uc601\ub300\ud589, \ucf58\ud150\uce20 \uc6b4\uc601, \uae30\uc220\uc9c0\uc6d0 \uc5ed\ud560\uc744 \uc218\ud589\ud558\uba70 \uc218\uc775, AdSense \uc2b9\uc778, \ud2b8\ub798\ud53d, \uac80\uc0c9 \uc21c\uc704\ub97c \ubcf4\uc7a5\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.';
+
+    wrap.appendChild(brand);
+    wrap.appendChild(linkGroups);
+    wrap.appendChild(info);
+    wrap.appendChild(notice);
 
     footer.appendChild(wrap);
   }
 
+  function appendFooterLink(parent, text, href) {
+    if (!href) return;
+
+    var link = document.createElement('a');
+    link.href = href;
+    link.textContent = text;
+    parent.appendChild(link);
+  }
+
+  function markWordfriendsDocumentPage() {
+    var pageUrls = [
+      WordfriendsSiteOps.contractGuideUrl,
+      WordfriendsSiteOps.termsUrl,
+      WordfriendsSiteOps.privacyUrl
+    ].filter(Boolean);
+    var currentPath = normalizePath(window.location.pathname);
+
+    var isDocumentPage = pageUrls.some(function (url) {
+      var path = normalizePath(url);
+      return path && currentPath === path;
+    });
+
+    if (isDocumentPage) {
+      document.body.classList.add('wordfriends-document-page');
+    }
+  }
+
+  function normalizePath(url) {
+    try {
+      return new URL(url, window.location.origin).pathname.replace(/\/+$/, '') || '/';
+    } catch (error) {
+      return '';
+    }
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
+      markWordfriendsDocumentPage();
       ensurePortalLinks();
       hideOperationalHeaderLinks();
       ensurePolicyFooterLinks();
     });
   } else {
+    markWordfriendsDocumentPage();
     ensurePortalLinks();
     hideOperationalHeaderLinks();
     ensurePolicyFooterLinks();
@@ -342,17 +478,26 @@ function wordfriends_siteops_portal_styles() {
     wp_register_style('wordfriends-siteops-portal', false, [], WORDFRIENDS_SITEOPS_VERSION);
     wp_enqueue_style('wordfriends-siteops-portal');
     wp_add_inline_style('wordfriends-siteops-portal', '
+      .wordfriends-auth,
+      .wordfriends-auth *,
+      .wordfriends-site-footer,
+      .wordfriends-site-footer * {
+        box-sizing: border-box;
+      }
       .wordfriends-auth {
+        width: min(100%, 520px);
+        margin-right: auto;
+        margin-left: auto;
         max-width: 520px;
         border: 1px solid #d9e2e7;
         border-radius: 8px;
-        padding: 24px;
+        padding: 22px;
         background: #fff;
         color: #17212b;
       }
       .wordfriends-auth h2 {
         margin: 0 0 8px;
-        font-size: 28px;
+        font-size: 24px;
         line-height: 1.2;
       }
       .wordfriends-auth p {
@@ -412,10 +557,10 @@ function wordfriends_siteops_portal_styles() {
         line-height: 1.5;
       }
       .wordfriends-button {
-        min-height: 46px;
+        min-height: 42px;
         border: 0;
         border-radius: 8px;
-        padding: 0 18px;
+        padding: 0 16px;
         background: #1f8a70;
         color: #fff;
         cursor: pointer;
@@ -453,6 +598,34 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-auth-small {
         color: #697985;
         font-size: 13px;
+      }
+      .wordfriends-question-guide {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin: 14px 0 16px;
+      }
+      .wordfriends-question-guide article {
+        border: 1px solid #d9e2e7;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+      }
+      .wordfriends-question-guide strong {
+        display: block;
+        color: #17212b;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+      .wordfriends-question-guide span {
+        display: block;
+        margin-top: 6px;
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .wordfriends-question-form-note {
+        margin-top: 8px;
       }
       .wordfriends-question-list {
         display: grid;
@@ -541,6 +714,16 @@ function wordfriends_siteops_portal_styles() {
         border-radius: 8px;
         padding: 18px;
         background: #fbfdfe;
+      }
+      .wordfriends-empty p:last-child {
+        margin-bottom: 0;
+      }
+      .wordfriends-empty .wordfriends-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 8px;
+        text-decoration: none;
       }
       .wordfriends-site-grid {
         display: grid;
@@ -694,6 +877,7 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-services {
         display: grid;
         gap: 18px;
+        max-width: 860px;
       }
       .wordfriends-services-hero {
         display: grid;
@@ -707,21 +891,23 @@ function wordfriends_siteops_portal_styles() {
         text-transform: uppercase;
       }
       .wordfriends-services-actions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
       .wordfriends-services-actions .wordfriends-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        flex: 0 1 auto;
-        min-width: 110px;
+        box-sizing: border-box;
+        min-width: 0;
+        padding: 0 10px;
         line-height: 1.2;
         text-align: center;
+        white-space: nowrap;
       }
       .wordfriends-services-actions .wordfriends-button.wordfriends-button-secondary {
-        min-width: 150px;
+        min-width: 0;
       }
       .wordfriends-services h3 {
         margin: 0;
@@ -744,6 +930,7 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-service-card {
         display: grid;
         gap: 8px;
+        min-width: 0;
         min-height: 170px;
         border: 1px solid rgba(106, 173, 178, 0.35);
         border-radius: 8px;
@@ -761,6 +948,7 @@ function wordfriends_siteops_portal_styles() {
         color: #f8ffff;
         font-size: 19px;
         line-height: 1.4;
+        overflow-wrap: anywhere;
       }
       .wordfriends-service-card p,
       .wordfriends-services-section p {
@@ -768,6 +956,7 @@ function wordfriends_siteops_portal_styles() {
         color: #c7f2ee;
         font-size: 15px;
         line-height: 1.7;
+        overflow-wrap: anywhere;
       }
       .wordfriends-service-list {
         display: grid;
@@ -847,12 +1036,71 @@ function wordfriends_siteops_portal_styles() {
         gap: 10px;
         margin-top: 14px;
       }
+      .wordfriends-service-scope {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .wordfriends-service-scope article,
       .wordfriends-service-video,
       .wordfriends-service-proof {
         border: 1px solid rgba(106, 173, 178, 0.35);
         border-radius: 8px;
         padding: 14px;
         background: rgba(5, 30, 33, 0.72);
+      }
+      .wordfriends-service-scope article {
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .wordfriends-service-scope article:hover,
+      .wordfriends-service-scope article:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+      }
+      .wordfriends-service-scope small {
+        color: #8fb8c5;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .wordfriends-service-scope strong {
+        display: block;
+        margin-top: 6px;
+        color: #f8ffff;
+        font-size: 18px;
+        line-height: 1.35;
+      }
+      .wordfriends-setup-checkpoints {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .wordfriends-setup-checkpoints article {
+        border: 1px solid rgba(106, 173, 178, 0.35);
+        border-radius: 8px;
+        padding: 14px;
+        background: rgba(5, 30, 33, 0.72);
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .wordfriends-setup-checkpoints article:hover,
+      .wordfriends-setup-checkpoints article:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+      }
+      .wordfriends-setup-checkpoints small {
+        color: #8fb8c5;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .wordfriends-setup-checkpoints strong {
+        display: block;
+        margin-top: 6px;
+        color: #f8ffff;
+        font-size: 18px;
+        line-height: 1.35;
       }
       .wordfriends-service-video-frame {
         display: grid;
@@ -878,9 +1126,28 @@ function wordfriends_siteops_portal_styles() {
         color: #f8ffff;
         font-size: 16px;
       }
+      .wordfriends-service-cta {
+        display: grid;
+        gap: 10px;
+        border: 1px solid #35c6a5;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(43, 212, 183, .14), rgba(7, 26, 31, .96));
+        padding: 18px;
+      }
+      .wordfriends-service-cta strong {
+        color: #f8ffff;
+        font-size: 18px;
+        line-height: 1.35;
+      }
+      .wordfriends-service-cta span {
+        color: #c7f2ee;
+        font-size: 14px;
+        line-height: 1.55;
+      }
       .wordfriends-guide {
         display: grid;
         gap: 18px;
+        max-width: 860px;
       }
       .wordfriends-guide-hero {
         display: grid;
@@ -894,21 +1161,23 @@ function wordfriends_siteops_portal_styles() {
         text-transform: uppercase;
       }
       .wordfriends-guide-actions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
       .wordfriends-guide-actions .wordfriends-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        flex: 0 1 auto;
-        min-width: 110px;
+        box-sizing: border-box;
+        min-width: 0;
+        padding: 0 10px;
         line-height: 1.2;
         text-align: center;
+        white-space: nowrap;
       }
       .wordfriends-guide-actions .wordfriends-button.wordfriends-button-secondary {
-        min-width: 150px;
+        min-width: 0;
       }
       .wordfriends-guide h3 {
         margin: 0;
@@ -937,6 +1206,7 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-guide-card {
         display: grid;
         gap: 8px;
+        min-width: 0;
         border: 1px solid rgba(106, 173, 178, 0.35);
         border-radius: 8px;
         padding: 16px;
@@ -952,12 +1222,55 @@ function wordfriends_siteops_portal_styles() {
         color: #f8ffff;
         font-size: 18px;
         line-height: 1.4;
+        overflow-wrap: anywhere;
       }
       .wordfriends-guide-card p {
         margin: 0;
         color: #c7f2ee;
         font-size: 14px;
         line-height: 1.65;
+        overflow-wrap: anywhere;
+      }
+      .wordfriends-cases-map-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .wordfriends-cases-map-grid article {
+        min-width: 0;
+        border: 1px solid rgba(106, 173, 178, 0.35);
+        border-radius: 8px;
+        padding: 14px;
+        background: rgba(5, 30, 33, 0.72);
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .wordfriends-cases-map-grid article:hover,
+      .wordfriends-cases-map-grid article:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+      }
+      .wordfriends-cases-map-grid small {
+        color: #8fb8c5;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .wordfriends-cases-map-grid strong {
+        display: block;
+        margin-top: 6px;
+        color: #f8ffff;
+        font-size: 16px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+      .wordfriends-cases-map-grid span {
+        display: block;
+        margin-top: 8px;
+        color: #b8d6d4;
+        font-size: 13px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
       }
       .wordfriends-guide-list {
         display: grid;
@@ -991,6 +1304,7 @@ function wordfriends_siteops_portal_styles() {
         margin-top: 14px;
       }
       .wordfriends-guide-step {
+        min-width: 0;
         border: 1px solid rgba(106, 173, 178, 0.35);
         border-radius: 8px;
         padding: 14px;
@@ -1012,6 +1326,8 @@ function wordfriends_siteops_portal_styles() {
         display: block;
         color: #f8ffff;
         font-size: 15px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
       }
       .wordfriends-guide-step small {
         display: block;
@@ -1036,6 +1352,8 @@ function wordfriends_siteops_portal_styles() {
         color: #f8ffff;
         font-size: 15px;
         font-weight: 900;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
       }
       .wordfriends-guide-faq p {
         margin-top: 10px;
@@ -1095,21 +1413,165 @@ function wordfriends_siteops_portal_styles() {
         }
       }
       @media (max-width: 520px) {
+        body:has(.wordfriends-auth) main {
+          padding-right: 0;
+          padding-left: 0;
+        }
+        .wordfriends-auth {
+          width: min(100%, calc(100vw - 32px));
+          max-width: calc(100vw - 32px);
+          margin-right: auto;
+          margin-left: auto;
+          padding: 16px;
+        }
+        .wordfriends-auth h2 {
+          font-size: 19px;
+        }
+        .wordfriends-auth p {
+          font-size: 14px;
+        }
+        .wordfriends-services-section,
+        .wordfriends-guide-section,
+        .wordfriends-service-card,
+        .wordfriends-guide-card {
+          padding: 14px;
+        }
+        .wordfriends-service-card {
+          min-height: 0;
+        }
+        .wordfriends-service-card strong,
+        .wordfriends-guide-card strong,
+        .wordfriends-cases-map-grid strong {
+          font-size: 16px;
+        }
+        .wordfriends-service-card p,
+        .wordfriends-services-section p,
+        .wordfriends-guide-card p,
+        .wordfriends-guide-section p,
+        .wordfriends-cases-map-grid span,
+        .wordfriends-guide-list li,
+        .wordfriends-guide-step small {
+          font-size: 13px;
+          line-height: 1.6;
+        }
+        .wordfriends-guide-faq details,
+        .wordfriends-guide-video,
+        .wordfriends-guide-step,
+        .wordfriends-cases-map-grid article {
+          padding: 12px;
+        }
+        .wordfriends-services-actions,
+        .wordfriends-guide-actions,
+        .wordfriends-home-actions {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .wordfriends-services-actions .wordfriends-button,
+        .wordfriends-guide-actions .wordfriends-button,
+        .wordfriends-home-actions .wordfriends-button {
+          padding: 0 8px;
+          font-size: 12px;
+          white-space: normal;
+        }
+        .wordfriends-inline-actions {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+        .wordfriends-portal-nav {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .wordfriends-portal-nav a {
+          width: 100%;
+          padding: 0 8px;
+          font-size: 11px;
+          white-space: normal;
+          text-align: center;
+        }
+        .wordfriends-dashboard-grid {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .wordfriends-dashboard-card {
+          min-height: 0;
+        }
+        .wordfriends-dashboard-card-head {
+          align-items: flex-start;
+        }
+        .wordfriends-inline-actions .wordfriends-button {
+          width: 100%;
+          white-space: normal;
+          text-align: center;
+        }
+        .wordfriends-auth textarea {
+          min-height: 148px;
+        }
+        .wordfriends-question-form-note {
+          font-size: 12px;
+          line-height: 1.5;
+        }
         .wordfriends-question-filters,
         .wordfriends-site-filters {
+          grid-template-columns: 1fr;
+        }
+        .wordfriends-question-guide {
           grid-template-columns: 1fr;
         }
         .wordfriends-services-grid,
         .wordfriends-service-flow,
         .wordfriends-service-videos,
         .wordfriends-service-proofs,
+        .wordfriends-service-scope,
+        .wordfriends-setup-checkpoints,
         .wordfriends-guide-grid,
+        .wordfriends-cases-map-grid,
         .wordfriends-guide-path,
         .wordfriends-guide-videos {
           grid-template-columns: 1fr;
         }
         .wordfriends-service-step:not(:last-child)::after {
           display: none;
+        }
+        body.wordfriends-document-page main {
+          padding: 0 18px 48px;
+        }
+        body.wordfriends-document-page .wp-block-post-title,
+        body.wordfriends-document-page .entry-title,
+        body.wordfriends-document-page main h1 {
+          margin-bottom: 18px;
+          font-size: 24px;
+        }
+        body.wordfriends-document-page .entry-content,
+        body.wordfriends-document-page .wp-block-post-content {
+          font-size: 14px;
+          line-height: 1.7;
+        }
+        body.wordfriends-document-page .entry-content h2,
+        body.wordfriends-document-page .wp-block-post-content h2 {
+          font-size: 20px;
+        }
+        body.wordfriends-document-page .entry-content h3,
+        body.wordfriends-document-page .wp-block-post-content h3 {
+          font-size: 17px;
+        }
+        .wordfriends-site-footer {
+          padding: 30px 18px 28px;
+          gap: 16px;
+        }
+        .wordfriends-site-footer-brand strong {
+          font-size: 24px;
+        }
+        .wordfriends-site-footer-brand p,
+        .wordfriends-site-footer-notice {
+          font-size: 12px;
+        }
+        .wordfriends-site-footer-links {
+          gap: 8px 12px;
+        }
+        .wordfriends-site-footer-info {
+          display: grid;
+          gap: 5px;
+          justify-items: center;
         }
       }
       .wordfriends-summary-row {
@@ -1139,6 +1601,63 @@ function wordfriends_siteops_portal_styles() {
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 12px;
         margin: 18px 0;
+      }
+      .wordfriends-portal-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 14px 0 18px;
+      }
+      .wordfriends-portal-nav a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        min-height: 34px;
+        border: 1px solid #24474d;
+        border-radius: 8px;
+        padding: 0 11px;
+        background: #071a1f;
+        color: #c7f2ee;
+        font-size: 12px;
+        font-weight: 900;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .wordfriends-portal-nav a:hover,
+      .wordfriends-portal-nav a:focus-visible,
+      .wordfriends-portal-nav a.is-active {
+        border-color: #35c6a5;
+        background: #dff8ef;
+        color: #05201b;
+        outline: none;
+      }
+      .wordfriends-inline-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 12px 0 16px;
+      }
+      .wordfriends-inline-actions .wordfriends-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 36px;
+        text-align: center;
+        text-decoration: none;
+      }
+      .wordfriends-auth form > .wordfriends-button[type="submit"] {
+        width: 100%;
+      }
+      .wordfriends-site-actions {
+        margin: 10px 0 0;
+      }
+      .wordfriends-site-actions .wordfriends-button {
+        min-height: 34px;
+        padding: 0 12px;
+        font-size: 13px;
       }
       .wordfriends-dashboard-card {
         display: grid;
@@ -1170,6 +1689,7 @@ function wordfriends_siteops_portal_styles() {
         align-items: center;
         justify-content: space-between;
         gap: 8px;
+        min-width: 0;
       }
       .wordfriends-dashboard-badge {
         border-radius: 999px;
@@ -1191,10 +1711,12 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-dashboard-card strong {
         font-size: 22px;
+        overflow-wrap: anywhere;
       }
       .wordfriends-dashboard-card span {
         color: #5b6872;
         line-height: 1.5;
+        overflow-wrap: anywhere;
       }
       .wordfriends-dashboard-card .wordfriends-dashboard-detail {
         color: #697985;
@@ -1278,6 +1800,10 @@ function wordfriends_siteops_portal_styles() {
       body:has(.wordfriends-auth) .entry-content {
         background: #061316;
       }
+      body:has(.wordfriends-auth),
+      body:has(.wordfriends-auth) .wp-site-blocks {
+        overflow-x: hidden;
+      }
       body:has(.wordfriends-auth) header,
       body:has(.wordfriends-auth) footer {
         background: #061316;
@@ -1292,6 +1818,169 @@ function wordfriends_siteops_portal_styles() {
       body:has(.wordfriends-auth) header a:hover,
       body:has(.wordfriends-auth) footer a:hover {
         color: #4ad6b4;
+      }
+      body.wordfriends-document-page {
+        background: #061316;
+        color: #d8f2ee;
+      }
+      body.wordfriends-document-page .wp-site-blocks,
+      body.wordfriends-document-page main,
+      body.wordfriends-document-page .entry-content,
+      body.wordfriends-document-page .wp-block-post-content {
+        background: #061316;
+      }
+      body.wordfriends-document-page header,
+      body.wordfriends-document-page footer {
+        background: #061316;
+        color: #d8f2ee;
+      }
+      body.wordfriends-document-page main {
+        padding: 0 20px 76px;
+      }
+      body.wordfriends-document-page .wp-block-post-title,
+      body.wordfriends-document-page .entry-title,
+      body.wordfriends-document-page main h1 {
+        width: min(100%, 760px);
+        margin: 0 auto 22px;
+        color: #f3fffd;
+        font-size: clamp(26px, 2.6vw, 34px);
+        line-height: 1.2;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+      body.wordfriends-document-page .entry-content,
+      body.wordfriends-document-page .wp-block-post-content {
+        width: min(100%, 760px);
+        margin: 0 auto;
+        color: #c7e8e4;
+        font-size: 15px;
+        line-height: 1.75;
+      }
+      body.wordfriends-document-page .entry-content > *,
+      body.wordfriends-document-page .wp-block-post-content > * {
+        max-width: none;
+      }
+      body.wordfriends-document-page .entry-content h2,
+      body.wordfriends-document-page .entry-content h3,
+      body.wordfriends-document-page .wp-block-post-content h2,
+      body.wordfriends-document-page .wp-block-post-content h3 {
+        margin: 30px 0 10px;
+        color: #f3fffd;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+      body.wordfriends-document-page .entry-content h2,
+      body.wordfriends-document-page .wp-block-post-content h2 {
+        font-size: 22px;
+      }
+      body.wordfriends-document-page .entry-content h3,
+      body.wordfriends-document-page .wp-block-post-content h3 {
+        font-size: 18px;
+      }
+      body.wordfriends-document-page .entry-content p,
+      body.wordfriends-document-page .entry-content li,
+      body.wordfriends-document-page .wp-block-post-content p,
+      body.wordfriends-document-page .wp-block-post-content li {
+        color: #c7e8e4;
+      }
+      body.wordfriends-document-page .entry-content ul,
+      body.wordfriends-document-page .entry-content ol,
+      body.wordfriends-document-page .wp-block-post-content ul,
+      body.wordfriends-document-page .wp-block-post-content ol {
+        padding-left: 22px;
+      }
+      body.wordfriends-document-page .entry-content a,
+      body.wordfriends-document-page .wp-block-post-content a,
+      body.wordfriends-document-page header a,
+      body.wordfriends-document-page footer a {
+        color: #8de8d7;
+        text-underline-offset: 4px;
+      }
+      body.wordfriends-document-page .entry-content a[href^="mailto:"],
+      body.wordfriends-document-page .wp-block-post-content a[href^="mailto:"] {
+        color: #5aaeff;
+        font-weight: 800;
+      }
+      body.wordfriends-document-page .entry-content a:hover,
+      body.wordfriends-document-page .wp-block-post-content a:hover,
+      body.wordfriends-document-page header a:hover,
+      body.wordfriends-document-page footer a:hover {
+        color: #4ad6b4;
+      }
+      .wordfriends-footer-ready {
+        border-top: 1px solid #14363b;
+        background: #061316;
+        color: #d8f2ee;
+      }
+      .wordfriends-site-footer {
+        width: min(100%, 960px);
+        margin: 0 auto;
+        padding: 34px 20px 30px;
+        display: grid;
+        gap: 18px;
+        text-align: center;
+        justify-items: center;
+      }
+      .wordfriends-site-footer-brand {
+        display: grid;
+        gap: 8px;
+        justify-items: center;
+      }
+      .wordfriends-site-footer-brand strong {
+        color: #f3fffd;
+        font-size: 26px;
+        line-height: 1.15;
+        font-weight: 900;
+      }
+      .wordfriends-site-footer-brand p,
+      .wordfriends-site-footer-notice {
+        margin: 0;
+        color: #a9cfcb;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .wordfriends-site-footer-groups {
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+      }
+      .wordfriends-site-footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 14px;
+      }
+      .wordfriends-site-footer-links a {
+        color: #d8f2ee;
+        font-size: 13px;
+        font-weight: 800;
+        text-decoration: none;
+      }
+      .wordfriends-site-footer-policy a {
+        color: #8de8d7;
+      }
+      .wordfriends-site-footer-info {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px 14px;
+        color: #8fb5b1;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .wordfriends-site-footer-email {
+        color: #5aaeff;
+        font-weight: 800;
+        text-decoration: none;
+      }
+      .wordfriends-site-footer-email:hover {
+        color: #8cc7ff;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+      .wordfriends-site-footer-notice {
+        padding-top: 14px;
+        border-top: 1px solid #24474d;
       }
       .wordfriends-auth {
         max-width: 620px;
@@ -1376,6 +2065,16 @@ function wordfriends_siteops_portal_styles() {
         background: #351a1b;
         color: #ffd8d4;
       }
+      .wordfriends-question-guide article {
+        border-color: #24474d;
+        background: #071a1f;
+      }
+      .wordfriends-question-guide strong {
+        color: #f3fffd;
+      }
+      .wordfriends-question-guide span {
+        color: #b8d6d4;
+      }
       .wordfriends-auth-small,
       .wordfriends-question-filter-summary,
       .wordfriends-site-filter-summary,
@@ -1454,7 +2153,7 @@ function wordfriends_siteops_portal_styles() {
       body:has(.wordfriends-auth) .wp-block-post-title,
       body:has(.wordfriends-auth) .entry-title,
       body:has(.wordfriends-auth) main h1 {
-        font-size: clamp(30px, 3vw, 36px);
+        font-size: clamp(26px, 2.6vw, 32px);
         line-height: 1.15;
         font-weight: 700;
       }
@@ -1463,9 +2162,9 @@ function wordfriends_siteops_portal_styles() {
         line-height: 1.55;
       }
       .wordfriends-auth h2 {
-        font-size: 22px;
+        font-size: 20px;
         line-height: 1.25;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
       }
       .wordfriends-auth h3,
       .wordfriends-question-card h3,
@@ -1474,7 +2173,7 @@ function wordfriends_siteops_portal_styles() {
         line-height: 1.35;
       }
       .wordfriends-auth p {
-        font-size: 15px;
+        font-size: 14px;
         line-height: 1.55;
       }
       .wordfriends-auth label {
@@ -1500,8 +2199,21 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-button,
       .wordfriends-question-filters button,
       .wordfriends-site-filters button {
-        min-height: 40px;
+        min-height: 38px;
         font-size: 13px;
+      }
+      .wordfriends-fieldset,
+      .wordfriends-auth form {
+        gap: 12px;
+      }
+      .wordfriends-services h3,
+      .wordfriends-guide h3 {
+        font-size: 19px;
+        line-height: 1.35;
+      }
+      .wordfriends-services-section,
+      .wordfriends-guide-section {
+        padding: 18px;
       }
       .wordfriends-dashboard-card {
         min-height: 122px;
@@ -1551,6 +2263,42 @@ function wordfriends_siteops_portal_styles() {
       body:has(.wordfriends-auth) .wp-block-navigation__container {
         gap: clamp(12px, 1.5vw, 22px);
       }
+      body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open,
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open {
+        background: #061316 !important;
+        color: #d8f2ee !important;
+      }
+      body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content,
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content {
+        align-items: center !important;
+        padding: 72px 28px 32px !important;
+      }
+      body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
+        width: min(100%, 360px);
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+      body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item,
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item {
+        width: 100%;
+      }
+      body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open a,
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open a {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #24474d;
+        border-radius: 8px;
+        background: #071a1f;
+        color: #d8fff6 !important;
+        text-align: center;
+      }
+      body:has(.wordfriends-auth) .wp-block-navigation__responsive-container-close,
+      body.wordfriends-document-page .wp-block-navigation__responsive-container-close {
+        color: #d8fff6 !important;
+      }
       .wordfriends-home {
         max-width: 860px;
       }
@@ -1570,10 +2318,39 @@ function wordfriends_siteops_portal_styles() {
         letter-spacing: 0;
       }
       .wordfriends-home-actions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
         margin-top: 18px;
+      }
+      .wordfriends-home-actions .wordfriends-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        min-width: 0;
+        padding: 0 10px;
+        text-align: center;
+        white-space: nowrap;
+      }
+      .wordfriends-home-highlights {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .wordfriends-home-highlights span,
+      .wordfriends-home-mini-grid span {
+        border: 1px solid #2a555c;
+        border-radius: 8px;
+        background: rgba(7, 26, 31, .78);
+        color: #dffdf8;
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1.35;
+      }
+      .wordfriends-home-highlights span {
+        padding: 7px 10px;
       }
       .wordfriends-button-secondary {
         background: #dffff6;
@@ -1584,6 +2361,19 @@ function wordfriends_siteops_portal_styles() {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
         margin: 20px 0;
+      }
+      .wordfriends-home-trust,
+      .wordfriends-home-portal,
+      .wordfriends-home-faq {
+        display: grid;
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .wordfriends-home-trust {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .wordfriends-home-portal {
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
       }
       .wordfriends-home-card {
         border: 1px solid #24474d;
@@ -1613,6 +2403,15 @@ function wordfriends_siteops_portal_styles() {
         font-size: 14px;
         line-height: 1.55;
       }
+      .wordfriends-home-card small {
+        display: block;
+        margin-bottom: 8px;
+        color: #5de0c0;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
       .wordfriends-home-steps {
         border: 1px solid #24474d;
         background: #071a1f;
@@ -1634,14 +2433,92 @@ function wordfriends_siteops_portal_styles() {
         color: #b8d6d4;
         font-size: 14px;
       }
+      .wordfriends-home-focus {
+        margin: 18px 0;
+      }
+      .wordfriends-home-mini-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .wordfriends-home-mini-grid span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 8px 10px;
+        text-align: center;
+      }
+      .wordfriends-home-ready-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .wordfriends-home-ready-grid article {
+        border: 1px solid #24474d;
+        border-radius: 8px;
+        background: #102a30;
+        padding: 14px;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .wordfriends-home-ready-grid article:hover,
+      .wordfriends-home-ready-grid article:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+      }
+      .wordfriends-home-ready-grid strong {
+        display: block;
+        color: #f3fffd;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+      .wordfriends-home-ready-grid span {
+        display: block;
+        margin-top: 8px;
+        color: #b8d6d4;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .wordfriends-home-final-cta {
+        display: grid;
+        gap: 10px;
+        border: 1px solid #35c6a5;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(43, 212, 183, .14), rgba(7, 26, 31, .96));
+        padding: 18px;
+        margin: 18px 0 12px;
+      }
+      .wordfriends-home-final-cta strong {
+        color: #f3fffd;
+        font-size: 18px;
+        line-height: 1.35;
+      }
+      .wordfriends-home-final-cta span {
+        color: #b8d6d4;
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .wordfriends-home-steps p,
+      .wordfriends-home-faq p {
+        color: #b8d6d4;
+        font-size: 14px;
+        line-height: 1.6;
+      }
       @media (max-width: 640px) {
+        body:has(.wordfriends-auth) main,
+        body:has(.wordfriends-auth) .entry-content {
+          overflow-x: hidden;
+        }
         body:has(.wordfriends-auth) .wp-block-post-title,
         body:has(.wordfriends-auth) .entry-title,
         body:has(.wordfriends-auth) main h1 {
-          font-size: 28px;
+          font-size: 26px;
         }
         .wordfriends-auth h2 {
-          font-size: 21px;
+          font-size: 19px;
         }
         .wordfriends-auth p {
           font-size: 14px;
@@ -1652,9 +2529,58 @@ function wordfriends_siteops_portal_styles() {
         .wordfriends-home-grid {
           grid-template-columns: 1fr;
         }
+        .wordfriends-home-trust,
+        .wordfriends-home-portal {
+          grid-template-columns: 1fr;
+        }
+        .wordfriends-home-highlights,
+        .wordfriends-home-mini-grid,
+        .wordfriends-home-ready-grid {
+          grid-template-columns: 1fr;
+        }
+        .wordfriends-home-highlights {
+          display: grid;
+        }
         .wordfriends-home-hero,
         .wordfriends-home-steps {
           padding: 16px;
+        }
+        .wordfriends-home-actions {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .wordfriends-home-actions .wordfriends-button {
+          padding: 0 8px;
+          font-size: 12px;
+          white-space: normal;
+        }
+      }
+      @media (max-width: 520px) {
+        .wordfriends-portal-nav {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .wordfriends-portal-nav a {
+          width: 100%;
+          min-height: 36px;
+          padding: 0 8px;
+          font-size: 11px;
+          white-space: normal;
+          text-align: center;
+        }
+        .wordfriends-inline-actions {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .wordfriends-inline-actions .wordfriends-button {
+          width: 100%;
+          min-width: 0;
+          padding-right: 8px;
+          padding-left: 8px;
+          white-space: normal;
+          text-align: center;
         }
       }
     ');
@@ -1723,6 +2649,25 @@ function wordfriends_siteops_render_pagination($pagination, $param) {
     return $html;
 }
 
+function wordfriends_siteops_normalize_phone($phone) {
+    $phone = sanitize_text_field((string) $phone);
+    $phone = preg_replace('/[^\d+\-\s().]/', '', $phone);
+    $phone = preg_replace('/\s+/', ' ', trim((string) $phone));
+
+    return mb_substr($phone, 0, 30);
+}
+
+function wordfriends_siteops_is_valid_phone($phone, $required = false) {
+    $phone = trim((string) $phone);
+
+    if ($phone === '') {
+        return !$required;
+    }
+
+    $digits = preg_replace('/\D+/', '', $phone);
+    return strlen($digits) >= 8 && strlen($digits) <= 15;
+}
+
 function wordfriends_siteops_handle_auth_posts() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         return;
@@ -1740,12 +2685,17 @@ function wordfriends_siteops_handle_auth_posts() {
 
         $name = sanitize_text_field(wp_unslash($_POST['wordfriends_name'] ?? ''));
         $email = sanitize_email(wp_unslash($_POST['wordfriends_email'] ?? ''));
-        $phone = sanitize_text_field(wp_unslash($_POST['wordfriends_phone'] ?? ''));
+        $phone = wordfriends_siteops_normalize_phone(wp_unslash($_POST['wordfriends_phone'] ?? ''));
         $password = (string) ($_POST['wordfriends_password'] ?? '');
         $agree = isset($_POST['wordfriends_agree']);
 
         if (!$name || !$email || !$phone || !$password) {
             $GLOBALS['wordfriends_signup_error'] = '이름, 이메일, 전화번호, 비밀번호를 모두 입력해 주세요.';
+            return;
+        }
+
+        if (!wordfriends_siteops_is_valid_phone($phone, true)) {
+            $GLOBALS['wordfriends_signup_error'] = '전화번호 형식을 확인해 주세요.';
             return;
         }
 
@@ -1852,7 +2802,7 @@ function wordfriends_siteops_handle_auth_posts() {
         $question = sanitize_textarea_field(wp_unslash($_POST['wordfriends_question_body'] ?? ''));
         $name = sanitize_text_field(wp_unslash($_POST['wordfriends_question_name'] ?? ''));
         $email = sanitize_email(wp_unslash($_POST['wordfriends_question_email'] ?? ''));
-        $phone = sanitize_text_field(wp_unslash($_POST['wordfriends_question_phone'] ?? ''));
+        $phone = wordfriends_siteops_normalize_phone(wp_unslash($_POST['wordfriends_question_phone'] ?? ''));
         $current_user = is_user_logged_in() ? wp_get_current_user() : null;
 
         if ($current_user && $current_user->ID) {
@@ -1867,6 +2817,11 @@ function wordfriends_siteops_handle_auth_posts() {
 
         if (!is_user_logged_in() && (!$name || !$email || !is_email($email))) {
             $GLOBALS['wordfriends_question_error'] = '답변을 받을 이름과 이메일을 입력해 주세요.';
+            return;
+        }
+
+        if (!wordfriends_siteops_is_valid_phone($phone, false)) {
+            $GLOBALS['wordfriends_question_error'] = '전화번호 형식을 확인해 주세요.';
             return;
         }
 
@@ -1944,7 +2899,7 @@ function wordfriends_siteops_handle_auth_posts() {
 
         $name = sanitize_text_field(wp_unslash($_POST['wordfriends_contract_name'] ?? ''));
         $email = sanitize_email(wp_unslash($_POST['wordfriends_contract_email'] ?? ''));
-        $phone = sanitize_text_field(wp_unslash($_POST['wordfriends_contract_phone'] ?? ''));
+        $phone = wordfriends_siteops_normalize_phone(wp_unslash($_POST['wordfriends_contract_phone'] ?? ''));
         $domain_count = max(1, min(100, absint($_POST['wordfriends_contract_domain_count'] ?? 1)));
         $request_message = sanitize_textarea_field(wp_unslash($_POST['wordfriends_contract_message'] ?? ''));
         $current_user = is_user_logged_in() ? wp_get_current_user() : null;
@@ -1959,6 +2914,11 @@ function wordfriends_siteops_handle_auth_posts() {
             return;
         }
 
+        if (!wordfriends_siteops_is_valid_phone($phone, false)) {
+            $GLOBALS['wordfriends_contract_request_error'] = '전화번호 형식을 확인해 주세요.';
+            return;
+        }
+
         $session_id = isset($_COOKIE['wordfriends_session_id']) ? sanitize_text_field(wp_unslash($_COOKIE['wordfriends_session_id'])) : '';
         $dedupe_key = 'wordfriends_contract_request_' . md5(wp_json_encode([
             'name' => $name,
@@ -1970,7 +2930,7 @@ function wordfriends_siteops_handle_auth_posts() {
         ]));
 
         if (get_transient($dedupe_key)) {
-            $GLOBALS['wordfriends_contract_request_message'] = '계약 요청이 접수되었습니다. 담당자가 확인 후 안내드리겠습니다.';
+            $GLOBALS['wordfriends_contract_request_message'] = '계약 요청이 접수되었습니다. 진행 안내는 알림센터에서 확인할 수 있습니다.';
             return;
         }
 
@@ -2001,15 +2961,15 @@ function wordfriends_siteops_handle_auth_posts() {
             return;
         }
 
-        $GLOBALS['wordfriends_contract_request_message'] = '계약 요청이 접수되었습니다. 담당자가 확인 후 전자계약 안내를 드립니다.';
+        $GLOBALS['wordfriends_contract_request_message'] = '계약 요청이 접수되었습니다. 진행 안내는 알림센터에서 확인할 수 있습니다.';
     }
 }
 add_action('init', 'wordfriends_siteops_handle_auth_posts');
 
 function wordfriends_siteops_home_shortcode($atts = []) {
     $atts = shortcode_atts([
-        'title' => '고객 소유 사이트 운영대행 플랫폼',
-        'subtitle' => 'Wordfriends는 도메인, 호스팅, AdSense 계정을 고객 소유 원칙으로 두고 WordPress 세팅과 운영 관리를 돕습니다.',
+        'title' => 'Wordfriends',
+        'subtitle' => '도메인 준비부터 WordPress 구축, 콘텐츠 운영 준비, AdSense 점검, 고객 포털 공유까지 헷갈리는 과정을 한 흐름으로 정리합니다.',
     ], $atts, 'wordfriends_home');
 
     ob_start();
@@ -2019,43 +2979,155 @@ function wordfriends_siteops_home_shortcode($atts = []) {
             <span class="wordfriends-home-eyebrow">WORDFRIENDS PLATFORM</span>
             <h2><?php echo esc_html($atts['title']); ?></h2>
             <p><?php echo esc_html($atts['subtitle']); ?></p>
+            <div class="wordfriends-home-highlights">
+                <span>고객 소유 계정 원칙</span>
+                <span>운영 준비 단계 공유</span>
+                <span>수익·승인 보장 금지</span>
+            </div>
             <div class="wordfriends-home-actions">
                 <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">상담 문의</a>
-                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_start_guide_page_url()); ?>">진행 절차</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_start_guide_page_url()); ?>">구축절차 보기</a>
+            </div>
+        </div>
+
+        <div class="wordfriends-home-trust">
+            <article class="wordfriends-home-card">
+                <small>CONFUSING STEP</small>
+                <strong>무엇부터 준비할지 막막할 때</strong>
+                <span>도메인, 호스팅, WordPress, 필수 페이지, 보안 기준을 순서대로 나눠 안내합니다.</span>
+            </article>
+            <article class="wordfriends-home-card">
+                <small>OPERATIONS</small>
+                <strong>운영 준비를 계속 확인해야 할 때</strong>
+                <span>콘텐츠 큐, 사이트맵, 문의 답변, 진행 상태를 고객 포털 기준으로 정리합니다.</span>
+            </article>
+            <article class="wordfriends-home-card">
+                <small>REVIEW</small>
+                <strong>승인과 수익을 약속하지 않는 방식</strong>
+                <span>보장형 문구 대신 정책, 콘텐츠 품질, 계정 상태, 운영 현황을 기준으로 검토합니다.</span>
+            </article>
+        </div>
+
+        <div class="wordfriends-home-steps wordfriends-home-focus">
+            <h3>Wordfriends가 정리하는 일</h3>
+            <p>고객이 직접 소유해야 하는 계정과 Wordfriends가 지원하는 작업을 분리해, 나중에 계정 소유권이나 운영 책임이 흐려지지 않도록 정리합니다.</p>
+            <div class="wordfriends-home-mini-grid">
+                <span>도메인·호스팅 연결</span>
+                <span>WordPress 기본 세팅</span>
+                <span>필수 페이지 구성</span>
+                <span>콘텐츠 운영 준비</span>
+                <span>문의·알림 관리</span>
+                <span>정산·추천 참고</span>
+            </div>
+        </div>
+
+        <div class="wordfriends-home-steps wordfriends-home-method">
+            <h3>운영 경험을 체크리스트로 정리합니다</h3>
+            <p>Wordfriends는 반복 운영에서 확인한 항목을 기준으로 계정 소유, 도메인 구조, WordPress 세팅, 콘텐츠 운영, 정책 리스크를 순서대로 점검합니다.</p>
+            <div class="wordfriends-home-ready-grid">
+                <article>
+                    <strong>계정은 고객 소유 기준</strong>
+                    <span>AdSense와 Google 계정은 고객 소유를 원칙으로 하며, 필요한 확인 사항만 분리해 안내합니다.</span>
+                </article>
+                <article>
+                    <strong>도메인 수는 작업 범위 기준</strong>
+                    <span>도메인 수는 승인이나 수익을 의미하지 않고, 구축 범위와 운영 준비 항목을 산정하기 위한 기준입니다.</span>
+                </article>
+                <article>
+                    <strong>반복 업무는 포털로 정리</strong>
+                    <span>사이트 상태, 문의 답변, 알림, 정산 참고 정보를 고객 포털에서 확인할 수 있게 정리합니다.</span>
+                </article>
             </div>
         </div>
 
         <div class="wordfriends-home-grid">
             <a class="wordfriends-home-card" href="<?php echo esc_url(wordfriends_siteops_services_page_url()); ?>">
+                <small>01</small>
                 <strong>서비스</strong>
-                <span>WordPress 구축, 콘텐츠 운영, 기술지원을 한 흐름으로 관리합니다.</span>
+                <span>구축, 운영 준비, 기술지원 범위를 한눈에 확인합니다.</span>
             </a>
             <a class="wordfriends-home-card" href="<?php echo esc_url(wordfriends_siteops_start_guide_page_url()); ?>">
+                <small>02</small>
                 <strong>구축절차</strong>
-                <span>도메인 선택부터 서버, WordPress, 운영 준비까지 단계별로 안내합니다.</span>
+                <span>상담부터 계약, 세팅, 포털 공유까지 진행 순서를 안내합니다.</span>
             </a>
             <a class="wordfriends-home-card" href="<?php echo esc_url(wordfriends_siteops_cases_page_url()); ?>">
+                <small>03</small>
                 <strong>사례</strong>
-                <span>운영 예시와 검토 결과 중심으로 진행 상황을 정리합니다.</span>
+                <span>고객 정보를 노출하지 않는 유형별 운영 예시를 확인합니다.</span>
             </a>
             <a class="wordfriends-home-card" href="<?php echo esc_url(wordfriends_siteops_guide_page_url()); ?>">
+                <small>04</small>
                 <strong>가이드/FAQ</strong>
-                <span>초보자도 따라갈 수 있도록 자주 묻는 질문과 준비물을 모읍니다.</span>
+                <span>AdSense, 도메인, WordPress, 보안 질문을 쉬운 순서로 정리합니다.</span>
             </a>
             <a class="wordfriends-home-card" href="<?php echo esc_url(wordfriends_siteops_dashboard_page_url()); ?>">
+                <small>05</small>
                 <strong>고객 포털</strong>
-                <span>계약 후 내 사이트, 문의, 정산, 알림 상태를 확인합니다.</span>
+                <span>계약 후 내 사이트, 문의, 전자계약, 알림 상태를 확인합니다.</span>
+            </a>
+            <a class="wordfriends-home-card" href="<?php echo esc_url(wordfriends_siteops_contract_guide_page_url()); ?>">
+                <small>06</small>
+                <strong>전자계약</strong>
+                <span>작업 범위, 비용, 계정 소유 원칙을 문서로 확인합니다.</span>
             </a>
         </div>
 
         <div class="wordfriends-home-steps">
             <h3>진행 흐름</h3>
+            <p>처음 상담에서는 준비 상태를 확인하고, 계약 후에는 작업 상태와 필요한 확인 사항을 고객 포털에 공유합니다.</p>
             <ol>
-                <li><strong>상담 및 조건 확인</strong><span>희망 도메인 수, 운영 목적, 준비 상태를 확인합니다.</span></li>
-                <li><strong>전자계약 및 입금</strong><span>계약 조건과 고객 소유 계정 원칙을 문서로 정리합니다.</span></li>
-                <li><strong>세팅과 운영 준비</strong><span>도메인, 호스팅, WordPress, 콘텐츠 큐를 순서대로 준비합니다.</span></li>
-                <li><strong>고객 포털 공유</strong><span>진행 현황과 문의 답변, 정산 참고 정보를 포털에서 안내합니다.</span></li>
+                <li><strong>상담 및 준비 확인</strong><span>운영 목적, 희망 도메인 수, 계정 준비 상태를 확인합니다.</span></li>
+                <li><strong>계약 조건 정리</strong><span>비용, 작업 범위, 계정 소유 원칙, 보장 금지 기준을 문서로 확인합니다.</span></li>
+                <li><strong>세팅과 운영 준비</strong><span>도메인 연결, WordPress 구성, 필수 페이지, 콘텐츠 큐를 순서대로 준비합니다.</span></li>
+                <li><strong>포털에서 상태 공유</strong><span>내 사이트 현황, 문의 답변, 계약 상태, 알림을 한곳에서 확인합니다.</span></li>
             </ol>
+        </div>
+
+        <div class="wordfriends-home-steps wordfriends-home-ready">
+            <h3>이런 경우 먼저 상담해 주세요</h3>
+            <div class="wordfriends-home-ready-grid">
+                <article>
+                    <strong>도메인만 준비한 상태</strong>
+                    <span>네임서버, 호스팅, WordPress 연결 순서를 확인해야 할 때</span>
+                </article>
+                <article>
+                    <strong>AdSense 준비가 막힌 상태</strong>
+                    <span>필수 페이지, 정책 리스크, 콘텐츠 품질을 점검해야 할 때</span>
+                </article>
+                <article>
+                    <strong>운영 상황을 한곳에 모으고 싶을 때</strong>
+                    <span>문의, 알림, 사이트 상태, 정산 참고 정보를 고객 포털로 보고 싶을 때</span>
+                </article>
+            </div>
+        </div>
+
+        <div class="wordfriends-home-portal">
+            <article class="wordfriends-home-card">
+                <small>CUSTOMER PORTAL</small>
+                <strong>계약 후에는 포털에서 확인합니다</strong>
+                <span>내 사이트 현황, 문의 답변, 전자계약 상태, 정산·추천 참고 정보, 알림센터를 연결합니다. 진행 상황을 채팅에 흩뜨리지 않고 한곳에 모읍니다.</span>
+            </article>
+            <article class="wordfriends-home-card">
+                <small>GUIDE</small>
+                <strong>처음이라면 가이드부터</strong>
+                <span>AdSense 기본, 도메인 준비, WordPress 세팅, 보안 원칙을 쉬운 순서로 확인할 수 있습니다. 실제 영상/글 콘텐츠도 이 구조에 연결합니다.</span>
+            </article>
+        </div>
+
+        <div class="wordfriends-home-steps wordfriends-home-faq">
+            <h3>먼저 알아둘 점</h3>
+            <p>운영 이력 도메인이나 샌드박스 경과 도메인은 검토 가능한 후보 유형일 수 있지만, 검색 노출이나 승인에 유리하다고 단정하지 않습니다.</p>
+            <p>Google 계정, 도메인, 호스팅, AdSense는 고객 소유를 원칙으로 합니다. Wordfriends는 운영대행, 콘텐츠 운영, 기술지원, 진행 상태 정리 역할을 수행합니다.</p>
+        </div>
+
+        <div class="wordfriends-home-final-cta">
+            <strong>준비 상태가 애매해도 괜찮습니다</strong>
+            <span>도메인 수, 운영 목적, 현재 준비된 계정만 알려주시면 다음 확인 순서를 안내드립니다.</span>
+            <div class="wordfriends-home-actions">
+                <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">상담 문의</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_guide_page_url()); ?>">가이드/FAQ</a>
+            </div>
         </div>
 
         <p class="wordfriends-auth-small">수익, AdSense 승인, 트래픽은 보장하지 않으며 운영 현황과 검토 결과를 기준으로 안내드립니다.</p>
@@ -2067,8 +3139,8 @@ add_shortcode('wordfriends_home', 'wordfriends_siteops_home_shortcode');
 
 function wordfriends_siteops_services_shortcode($atts = []) {
     $atts = shortcode_atts([
-        'title' => '고객 니즈에 맞춰 운영 가능한 사이트를 만듭니다',
-        'subtitle' => '도메인, 호스팅, WordPress, 콘텐츠, AdSense 준비, 정산 참고까지 고객이 헷갈리는 구간을 Wordfriends가 단계별로 정리합니다.',
+        'title' => '사이트 구축과 운영 준비를 한 흐름으로 정리합니다',
+        'subtitle' => '도메인, 호스팅, WordPress, 콘텐츠 운영, AdSense 준비 점검, 고객 포털 공유까지 고객이 헷갈리는 구간을 단계별로 나눠 안내합니다.',
     ], $atts, 'wordfriends_services');
 
     ob_start();
@@ -2126,6 +3198,60 @@ function wordfriends_siteops_services_shortcode($atts = []) {
                         <li>전자계약 요청 및 상태 안내</li>
                         <li>문의 답변과 알림센터 연동</li>
                         <li>정산 참고와 1단계 추천 보상 확인</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+
+        <div class="wordfriends-services-section">
+            <h3>서비스 범위</h3>
+            <p>Wordfriends가 지원하는 작업과 고객이 직접 소유하고 확인해야 하는 항목을 분리해 안내합니다.</p>
+            <div class="wordfriends-service-scope">
+                <article>
+                    <small>WORDFRIENDS SUPPORT</small>
+                    <strong>Wordfriends가 정리하는 일</strong>
+                    <ul class="wordfriends-service-list">
+                        <li>도메인 연결과 WordPress 기본 세팅 지원</li>
+                        <li>필수 페이지, 메뉴, 사이트맵 준비 점검</li>
+                        <li>콘텐츠 운영 큐와 발행 준비 상태 정리</li>
+                        <li>고객 포털에 사이트/문의/알림 상태 공유</li>
+                    </ul>
+                </article>
+                <article>
+                    <small>CUSTOMER OWNERSHIP</small>
+                    <strong>고객이 소유하고 확인할 일</strong>
+                    <ul class="wordfriends-service-list">
+                        <li>도메인, 호스팅, Google 계정 소유</li>
+                        <li>AdSense, Search Console, Analytics 계정 관리</li>
+                        <li>계약 조건, 정산 참고 정보, 세금 정보 확인</li>
+                        <li>정책 위반 가능성이 있는 요청 최종 판단</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+
+        <div class="wordfriends-services-section">
+            <h3>운영 방식</h3>
+            <p>숨겨진 비법을 약속하기보다, 반복 운영에서 필요한 확인 항목을 체크리스트로 나눠 고객에게 공유합니다.</p>
+            <div class="wordfriends-service-scope">
+                <article>
+                    <small>CHECKLIST</small>
+                    <strong>반복 운영 체크리스트</strong>
+                    <ul class="wordfriends-service-list">
+                        <li>계정 소유와 접근 권한 확인</li>
+                        <li>도메인 구조와 사이트별 준비 상태 확인</li>
+                        <li>필수 페이지와 콘텐츠 품질 점검</li>
+                        <li>정책 리스크와 보장 금지 기준 안내</li>
+                    </ul>
+                </article>
+                <article>
+                    <small>DOMAIN SCOPE</small>
+                    <strong>도메인 수를 확인하는 이유</strong>
+                    <ul class="wordfriends-service-list">
+                        <li>사이트 구축 범위와 작업량 산정</li>
+                        <li>콘텐츠 운영 큐와 점검 항목 분리</li>
+                        <li>고객 포털에 표시할 사이트 상태 연결</li>
+                        <li>승인·수익 보장이 아닌 운영 범위 확인</li>
                     </ul>
                 </article>
             </div>
@@ -2201,6 +3327,15 @@ function wordfriends_siteops_services_shortcode($atts = []) {
             </div>
         </div>
 
+        <div class="wordfriends-service-cta">
+            <strong>내 상황에 맞는 서비스 범위를 먼저 확인하세요</strong>
+            <span>도메인 준비 상태, 운영 목적, 현재 막힌 지점을 남겨주시면 필요한 작업과 다음 순서를 안내드립니다.</span>
+            <div class="wordfriends-services-actions">
+                <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">상담 문의</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_cases_page_url()); ?>">사례 보기</a>
+            </div>
+        </div>
+
         <p class="wordfriends-auth-small">Wordfriends는 운영대행, 콘텐츠 운영, 기술지원 역할을 수행하며 결과는 플랫폼 정책, 콘텐츠 품질, 시장 상황, 고객 계정 상태에 따라 달라질 수 있습니다.</p>
     </section>
     <?php
@@ -2210,8 +3345,8 @@ add_shortcode('wordfriends_services', 'wordfriends_siteops_services_shortcode');
 
 function wordfriends_siteops_guide_shortcode($atts = []) {
     $atts = shortcode_atts([
-        'title' => '애드센스와 도메인을 쉽게 배우는 가이드',
-        'subtitle' => '처음 준비하는 고객도 AdSense, 도메인, WordPress, 운영 원칙을 단계별로 이해할 수 있도록 정리합니다.',
+        'title' => '처음 준비하는 고객을 위한 가이드',
+        'subtitle' => '도메인, WordPress, AdSense 준비, 콘텐츠 운영, 보안 원칙을 상담 전에 먼저 이해할 수 있도록 쉬운 순서로 정리합니다.',
     ], $atts, 'wordfriends_guide');
 
     ob_start();
@@ -2296,7 +3431,7 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
 
         <div class="wordfriends-guide-section">
             <h3>추천 글 발행 순서</h3>
-            <p>블로그에는 고객이 실제로 막히는 순서대로 글을 쌓는 편이 좋습니다. 이 순서대로 발행하면 검색 유입과 상담 전 이해도를 함께 올릴 수 있습니다.</p>
+            <p>블로그에는 고객이 실제로 막히는 순서대로 글을 쌓는 편이 좋습니다. 아래 순서는 상담 전 이해도를 높이기 위한 교육형 콘텐츠 흐름입니다.</p>
             <div class="wordfriends-guide-path" aria-label="Wordfriends guide content order">
                 <div class="wordfriends-guide-step"><span>1</span><strong>도메인 구매 전 확인</strong><small>샌드박스 경과, 운영 이력, 네임서버 개념을 쉽게 설명합니다.</small></div>
                 <div class="wordfriends-guide-step"><span>2</span><strong>호스팅과 서버 연결</strong><small>DNS, SSL, WordPress 설치 전 준비를 안내합니다.</small></div>
@@ -2304,6 +3439,19 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                 <div class="wordfriends-guide-step"><span>4</span><strong>AdSense 준비</strong><small>정책 위반 요소와 콘텐츠 품질 기준을 먼저 확인합니다.</small></div>
                 <div class="wordfriends-guide-step"><span>5</span><strong>운영과 자동화</strong><small>AI 초안, 사람 검토, 발행 스케줄의 역할을 나눕니다.</small></div>
                 <div class="wordfriends-guide-step"><span>6</span><strong>정산/추천 확인</strong><small>포털에서 참고 금액과 추천 보상 상태를 확인합니다.</small></div>
+            </div>
+        </div>
+
+        <div class="wordfriends-guide-section">
+            <h3>발행하면 좋은 글 주제</h3>
+            <p>고객이 검색하거나 상담 전에 자주 묻는 질문을 글 제목으로 바꾸면, 교육 콘텐츠와 상담 흐름을 함께 만들 수 있습니다.</p>
+            <div class="wordfriends-cases-map-grid">
+                <article><small>ADSENSE</small><strong>애드센스 잘하는 방법보다 먼저 볼 것</strong><span>승인 보장 대신 필수 페이지, 정책 리스크, 콘텐츠 품질 기준을 설명합니다.</span></article>
+                <article><small>DOMAIN</small><strong>도메인 구매 전 체크리스트</strong><span>소유권, 네임서버, 운영 이력 후보, 비용 확인 기준을 정리합니다.</span></article>
+                <article><small>DNS</small><strong>네임서버와 DNS 연결 이해하기</strong><span>도메인을 샀는데 사이트가 안 열리는 상황을 쉽게 설명합니다.</span></article>
+                <article><small>WORDPRESS</small><strong>WordPress 필수 페이지 구성</strong><span>문의, 약관, 개인정보처리방침, 사이트 구조를 준비하는 이유를 안내합니다.</span></article>
+                <article><small>CONTENT</small><strong>콘텐츠 주제와 금지 소재 정리</strong><span>AI 초안과 사람 검토, 정책 위험 소재, 발행 큐를 구분합니다.</span></article>
+                <article><small>PORTAL</small><strong>고객 포털에서 확인할 수 있는 것</strong><span>내 사이트, 문의 답변, 전자계약, 알림, 정산 참고 정보를 안내합니다.</span></article>
             </div>
         </div>
 
@@ -2329,6 +3477,14 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                 <details>
                     <summary>처음이면 어디부터 보면 되나요?</summary>
                     <p>구축절차 페이지에서 전체 흐름을 보고, 이 가이드에서 AdSense와 도메인 기본 개념을 순서대로 확인하면 됩니다.</p>
+                </details>
+                <details>
+                    <summary>도메인 수는 왜 확인하나요?</summary>
+                    <p>도메인 수는 승인이나 수익을 의미하지 않습니다. 사이트 구축 범위, 콘텐츠 운영 큐, 고객 포털에 표시할 사이트 상태를 나누기 위한 기준입니다.</p>
+                </details>
+                <details>
+                    <summary>Wordfriends가 모든 운영을 대신하나요?</summary>
+                    <p>반복되는 기술 세팅과 운영 준비는 정리하지만, 계정 소유권, 계약 조건, 정산 참고 정보, 중요한 승인 절차는 고객 확인을 기준으로 진행합니다.</p>
                 </details>
             </div>
         </div>
@@ -2356,17 +3512,322 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
         </div>
 
         <div class="wordfriends-guide-callout">운영 이력 도메인, 샌드박스 경과 도메인, AdSense 준비 상태는 검수와 참고 정보로만 안내합니다. 검색 순위, 색인, 승인, 수익은 보장하지 않습니다.</div>
+        <div class="wordfriends-service-cta">
+            <strong>가이드를 봐도 애매한 부분은 상담으로 정리하세요</strong>
+            <span>도메인 후보, 준비된 계정, 현재 막힌 지점을 남겨주시면 어떤 글이나 절차부터 보면 좋을지 안내드립니다.</span>
+            <div class="wordfriends-guide-actions">
+                <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">상담 문의</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_start_guide_page_url()); ?>">구축절차 보기</a>
+            </div>
+        </div>
     </section>
     <?php
     return ob_get_clean();
 }
 add_shortcode('wordfriends_guide', 'wordfriends_siteops_guide_shortcode');
 
+function wordfriends_siteops_start_guide_shortcode($atts = []) {
+    $atts = shortcode_atts([
+        'title' => '상담부터 고객 포털 공유까지',
+        'subtitle' => '계약 전 확인, 전자계약, 기술 세팅, 운영 준비, 고객 포털 공유까지 실제 진행 순서를 단계별로 안내합니다.',
+    ], $atts, 'wordfriends_start_guide');
+
+    ob_start();
+    ?>
+    <section class="wordfriends-auth wordfriends-services">
+        <div class="wordfriends-services-hero">
+            <span class="wordfriends-services-eyebrow">WORDFRIENDS SETUP FLOW</span>
+            <h2><?php echo esc_html($atts['title']); ?></h2>
+            <p><?php echo esc_html($atts['subtitle']); ?></p>
+            <div class="wordfriends-services-actions">
+                <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">상담 문의</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_contract_guide_page_url()); ?>">전자계약 안내</a>
+            </div>
+        </div>
+
+        <div class="wordfriends-services-section">
+            <h3>전체 진행 단계</h3>
+            <p>수익이나 승인을 약속하는 흐름이 아니라, 고객 소유 계정과 운영 준비 상태를 기준으로 필요한 작업을 차례대로 확인합니다.</p>
+            <div class="wordfriends-service-flow" aria-label="Wordfriends setup flow">
+                <div class="wordfriends-service-step"><span>1</span><strong>상담 접수</strong><small>운영 목적, 희망 도메인 수, 준비된 계정과 문의 내용을 확인합니다.</small></div>
+                <div class="wordfriends-service-step"><span>2</span><strong>조건 정리</strong><small>도메인, 호스팅, WordPress, 콘텐츠 범위와 고객 소유 원칙을 정리합니다.</small></div>
+                <div class="wordfriends-service-step"><span>3</span><strong>계약 안내</strong><small>전자계약 요청, 계약서 링크, 입금 확인, 세팅 시작 조건을 안내합니다.</small></div>
+                <div class="wordfriends-service-step"><span>4</span><strong>기술 세팅</strong><small>도메인 연결, SSL, WordPress, 필수 페이지, 사이트맵을 구성합니다.</small></div>
+                <div class="wordfriends-service-step"><span>5</span><strong>운영 준비</strong><small>콘텐츠 주제, 발행 큐, 정책 리스크, AdSense 준비 상태를 점검합니다.</small></div>
+                <div class="wordfriends-service-step"><span>6</span><strong>포털 공유</strong><small>내 사이트, 문의, 알림, 정산 참고 정보를 고객 포털에서 확인하게 합니다.</small></div>
+            </div>
+        </div>
+
+        <div class="wordfriends-services-section">
+            <h3>단계별 확인 포인트</h3>
+            <p>각 단계에서 확인해야 하는 항목을 미리 알면 계약 이후 세팅과 운영 준비가 훨씬 부드럽게 이어집니다.</p>
+            <div class="wordfriends-setup-checkpoints">
+                <article>
+                    <small>BEFORE CONTRACT</small>
+                    <strong>계약 전 확인</strong>
+                    <ul class="wordfriends-service-list">
+                        <li>운영 목적과 희망 도메인 수</li>
+                        <li>도메인/호스팅/Google 계정 준비 상태</li>
+                        <li>콘텐츠 주제와 피해야 할 소재</li>
+                    </ul>
+                </article>
+                <article>
+                    <small>CONTRACT</small>
+                    <strong>전자계약 및 시작 조건</strong>
+                    <ul class="wordfriends-service-list">
+                        <li>작업 범위와 비용 확인</li>
+                        <li>고객 소유 계정 원칙 확인</li>
+                        <li>입금 확인 후 세팅 일정 안내</li>
+                    </ul>
+                </article>
+                <article>
+                    <small>SETUP</small>
+                    <strong>세팅과 운영 준비</strong>
+                    <ul class="wordfriends-service-list">
+                        <li>도메인 연결과 WordPress 기본 구성</li>
+                        <li>필수 페이지와 사이트맵 준비</li>
+                        <li>콘텐츠 큐와 정책 리스크 점검</li>
+                    </ul>
+                </article>
+                <article>
+                    <small>PORTAL</small>
+                    <strong>고객 포털 공유</strong>
+                    <ul class="wordfriends-service-list">
+                        <li>내 사이트 현황 확인</li>
+                        <li>문의 답변과 알림센터 확인</li>
+                        <li>정산·추천 참고 상태 확인</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+
+        <div class="wordfriends-services-section">
+            <h3>고객 준비 체크리스트</h3>
+            <p>아래 항목이 준비되어 있으면 상담과 세팅 속도가 빨라집니다. 준비가 덜 된 항목은 상담 단계에서 같이 정리할 수 있습니다.</p>
+            <div class="wordfriends-services-grid">
+                <article class="wordfriends-service-card">
+                    <small>ACCOUNT</small>
+                    <strong>계정과 소유권</strong>
+                    <p>도메인, 호스팅, Google 계정은 고객 소유를 기준으로 준비합니다.</p>
+                    <ul class="wordfriends-service-list">
+                        <li>도메인 구매처 또는 후보</li>
+                        <li>호스팅/서버 준비 상태</li>
+                        <li>Google 계정과 AdSense 준비 여부</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-service-card">
+                    <small>CONTENT</small>
+                    <strong>운영 주제</strong>
+                    <p>사이트 목적과 피해야 할 소재를 먼저 정해야 콘텐츠 품질 관리가 쉬워집니다.</p>
+                    <ul class="wordfriends-service-list">
+                        <li>희망 카테고리와 타깃 독자</li>
+                        <li>금지 소재와 정책 리스크</li>
+                        <li>초기 글감 또는 참고 사이트</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-service-card">
+                    <small>CONTRACT</small>
+                    <strong>계약 조건</strong>
+                    <p>작업 범위, 비용, 정산 참고 방식, 추천 보상 기준을 문서로 확인합니다.</p>
+                    <ul class="wordfriends-service-list">
+                        <li>작업 범위와 일정</li>
+                        <li>계약자 정보와 연락처</li>
+                        <li>정산/추천 안내 확인</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-service-card">
+                    <small>SECURITY</small>
+                    <strong>보안 원칙</strong>
+                    <p>비밀번호와 키를 채팅에 보내지 않고, 필요한 권한만 안전하게 확인합니다.</p>
+                    <ul class="wordfriends-service-list">
+                        <li>비밀번호 직접 공유 금지</li>
+                        <li>API 키·토큰 비공개</li>
+                        <li>권한 부여 방식 별도 안내</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+
+        <div class="wordfriends-services-section">
+            <h3>진행 상태 안내 기준</h3>
+            <div class="wordfriends-service-proofs">
+                <article class="wordfriends-service-proof">
+                    <small>READY</small>
+                    <strong>준비 완료</strong>
+                    <p>계약과 기본 자료가 확인되어 세팅을 시작할 수 있는 상태입니다.</p>
+                </article>
+                <article class="wordfriends-service-proof">
+                    <small>IN PROGRESS</small>
+                    <strong>세팅/운영 중</strong>
+                    <p>도메인 연결, WordPress 구성, 콘텐츠 준비, 검수가 진행 중인 상태입니다.</p>
+                </article>
+                <article class="wordfriends-service-proof">
+                    <small>REVIEW</small>
+                    <strong>검토 필요</strong>
+                    <p>정책, 보안, 계정, 계약 조건처럼 담당자 확인이 필요한 상태입니다.</p>
+                </article>
+            </div>
+        </div>
+
+        <div class="wordfriends-service-cta">
+            <strong>지금 어느 단계인지 모르겠다면 먼저 문의해 주세요</strong>
+            <span>현재 준비된 계정, 도메인 후보, 운영 목적만 알려주시면 상담 단계에서 다음 순서를 정리해 드립니다.</span>
+            <div class="wordfriends-services-actions">
+                <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">상담 문의</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_services_page_url()); ?>">서비스 보기</a>
+            </div>
+        </div>
+
+        <p class="wordfriends-auth-small">Wordfriends는 구축과 운영 준비를 돕지만 AdSense 승인, 검색 순위, 트래픽, 수익은 보장하지 않습니다.</p>
+    </section>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('wordfriends_start_guide', 'wordfriends_siteops_start_guide_shortcode');
+
+function wordfriends_siteops_cases_shortcode($atts = []) {
+    $atts = shortcode_atts([
+        'title' => '고객 상황별 운영 사례',
+        'subtitle' => '실제 고객 정보를 노출하지 않고, Wordfriends가 어떤 문제를 어떤 순서로 정리하는지 유형별 예시로 안내합니다.',
+    ], $atts, 'wordfriends_cases');
+
+    ob_start();
+    ?>
+    <section class="wordfriends-auth wordfriends-guide">
+        <div class="wordfriends-guide-hero">
+            <span class="wordfriends-guide-eyebrow">WORDFRIENDS CASES</span>
+            <h2><?php echo esc_html($atts['title']); ?></h2>
+            <p><?php echo esc_html($atts['subtitle']); ?></p>
+            <div class="wordfriends-guide-actions">
+                <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">상담 문의</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_services_page_url()); ?>">서비스 보기</a>
+            </div>
+        </div>
+
+        <div class="wordfriends-guide-section wordfriends-cases-map">
+            <h3>사례를 보는 방법</h3>
+            <p>아래 사례는 성과 사례가 아니라 상담 전 상황을 이해하기 위한 유형 예시입니다. 내 상황과 비슷한 유형을 찾고, 필요한 준비 항목을 확인하는 용도로 봐 주세요.</p>
+            <div class="wordfriends-cases-map-grid">
+                <article><small>1</small><strong>현재 막힌 지점</strong><span>도메인, WordPress, 콘텐츠, 계약, 보안 중 어디서 멈췄는지 확인합니다.</span></article>
+                <article><small>2</small><strong>정리할 항목</strong><span>고객 소유 계정, 필수 페이지, 정책 리스크, 포털 공유 항목을 분리합니다.</span></article>
+                <article><small>3</small><strong>다음 행동</strong><span>상담 문의, 전자계약 요청, 가이드 확인 중 필요한 다음 단계를 정합니다.</span></article>
+            </div>
+        </div>
+
+        <div class="wordfriends-guide-section">
+            <h3>대표 운영 유형</h3>
+            <p>아래 사례는 이해를 돕기 위한 유형 예시입니다. 개별 결과는 도메인 상태, 콘텐츠 품질, 정책, 운영 기간에 따라 달라집니다.</p>
+            <div class="wordfriends-guide-grid">
+                <article class="wordfriends-guide-card">
+                    <small>CASE 01</small>
+                    <strong>처음 시작하는 고객</strong>
+                    <p>도메인과 호스팅 개념이 낯선 고객에게 소유권, 네임서버, WordPress 기본 구성을 순서대로 안내합니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>고객 소유 계정 원칙 안내</li>
+                        <li>필수 페이지와 메뉴 구성</li>
+                        <li>고객 포털 계정 연결</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-guide-card">
+                    <small>CASE 02</small>
+                    <strong>운영 이력 도메인 검토</strong>
+                    <p>운영 이력이나 샌드박스 경과가 있는 후보를 검토하되, 검색 노출이나 승인 유리함을 보장하지 않습니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>도메인 이력 참고 검토</li>
+                        <li>스팸/정책 리스크 확인</li>
+                        <li>구매 전 고객 판단 자료 정리</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-guide-card">
+                    <small>CASE 03</small>
+                    <strong>AdSense 준비 점검</strong>
+                    <p>승인 보장 대신 필수 페이지, 콘텐츠 품질, 정책 위반 가능성을 점검하고 부족한 항목을 정리합니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>필수 페이지 확인</li>
+                        <li>콘텐츠 품질 체크</li>
+                        <li>정책 리스크 안내</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-guide-card">
+                    <small>CASE 04</small>
+                    <strong>운영 중단 사이트 정리</strong>
+                    <p>사이트맵, 플러그인, 콘텐츠 발행 상태가 멈춘 사이트를 점검하고 운영 재개 순서를 제안합니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>기술 상태 점검</li>
+                        <li>콘텐츠 큐 재정리</li>
+                        <li>알림센터로 진행 공유</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-guide-card">
+                    <small>CASE 05</small>
+                    <strong>계약/정산 확인 고객</strong>
+                    <p>전자계약 요청, 문의 답변, 정산 참고, 추천 보상 상태를 고객 포털 중심으로 정리합니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>계약 요청 상태 표시</li>
+                        <li>정산 참고 정보 안내</li>
+                        <li>추천 보상 1단계 기준 확인</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-guide-card">
+                    <small>CASE 06</small>
+                    <strong>보안 기준 재정리</strong>
+                    <p>비밀번호, API 키, 관리자 계정 정보를 노출하지 않도록 권한 확인 방식과 운영 기준을 다시 정리합니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>민감정보 공유 금지</li>
+                        <li>계정 소유권 확인</li>
+                        <li>필요 권한만 분리 안내</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+
+        <div class="wordfriends-guide-section">
+            <h3>상담 전에 준비하면 좋은 정보</h3>
+            <div class="wordfriends-cases-map-grid">
+                <article><small>DOMAIN</small><strong>도메인 상태</strong><span>구매 전 후보인지, 이미 보유 중인지, 운영 이력이 있는지 알려주세요.</span></article>
+                <article><small>ACCOUNT</small><strong>계정 준비</strong><span>호스팅, Google 계정, AdSense 준비 여부를 확인해 주세요.</span></article>
+                <article><small>GOAL</small><strong>운영 목적</strong><span>원하는 주제, 피하고 싶은 소재, 현재 가장 막힌 부분을 적어 주세요.</span></article>
+            </div>
+        </div>
+
+        <div class="wordfriends-guide-section">
+            <h3>사례를 읽는 기준</h3>
+            <div class="wordfriends-guide-faq">
+                <details open>
+                    <summary>사례가 실제 수익을 의미하나요?</summary>
+                    <p>아니요. 사례는 운영 유형과 작업 범위를 설명하기 위한 예시이며 수익, 트래픽, 승인, 검색 순위를 보장하지 않습니다.</p>
+                </details>
+                <details>
+                    <summary>내 상황과 비슷한 사례를 상담할 수 있나요?</summary>
+                    <p>가능합니다. 문의 페이지에서 도메인 준비 상태, 운영 목적, 궁금한 점을 남기면 담당자가 확인 후 안내합니다.</p>
+                </details>
+                <details>
+                    <summary>고객 정보가 공개되나요?</summary>
+                    <p>공개 사례는 고객명, 도메인, 계정 정보를 노출하지 않는 유형 중심으로 정리합니다.</p>
+                </details>
+            </div>
+        </div>
+
+        <div class="wordfriends-guide-callout">사례는 의사결정을 돕는 참고 자료입니다. 결과는 고객 계정 상태, 도메인 이력, 콘텐츠 품질, 플랫폼 정책, 운영 기간에 따라 달라질 수 있습니다.</div>
+        <div class="wordfriends-service-cta">
+            <strong>내 상황과 비슷한 사례가 있다면 상담으로 이어가세요</strong>
+            <span>도메인 준비 상태와 운영 목적을 남겨주시면 어떤 범위부터 정리하면 좋을지 안내드립니다.</span>
+            <div class="wordfriends-guide-actions">
+                <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">상담 문의</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_start_guide_page_url()); ?>">구축절차 보기</a>
+            </div>
+        </div>
+    </section>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('wordfriends_cases', 'wordfriends_siteops_cases_shortcode');
+
 function wordfriends_siteops_signup_shortcode($atts = []) {
     $atts = shortcode_atts([
         'redirect' => '',
-        'title' => 'Wordfriends 시작하기',
-        'subtitle' => '고객 소유 사이트 운영대행 상담과 계약 진행을 위한 계정을 만듭니다.',
+        'title' => '고객 계정 만들기',
+        'subtitle' => '계약 후 내 사이트, 문의 답변, 전자계약, 알림 상태를 확인하기 위한 Wordfriends 고객 계정입니다.',
     ], $atts, 'wordfriends_signup');
 
     if (is_user_logged_in()) {
@@ -2387,12 +3848,14 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
         } else {
             $name = sanitize_text_field(wp_unslash($_POST['wordfriends_name'] ?? ''));
             $email = sanitize_email(wp_unslash($_POST['wordfriends_email'] ?? ''));
-            $phone = sanitize_text_field(wp_unslash($_POST['wordfriends_phone'] ?? ''));
+            $phone = wordfriends_siteops_normalize_phone(wp_unslash($_POST['wordfriends_phone'] ?? ''));
             $password = (string) ($_POST['wordfriends_password'] ?? '');
             $agree = isset($_POST['wordfriends_agree']);
 
             if (!$name || !$email || !$phone || !$password) {
                 $error = '이름, 이메일, 전화번호, 비밀번호를 모두 입력해 주세요.';
+            } elseif (!wordfriends_siteops_is_valid_phone($phone, true)) {
+                $error = '전화번호 형식을 확인해 주세요.';
             } elseif (!$agree) {
                 $error = '약관과 개인정보처리방침 동의가 필요합니다.';
             } elseif (!is_email($email)) {
@@ -2446,8 +3909,22 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <div class="wordfriends-question-guide">
+        <article>
+          <strong>고객 포털에서 확인할 수 있습니다</strong>
+          <span>내 사이트 현황, 문의 답변, 전자계약 상태, 알림센터, 정산·추천 참고 정보를 한곳에서 확인합니다.</span>
+        </article>
+        <article>
+          <strong>계정 소유 원칙을 유지합니다</strong>
+          <span>Google, AdSense, 도메인, 호스팅 계정은 고객 소유를 기준으로 안내합니다.</span>
+        </article>
+      </div>
       <?php if ($message) : ?>
         <div class="wordfriends-auth-notice"><?php echo esc_html($message); ?></div>
+        <div class="wordfriends-inline-actions">
+          <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_login_page_url()); ?>">로그인하기</a>
+          <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">문의하기</a>
+        </div>
       <?php endif; ?>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
@@ -2466,7 +3943,7 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
           </label>
           <label>
             전화번호
-            <input type="tel" name="wordfriends_phone" autocomplete="tel" inputmode="tel" placeholder="010-0000-0000" required />
+            <input type="tel" name="wordfriends_phone" autocomplete="tel" inputmode="tel" maxlength="30" pattern="[0-9+\-\s().]{8,30}" placeholder="010-0000-0000" required />
           </label>
           <label>
             비밀번호
@@ -2482,6 +3959,10 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
         </div>
         <button class="wordfriends-button" type="submit">회원가입</button>
       </form>
+      <div class="wordfriends-inline-actions">
+        <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_login_page_url()); ?>">이미 계정이 있어요</a>
+        <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">가입 전 문의</a>
+      </div>
       <p class="wordfriends-auth-small">수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황은 고객 계정 기준으로 안내됩니다.</p>
     </section>
     <?php
@@ -2493,7 +3974,7 @@ function wordfriends_siteops_login_shortcode($atts = []) {
     $atts = shortcode_atts([
         'redirect' => '',
         'title' => 'Wordfriends 로그인',
-        'subtitle' => '계약, 내 사이트 현황, 정산 안내를 확인하기 위한 고객 로그인입니다.',
+        'subtitle' => '내 사이트 현황, 문의 답변, 전자계약, 알림 상태를 확인하기 위한 고객 로그인입니다.',
     ], $atts, 'wordfriends_login');
 
     if (is_user_logged_in()) {
@@ -2531,6 +4012,16 @@ function wordfriends_siteops_login_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <div class="wordfriends-question-guide">
+        <article>
+          <strong>계약 후 진행 상태 확인</strong>
+          <span>사이트 세팅, 문의 답변, 계약 상태, 알림을 고객 포털에서 확인합니다.</span>
+        </article>
+        <article>
+          <strong>비밀번호와 키는 공유하지 않습니다</strong>
+          <span>민감정보는 문의창이나 이메일에 남기지 않고, 필요한 권한만 별도 안내합니다.</span>
+        </article>
+      </div>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
       <?php endif; ?>
@@ -2554,6 +4045,11 @@ function wordfriends_siteops_login_shortcode($atts = []) {
         </div>
         <button class="wordfriends-button" type="submit">로그인</button>
       </form>
+      <div class="wordfriends-inline-actions">
+        <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_signup_page_url()); ?>">회원가입</a>
+        <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">로그인 문의</a>
+      </div>
+      <p class="wordfriends-auth-small">로그인 후 고객 포털에서 내 사이트, 문의 답변, 전자계약, 알림센터, 정산·추천 참고 정보를 확인할 수 있습니다.</p>
     </section>
     <?php
     return ob_get_clean();
@@ -2587,8 +4083,8 @@ add_shortcode('wordfriends_logout', 'wordfriends_siteops_logout_shortcode');
 
 function wordfriends_siteops_question_shortcode($atts = []) {
     $atts = shortcode_atts([
-        'title' => '문의 / AI 상담',
-        'subtitle' => '정산, 계약, 애드센스, 사이트 운영 문의를 남겨 주세요. 정책·세금·수익 관련 질문은 담당자 검토 후 안내됩니다.',
+        'title' => '상담 문의',
+        'subtitle' => '도메인 준비, WordPress 구축, AdSense 점검, 계약, 고객 포털 관련 문의를 남겨 주세요. 담당자가 확인 후 안내드립니다.',
         'category' => 'general',
     ], $atts, 'wordfriends_question');
 
@@ -2597,9 +4093,11 @@ function wordfriends_siteops_question_shortcode($atts = []) {
     $selected_category = sanitize_key($atts['category']);
     $categories = [
         'general' => '일반 문의',
+        'setup' => '구축 상담',
         'contract' => '계약',
         'settlement' => '정산',
         'adsense' => '애드센스',
+        'domain' => '도메인/호스팅',
         'tax' => '세금',
         'policy' => '정책/약관',
         'technical' => '기술 지원',
@@ -2616,8 +4114,27 @@ function wordfriends_siteops_question_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <div class="wordfriends-question-guide">
+        <article>
+          <strong>빠른 상담을 위해 알려 주세요</strong>
+          <span>도메인 보유 여부, 희망 도메인 수, 운영 목적, 현재 막힌 지점을 함께 남겨주시면 확인이 빨라집니다.</span>
+        </article>
+        <article>
+          <strong>민감정보는 입력하지 마세요</strong>
+          <span>계정 비밀번호, AdSense 로그인 정보, API 키, DB 비밀번호는 문의창에 남기지 않습니다.</span>
+        </article>
+      </div>
+      <?php if ($user && $user->ID) : ?>
+        <?php echo wordfriends_siteops_render_customer_nav('questions'); ?>
+      <?php endif; ?>
       <?php if ($message) : ?>
         <div class="wordfriends-auth-success"><?php echo esc_html($message); ?></div>
+        <?php if ($user && $user->ID) : ?>
+          <div class="wordfriends-inline-actions">
+            <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_my_questions_page_url()); ?>">내 문의 보기</a>
+            <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_dashboard_page_url()); ?>">고객포털</a>
+          </div>
+        <?php endif; ?>
       <?php endif; ?>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
@@ -2637,7 +4154,7 @@ function wordfriends_siteops_question_shortcode($atts = []) {
             </label>
             <label>
               전화번호 <span class="wordfriends-optional">(선택)</span>
-              <input type="tel" name="wordfriends_question_phone" autocomplete="tel" inputmode="tel" placeholder="010-0000-0000" />
+              <input type="tel" name="wordfriends_question_phone" autocomplete="tel" inputmode="tel" maxlength="30" pattern="[0-9+\-\s().]{8,30}" placeholder="010-0000-0000" />
             </label>
           <?php else : ?>
             <p class="wordfriends-auth-small"><?php echo esc_html($user->display_name ?: $user->user_login); ?> 계정으로 문의가 접수됩니다.</p>
@@ -2652,11 +4169,12 @@ function wordfriends_siteops_question_shortcode($atts = []) {
           </label>
           <label>
             문의 내용
-            <textarea name="wordfriends_question_body" required placeholder="궁금한 점을 입력해 주세요. 계정 비밀번호, 애드센스 로그인 정보, API 키는 입력하지 마세요."></textarea>
+            <textarea name="wordfriends_question_body" required placeholder="예: 도메인 2개 준비됨 / WordPress 구축 상담 희망 / 현재 막힌 부분은 네임서버 연결입니다."></textarea>
           </label>
         </div>
         <button class="wordfriends-button" type="submit">문의 접수</button>
-        <p class="wordfriends-auth-small">수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황과 검토 결과를 기준으로 안내됩니다.</p>
+        <p class="wordfriends-auth-small wordfriends-question-form-note">문의 접수 후 담당자가 확인하여 답변을 등록합니다. 로그인 고객은 내 문의에서 답변 상태를 확인할 수 있습니다.</p>
+        <p class="wordfriends-auth-small wordfriends-question-form-note">수익, 애드센스 승인, 트래픽은 보장하지 않으며 운영 현황과 검토 결과를 기준으로 안내됩니다.</p>
       </form>
     </section>
     <?php
@@ -2712,6 +4230,9 @@ function wordfriends_siteops_contract_request_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php if ($user && $user->ID) : ?>
+        <?php echo wordfriends_siteops_render_customer_nav('contract'); ?>
+      <?php endif; ?>
       <?php if ($message) : ?>
         <div class="wordfriends-auth-success"><?php echo esc_html($message); ?></div>
       <?php endif; ?>
@@ -2738,7 +4259,27 @@ function wordfriends_siteops_contract_request_shortcode($atts = []) {
           <?php endforeach; ?>
         </div>
         <?php echo wordfriends_siteops_render_pagination($contract_pagination, 'wfc_page'); ?>
+      <?php elseif ($user && $user->ID && !$message && !$error) : ?>
+        <div class="wordfriends-empty">
+          <strong>아직 접수된 계약 요청이 없습니다.</strong>
+          <p class="wordfriends-auth-small">계약 요청 후 진행 안내는 알림센터에서 확인할 수 있습니다. 계약 관련 질문은 문의 메뉴에 남겨 주세요.</p>
+          <p>
+            <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_timeline_page_url()); ?>">알림센터</a>
+            <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">문의</a>
+          </p>
+        </div>
       <?php endif; ?>
+
+      <div class="wordfriends-question-guide">
+        <article>
+          <strong>계약 요청 후 확인 방법</strong>
+          <span>계약 진행 안내는 알림센터에서 확인할 수 있습니다. 계약 관련 질문은 문의 메뉴에 남겨 주세요.</span>
+        </article>
+        <article>
+          <strong>도메인 수는 작업 범위 기준입니다</strong>
+          <span>도메인 수는 승인이나 수익을 의미하지 않고, 구축 범위와 운영 준비 항목을 확인하기 위한 기준입니다.</span>
+        </article>
+      </div>
 
       <form method="post" data-siteops-event="contract_started">
         <?php wp_nonce_field('wordfriends_contract_request', 'wordfriends_contract_request_nonce'); ?>
@@ -2755,7 +4296,7 @@ function wordfriends_siteops_contract_request_shortcode($atts = []) {
             </label>
             <label>
               전화번호 <span class="wordfriends-optional">(선택)</span>
-              <input type="tel" name="wordfriends_contract_phone" autocomplete="tel" inputmode="tel" placeholder="010-0000-0000" />
+              <input type="tel" name="wordfriends_contract_phone" autocomplete="tel" inputmode="tel" maxlength="30" pattern="[0-9+\-\s().]{8,30}" placeholder="010-0000-0000" />
             </label>
           <?php else : ?>
             <p class="wordfriends-auth-small"><?php echo esc_html($user->display_name ?: $user->user_login); ?> 계정으로 계약 요청이 접수됩니다.</p>
@@ -2781,15 +4322,38 @@ add_shortcode('wordfriends_contract_request', 'wordfriends_siteops_contract_requ
 function wordfriends_siteops_question_category_label($category) {
     $labels = [
         'general' => '일반 문의',
+        'setup' => '구축 상담',
         'contract' => '계약',
         'settlement' => '정산',
         'adsense' => '애드센스',
+        'domain' => '도메인/호스팅',
         'tax' => '세금',
         'policy' => '정책/약관',
         'technical' => '기술 지원',
     ];
 
     return $labels[$category] ?? '일반 문의';
+}
+
+function wordfriends_siteops_render_customer_nav($active = '') {
+    $links = [
+        'dashboard' => ['label' => '고객포털', 'url' => wordfriends_siteops_dashboard_page_url()],
+        'sites' => ['label' => '내 사이트', 'url' => wordfriends_siteops_my_sites_page_url()],
+        'questions' => ['label' => '내 문의', 'url' => wordfriends_siteops_my_questions_page_url()],
+        'contract' => ['label' => '전자계약', 'url' => wordfriends_siteops_contract_guide_page_url()],
+        'settlement' => ['label' => '정산·추천', 'url' => wordfriends_siteops_settlement_referrals_page_url()],
+        'timeline' => ['label' => '알림센터', 'url' => wordfriends_siteops_timeline_page_url()],
+    ];
+
+    ob_start();
+    ?>
+    <nav class="wordfriends-portal-nav" aria-label="고객 포털 내부 이동">
+      <?php foreach ($links as $key => $link) : ?>
+        <a class="<?php echo $active === $key ? 'is-active' : ''; ?>" href="<?php echo esc_url($link['url']); ?>"><?php echo esc_html($link['label']); ?></a>
+      <?php endforeach; ?>
+    </nav>
+    <?php
+    return ob_get_clean();
 }
 
 function wordfriends_siteops_dashboard_shortcode($atts = []) {
@@ -2879,6 +4443,17 @@ function wordfriends_siteops_dashboard_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php echo wordfriends_siteops_render_customer_nav('dashboard'); ?>
+      <div class="wordfriends-question-guide">
+        <article>
+          <strong>진행 상황을 한곳에 모읍니다</strong>
+          <span>내 사이트 현황, 문의 답변, 전자계약, 알림, 정산 참고 정보를 고객 포털에서 확인합니다.</span>
+        </article>
+        <article>
+          <strong>중요한 확인은 고객 기준으로 진행합니다</strong>
+          <span>계정 소유권, 계약 조건, 정산 참고 정보는 고객 확인을 기준으로 안내합니다.</span>
+        </article>
+      </div>
       <div class="wordfriends-dashboard-grid">
         <a class="wordfriends-dashboard-card" href="<?php echo esc_url(wordfriends_siteops_my_sites_page_url()); ?>">
           <div class="wordfriends-dashboard-card-head">
@@ -3008,6 +4583,10 @@ function wordfriends_siteops_my_questions_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php echo wordfriends_siteops_render_customer_nav('questions'); ?>
+      <div class="wordfriends-inline-actions">
+        <a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">새 문의 접수</a>
+      </div>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
       <?php else : ?>
@@ -3040,6 +4619,9 @@ function wordfriends_siteops_my_questions_shortcode($atts = []) {
         <div class="wordfriends-empty">
           <strong><?php echo $all_question_count ? '조건에 맞는 문의가 없습니다.' : '아직 접수된 문의가 없습니다.'; ?></strong>
           <p class="wordfriends-auth-small"><?php echo $all_question_count ? '검색어 또는 상태 필터를 조정해 주세요.' : '문의 페이지에서 남긴 내용은 이곳에 표시됩니다.'; ?></p>
+          <?php if (!$all_question_count) : ?>
+            <p><a class="wordfriends-button" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">새 문의 접수</a></p>
+          <?php endif; ?>
         </div>
       <?php elseif (!$error) : ?>
         <div class="wordfriends-question-list">
@@ -3150,6 +4732,17 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php echo wordfriends_siteops_render_customer_nav('sites'); ?>
+      <div class="wordfriends-question-guide">
+        <article>
+          <strong>무엇을 확인하나요?</strong>
+          <span>도메인별 세팅 상태, 콘텐츠 준비, 사이트맵, 애드센스 점검 상태를 한 화면에서 확인합니다.</span>
+        </article>
+        <article>
+          <strong>다음 행동만 먼저 봐도 됩니다</strong>
+          <span>카드의 다음 안내를 기준으로 진행 상황을 확인하고, 궁금한 점은 문의 메뉴에 남겨 주세요.</span>
+        </article>
+      </div>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
       <?php else : ?>
@@ -3182,6 +4775,12 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
         <div class="wordfriends-empty">
           <strong><?php echo $all_site_count ? '조건에 맞는 사이트가 없습니다.' : '연결된 사이트가 아직 없습니다.'; ?></strong>
           <p class="wordfriends-auth-small"><?php echo $all_site_count ? '검색어 또는 상태 필터를 조정해 주세요.' : '계약과 세팅이 진행되고 SiteOps에서 고객 연결이 완료되면 이곳에 사이트 현황이 표시됩니다.'; ?></p>
+          <?php if (!$all_site_count) : ?>
+            <p>
+              <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_contract_guide_page_url()); ?>">전자계약 안내</a>
+              <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">문의하기</a>
+            </p>
+          <?php endif; ?>
         </div>
       <?php elseif (!$error) : ?>
         <div class="wordfriends-site-grid">
@@ -3207,6 +4806,10 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
                 <?php if (!empty($site['lastActivityAt'])) : ?>
                   <span>최근 갱신: <?php echo esc_html($site['lastActivityAt']); ?></span>
                 <?php endif; ?>
+              </div>
+              <div class="wordfriends-inline-actions wordfriends-site-actions">
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_timeline_page_url()); ?>">진행 알림 보기</a>
+                <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">문의하기</a>
               </div>
               <div class="wordfriends-site-meta">
                 <span><small>콘텐츠</small><?php echo esc_html($site['contentStatus'] ?? '콘텐츠 준비 중'); ?></span>
@@ -3320,6 +4923,17 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php echo wordfriends_siteops_render_customer_nav('settlement'); ?>
+      <div class="wordfriends-question-guide">
+        <article>
+          <strong>정산은 참고 상태로 안내됩니다</strong>
+          <span>표시 금액과 지급 상태는 계약 조건, 운영 내역, 검토 결과를 기준으로 확인합니다.</span>
+        </article>
+        <article>
+          <strong>추천 보상은 1단계 기준입니다</strong>
+          <span>추천 계약이 승인되고 검토가 완료된 건만 보상 상태에 표시됩니다.</span>
+        </article>
+      </div>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
       <?php else : ?>
@@ -3337,12 +4951,20 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
             <strong><?php echo esc_html($data['taxProfile']['label'] ?? '세무 정보 확인 필요'); ?></strong>
           </div>
         </div>
+        <div class="wordfriends-inline-actions">
+          <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_timeline_page_url()); ?>">정산 알림 보기</a>
+          <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">정산 문의</a>
+        </div>
 
         <h3>정산 참고</h3>
         <?php if (!$settlements) : ?>
           <div class="wordfriends-empty">
             <strong>표시할 정산 내역이 아직 없습니다.</strong>
-            <p class="wordfriends-auth-small">정산 대상이 확정되면 이곳에 상태가 표시됩니다.</p>
+            <p class="wordfriends-auth-small">정산 대상이 확정되면 이곳에 상태가 표시됩니다. 정산 금액과 지급 방식은 계약과 검토 결과를 기준으로 안내됩니다.</p>
+            <p>
+              <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_timeline_page_url()); ?>">알림센터</a>
+              <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">문의하기</a>
+            </p>
           </div>
         <?php else : ?>
           <table class="wordfriends-table">
@@ -3372,7 +4994,8 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
         <?php if (!$rewards) : ?>
           <div class="wordfriends-empty">
             <strong>표시할 추천 보상이 아직 없습니다.</strong>
-            <p class="wordfriends-auth-small">추천 계약이 승인되면 1단계 보상 상태가 표시됩니다.</p>
+            <p class="wordfriends-auth-small">추천 계약이 승인되고 검토가 완료되면 1단계 보상 상태가 표시됩니다.</p>
+            <p><a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">추천 문의</a></p>
           </div>
         <?php else : ?>
           <table class="wordfriends-table">
@@ -3407,6 +5030,20 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
 }
 add_shortcode('wordfriends_settlement_referrals', 'wordfriends_siteops_settlement_referrals_shortcode');
 
+function wordfriends_siteops_timeline_category_label($category) {
+    $labels = [
+        'contract' => '계약',
+        'question' => '문의',
+        'site' => '사이트',
+        'settlement' => '정산',
+        'referral' => '추천',
+        'notice' => '공지',
+        'general' => '일반',
+    ];
+
+    return $labels[$category] ?? '안내';
+}
+
 function wordfriends_siteops_timeline_shortcode($atts = []) {
     $atts = shortcode_atts([
         'title' => '알림센터',
@@ -3439,6 +5076,7 @@ function wordfriends_siteops_timeline_shortcode($atts = []) {
         }
     }
 
+    $all_timeline_count = count($timeline);
     $timeline_pagination = wordfriends_siteops_paginate_items($timeline, 'wft_page', 5);
     $timeline = $timeline_pagination['items'];
 
@@ -3447,14 +5085,35 @@ function wordfriends_siteops_timeline_shortcode($atts = []) {
     <section class="wordfriends-auth">
       <h2><?php echo esc_html($atts['title']); ?></h2>
       <p><?php echo esc_html($atts['subtitle']); ?></p>
+      <?php echo wordfriends_siteops_render_customer_nav('timeline'); ?>
+      <div class="wordfriends-question-guide">
+        <article>
+          <strong>진행 안내가 모이는 곳입니다</strong>
+          <span>계약, 문의 답변, 사이트 운영, 정산 관련 안내를 한곳에서 확인합니다.</span>
+        </article>
+        <article>
+          <strong>중요한 확인은 각 메뉴로 이어집니다</strong>
+          <span>알림을 확인한 뒤 내 사이트, 내 문의, 전자계약, 정산·추천 화면에서 상세 내용을 볼 수 있습니다.</span>
+        </article>
+      </div>
       <?php if ($error) : ?>
         <div class="wordfriends-auth-error"><?php echo esc_html($error); ?></div>
       <?php elseif (!$timeline) : ?>
         <div class="wordfriends-empty">
           <strong>아직 표시할 알림이 없습니다.</strong>
-          <p class="wordfriends-auth-small">계약, 문의, 사이트 운영 상태가 갱신되면 이곳에 표시됩니다.</p>
+          <p class="wordfriends-auth-small"><?php echo $all_timeline_count ? '다른 페이지의 알림을 확인해 주세요.' : '계약, 문의, 사이트 운영, 정산 상태가 갱신되면 이곳에 표시됩니다.'; ?></p>
+          <p>
+            <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_my_sites_page_url()); ?>">내 사이트</a>
+            <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_question_page_url()); ?>">문의하기</a>
+          </p>
         </div>
       <?php else : ?>
+        <div class="wordfriends-inline-actions">
+          <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_my_sites_page_url()); ?>">내 사이트</a>
+          <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_my_questions_page_url()); ?>">내 문의</a>
+          <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_contract_guide_page_url()); ?>">전자계약</a>
+          <a class="wordfriends-button wordfriends-button-secondary" href="<?php echo esc_url(wordfriends_siteops_settlement_referrals_page_url()); ?>">정산·추천</a>
+        </div>
         <div class="wordfriends-question-list">
           <?php foreach ($timeline as $item) : ?>
             <article class="wordfriends-question-card">
@@ -3464,7 +5123,7 @@ function wordfriends_siteops_timeline_shortcode($atts = []) {
               </header>
               <p><?php echo nl2br(esc_html($item['message'] ?? '')); ?></p>
               <p class="wordfriends-auth-small">
-                <?php echo esc_html($item['category'] ?? 'general'); ?> · <?php echo esc_html($item['occurredAt'] ?? ''); ?>
+                <?php echo esc_html(wordfriends_siteops_timeline_category_label($item['category'] ?? 'general')); ?> · <?php echo esc_html($item['occurredAt'] ?? ''); ?>
               </p>
             </article>
           <?php endforeach; ?>
@@ -3491,19 +5150,19 @@ function wordfriends_siteops_signup_page_url() {
 }
 
 function wordfriends_siteops_services_page_url() {
-    return home_url('/services/');
+    return wordfriends_siteops_portal_page_url('wordfriends_services', '/서비스/', ['서비스', 'services']);
 }
 
 function wordfriends_siteops_start_guide_page_url() {
-    return home_url('/getting-started/');
+    return wordfriends_siteops_portal_page_url('wordfriends_start_guide', '/구축절차/', ['구축절차', 'getting-started', 'start-guide']);
 }
 
 function wordfriends_siteops_cases_page_url() {
-    return home_url('/cases/');
+    return wordfriends_siteops_portal_page_url('wordfriends_cases', '/사례/', ['사례', 'cases']);
 }
 
 function wordfriends_siteops_guide_page_url() {
-    return home_url('/guide/');
+    return wordfriends_siteops_portal_page_url('wordfriends_guide', '/가이드-faq/', ['가이드-faq', 'guide', 'faq']);
 }
 
 function wordfriends_siteops_portal_page_url($shortcode, $fallback_path, $slugs = []) {

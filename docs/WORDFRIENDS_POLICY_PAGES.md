@@ -42,11 +42,11 @@ WordPress 일반 페이지 본문에 그대로 붙여 넣을 수 있는 고객�
 <ul>
   <li>상호: (주)스타일컴퍼니</li>
   <li>브랜드: 워드프랜즈 (Wordfriends)</li>
-  <li>대표자: 박종헌 (대표자 2026년 10월 변경 예정)</li>
+  <li>대표자: 박종헌</li>
   <li>사업자등록번호: 620-88-01252</li>
-  <li>주소: 경기도 광주시 신현동 616-4 2층</li>
-  <li>연락처: talk@wordfriends.co.kr</li>
-  <li>이메일: talk@wordfriends.co.kr</li>
+  <li>주소: 경기도 광주시 머루숯길81번길 4-46, 2층(신현동)</li>
+  <li>연락처: <a href="mailto:talk@wordfriends.co.kr">talk@wordfriends.co.kr</a></li>
+  <li>이메일: <a href="mailto:talk@wordfriends.co.kr">talk@wordfriends.co.kr</a></li>
   <li>통신판매업 신고번호: 제 2019-성남중원-0577호</li>
 </ul>
 
@@ -170,9 +170,10 @@ WordPress 일반 페이지 본문에 그대로 붙여 넣을 수 있는 고객�
 
 <h3>개인정보 보호책임자</h3>
 <ul>
-  <li>성명: 박종헌 (대표자 2026년 10월 변경 예정)</li>
+  <li>성명: 박종헌</li>
   <li>직책: 대표</li>
-  <li>연락처: talk@wordfriends.co.kr</li>
+  <li>주소: 경기도 광주시 머루숯길81번길 4-46, 2층(신현동)</li>
+  <li>연락처: <a href="mailto:talk@wordfriends.co.kr">talk@wordfriends.co.kr</a></li>
 </ul>
 <p>개인정보 관련 불만·문의·침해 신고는 위 연락처로 접수하시거나 개인정보보호위원회(privacy.go.kr), 한국인터넷진흥원(privacy.kisa.or.kr)에 신고하실 수 있습니다.</p>
 

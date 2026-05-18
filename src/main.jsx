@@ -1134,6 +1134,48 @@ function App() {
   const portalRealtime = dashboard.portalRealtime || fallbackDashboard.portalRealtime;
   const contractRequests = portalRealtime.contractRequests || [];
   const portalQuestions = portalRealtime.questions || [];
+  const salesReadinessItems = [
+    {
+      label: '홈페이지/고객 화면',
+      status: 'ready',
+      detail: '공개 페이지, 고객 포털, 문의, 전자계약, 알림센터 1차 정리 완료',
+      target: 'portal',
+    },
+    {
+      label: '관리자 문의 처리',
+      status: portalRealtime.openQuestions > 0 ? 'action_required' : 'ready',
+      detail: portalRealtime.openQuestions > 0
+        ? `확인 필요한 문의 ${portalRealtime.openQuestions}건`
+        : '문의 접수와 답변 등록 흐름 준비',
+      target: 'realtime',
+    },
+    {
+      label: '계약 요청 처리',
+      status: contractRequests.length > 0 ? 'active' : 'ready',
+      detail: contractRequests.length > 0
+        ? `계약 요청 ${contractRequests.length}건 관리 중`
+        : '전자계약 요청 접수와 상태 안내 준비',
+      target: 'realtime',
+    },
+    {
+      label: '고객 공개 알림',
+      status: customerNotifications.length > 0 ? 'active' : 'planned',
+      detail: customerNotifications.length > 0
+        ? `고객 공개 알림 ${customerNotifications.length}건`
+        : '문의/계약/정산 알림 발행 준비',
+      target: 'notifications',
+    },
+    {
+      label: '글 발행 준비',
+      status: 'planned',
+      detail: '영업 구조 안정화 후 가이드/FAQ 글을 순차 발행',
+      target: 'queue',
+    },
+  ];
+  const salesReadinessDone = salesReadinessItems.filter((item) =>
+    ['ready', 'active'].includes(item.status),
+  ).length;
+  const salesReadinessPercent = Math.round((salesReadinessDone / salesReadinessItems.length) * 100);
   const portalContractPageCount = Math.max(1, Math.ceil(contractRequests.length / PORTAL_REALTIME_PAGE_SIZE));
   const portalQuestionPageCount = Math.max(1, Math.ceil(portalQuestions.length / PORTAL_REALTIME_PAGE_SIZE));
   const normalizedPortalContractPage = Math.min(portalContractPage, portalContractPageCount);
@@ -2141,6 +2183,7 @@ function App() {
 
         <nav className="nav-list" aria-label="Primary">
           <a className="active" href="#overview"><Globe2 size={18} />운영 현황</a>
+          <a href="#sales-readiness"><ClipboardCheck size={18} />영업 준비</a>
           <a href="#sites"><Users size={18} />사이트 관리</a>
           <a href="#queue"><FileText size={18} />콘텐츠 큐</a>
           <a href="#keywords"><Search size={18} />키워드 관리</a>
@@ -2229,6 +2272,43 @@ function App() {
               </article>
             );
           })}
+        </section>
+
+        <section className="panel wide-panel sales-readiness-panel" id="sales-readiness">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Wordfriends sales readiness</p>
+              <h2>영업 준비 보드</h2>
+            </div>
+            <span className="status-pill active">{salesReadinessPercent}% 준비</span>
+          </div>
+          <div className="readiness-overview">
+            <div>
+              <strong>지금은 글 발행보다 운영 그릇을 먼저 완성하는 단계입니다.</strong>
+              <p>
+                홈페이지, 고객 포털, 문의, 계약, 알림, 정산 확인 흐름을 안정화한 뒤
+                가이드/FAQ 글을 안전하게 채워나갑니다.
+              </p>
+            </div>
+            <div className="readiness-progress" aria-label={`영업 준비율 ${salesReadinessPercent}%`}>
+              <span style={{ width: `${salesReadinessPercent}%` }} />
+            </div>
+          </div>
+          <div className="readiness-grid">
+            {salesReadinessItems.map((item) => (
+              <button
+                className="readiness-card"
+                key={item.label}
+                type="button"
+                onClick={() => scrollToSection(item.target)}
+              >
+                <CheckCircle2 size={18} />
+                <span className={`status-pill ${item.status}`}>{item.status === 'planned' ? '예정' : item.status === 'action_required' ? '확인 필요' : '준비됨'}</span>
+                <strong>{item.label}</strong>
+                <p>{item.detail}</p>
+              </button>
+            ))}
+          </div>
         </section>
 
         <section className="panel wide-panel delivery-panel" id="delivery">
