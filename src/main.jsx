@@ -2099,6 +2099,60 @@ function App() {
       body: '수익, 승인, 트래픽, 순위 보장처럼 오해될 수 있는 표현은 발행 전 사람 검토',
     },
   ];
+  const articleTemplateBlocks = [
+    {
+      label: '대상 고객',
+      body: '처음 애드센스/WordPress 사이트를 준비하거나 계약 전 기본 개념을 확인하려는 고객',
+    },
+    {
+      label: '핵심 질문',
+      body: '고객이 실제로 묻는 질문 하나를 제목과 첫 문단에서 바로 다룹니다.',
+    },
+    {
+      label: '본문 구조',
+      body: '개념 설명, 체크리스트, 실수하기 쉬운 지점, Wordfriends가 도와주는 범위 순서로 작성합니다.',
+    },
+    {
+      label: '검수 기준',
+      body: '수익, 승인, 트래픽, 검색순위 보장으로 읽힐 표현은 삭제하고 운영 현황 기준으로 안내합니다.',
+    },
+    {
+      label: 'CTA',
+      body: '문의, 구축절차, 고객포털, 가이드/FAQ 중 다음 행동 하나로 연결합니다.',
+    },
+  ];
+  const initialArticleDrafts = [
+    {
+      title: '애드센스 기본 이해',
+      intent: '교육형 SEO',
+      question: '애드센스 사이트를 시작하기 전에 무엇을 알아야 하나요?',
+      cta: '가이드/FAQ',
+    },
+    {
+      title: '도메인 구매 전 체크',
+      intent: '영업 준비',
+      question: '도메인을 고를 때 어떤 이력과 목적을 먼저 봐야 하나요?',
+      cta: '문의',
+    },
+    {
+      title: '네임서버 연결',
+      intent: '고객 안내',
+      question: '도메인과 호스팅을 연결할 때 고객이 준비할 정보는 무엇인가요?',
+      cta: '구축절차',
+    },
+    {
+      title: '필수 페이지 준비',
+      intent: '교육형 SEO',
+      question: '서비스 페이지, 정책 페이지, 문의 페이지는 왜 필요한가요?',
+      cta: '서비스',
+    },
+    {
+      title: '승인 준비 체크리스트',
+      intent: '보류/검수',
+      question: 'AdSense 신청 전 어떤 항목을 점검해야 하나요?',
+      cta: '문의',
+    },
+  ];
   const adsenseReadySites = dashboard.sites.filter((site) =>
     ['approved', 'ready'].includes(String(site.adsense || '').toLowerCase()),
   );
@@ -4059,6 +4113,45 @@ function App() {
                   </div>
                 </article>
               ))}
+            </div>
+            <div className="article-template-panel">
+              <div className="section-subheading">
+                <div>
+                  <span className="mini-label">guide / faq template</span>
+                  <h3>글 구조 템플릿</h3>
+                </div>
+                <span className="status-pill planned">초안 기준</span>
+              </div>
+              <div className="article-template-grid">
+                {articleTemplateBlocks.map((block) => (
+                  <article className="article-template-card" key={block.label}>
+                    <strong>{block.label}</strong>
+                    <p>{block.body}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+            <div className="initial-draft-panel">
+              <div className="section-subheading">
+                <div>
+                  <span className="mini-label">first 5 drafts</span>
+                  <h3>초기 글 5개 초안</h3>
+                </div>
+                <span className="status-pill ready">작성 준비</span>
+              </div>
+              <div className="initial-draft-list">
+                {initialArticleDrafts.map((draft, index) => (
+                  <article className="initial-draft-card" key={draft.title}>
+                    <small>{String(index + 1).padStart(2, '0')}</small>
+                    <div>
+                      <strong>{draft.title}</strong>
+                      <p>{draft.question}</p>
+                    </div>
+                    <span>{draft.intent}</span>
+                    <em>{draft.cta}</em>
+                  </article>
+                ))}
+              </div>
             </div>
             <div className="ops-table queue-table" role="table">
               <div className="ops-row ops-head" role="row">

@@ -894,6 +894,111 @@ h2 {
   line-height: 1.5;
 }
 
+.mini-label {
+  display: inline-flex;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.article-template-panel,
+.initial-draft-panel {
+  margin-bottom: 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(8, 29, 33, 0.78);
+}
+
+.article-template-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.article-template-card {
+  display: grid;
+  gap: 7px;
+  min-height: 132px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-soft);
+}
+
+.article-template-card strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.article-template-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.initial-draft-list {
+  display: grid;
+  gap: 10px;
+}
+
+.initial-draft-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 110px 90px;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-soft);
+}
+
+.initial-draft-card small {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.initial-draft-card strong {
+  display: block;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.initial-draft-card p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.initial-draft-card span,
+.initial-draft-card em {
+  display: inline-flex;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 9px;
+  align-items: center;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  text-align: center;
+}
+
+.initial-draft-card span {
+  background: rgba(52, 211, 153, 0.14);
+  color: var(--accent-strong);
+}
+
+.initial-draft-card em {
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+}
+
 .customer-table .ops-row {
   grid-template-columns: minmax(220px, 1.3fr) 110px 90px 130px 110px;
 }
@@ -3443,6 +3548,8 @@ h2 {
   .editorial-readiness-grid,
   .editorial-topic-panel,
   .editorial-purpose-grid,
+  .article-template-grid,
+  .initial-draft-card,
   .readiness-overview,
   .readiness-grid,
   .setup-grid,
