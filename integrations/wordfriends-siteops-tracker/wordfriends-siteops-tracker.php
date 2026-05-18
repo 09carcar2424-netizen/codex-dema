@@ -1216,8 +1216,10 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-guide-quicklinks a {
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 2px;
         min-height: 52px;
         border: 1px solid rgba(43, 212, 183, 0.72);
         border-radius: 8px;
@@ -1231,6 +1233,9 @@ function wordfriends_siteops_portal_styles() {
         text-decoration: none;
         box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
         transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+      .wordfriends-guide-quicklinks a span {
+        display: block;
       }
       .wordfriends-guide-quicklinks a:hover,
       .wordfriends-guide-quicklinks a:focus-visible {
@@ -1336,12 +1341,16 @@ function wordfriends_siteops_portal_styles() {
         display: grid;
         grid-template-columns: minmax(170px, .52fr) minmax(0, 1fr);
         gap: 12px;
-        align-items: start;
+        align-items: stretch;
         min-width: 0;
         border: 1px solid rgba(106, 173, 178, 0.35);
         border-radius: 8px;
         padding: 14px;
         background: rgba(5, 30, 33, 0.72);
+      }
+      .wordfriends-guide-category-row > div {
+        display: grid;
+        align-content: center;
       }
       .wordfriends-guide-category-row small {
         color: #2bd4b7;
@@ -3576,12 +3585,12 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
     ], $atts, 'wordfriends_guide');
 
     $guide_links = [
-        ['구글 애드센스 기본 이해', 'adsense-basic-guide'],
-        ['애드센스용 도메인 구매 전 체크', 'domain-before-buy-checklist'],
-        ['도메인 네임서버 연결 이해하기', 'nameserver-dns-setup-guide'],
-        ['애드센스 승인 필수 페이지 준비', 'wordpress-required-pages'],
-        ['AdSense 신청 전 체크리스트', 'adsense-readiness-checklist'],
-        ['애드센스 금지사항', 'adsense-policy-violations'],
+        ['구글 애드센스', '기본 이해', 'adsense-basic-guide'],
+        ['애드센스용 도메인', '구매 전 체크', 'domain-before-buy-checklist'],
+        ['도메인 네임서버', '연결 이해하기', 'nameserver-dns-setup-guide'],
+        ['애드센스 승인', '필수 페이지 준비', 'wordpress-required-pages'],
+        ['AdSense 신청 전', '체크리스트', 'adsense-readiness-checklist'],
+        ['애드센스', '금지사항', 'adsense-policy-violations'],
     ];
 
     ob_start();
@@ -3606,101 +3615,121 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
             </div>
             <div class="wordfriends-guide-quicklinks" aria-label="Wordfriends published guide links">
                 <?php foreach ($guide_links as $guide_link): ?>
-                    <a href="<?php echo esc_url(wordfriends_siteops_post_url($guide_link[1])); ?>"><?php echo esc_html($guide_link[0]); ?></a>
+                    <a href="<?php echo esc_url(wordfriends_siteops_post_url($guide_link[2])); ?>"><span><?php echo esc_html($guide_link[0]); ?></span><span><?php echo esc_html($guide_link[1]); ?></span></a>
                 <?php endforeach; ?>
             </div>
         </div>
 
         <div class="wordfriends-guide-section">
-            <h3>구글 애드센스 카테고리 설계</h3>
-            <p>애드센스 준비에 필요한 글을 아래 카테고리 기준으로 정리합니다. 고객이 검색해서 들어와도 상담, 구축절차, 고객 포털 안내로 자연스럽게 이어지도록 구성합니다.</p>
-            <div class="wordfriends-guide-category-map">
-                <article class="wordfriends-guide-category-row">
-                    <div><small>CATEGORY 01</small><strong>애드센스 가이드</strong></div>
-                    <p>AdSense 신청 전 이해해야 할 기본 개념, 필수 페이지, 정책 리스크, 콘텐츠 품질 기준을 설명합니다.</p>
-                    <ul><li>구글 애드센스 기본 이해</li><li>AdSense 신청 전 체크리스트</li><li>애드센스 금지사항</li></ul>
+            <h3>구글 애드센스 수익금은 무엇인가?</h3>
+            <p>애드센스는 Google 광고 네트워크를 통해 사이트 지면에 광고가 노출되고, 정책에 맞는 광고 성과가 발생했을 때 게시자에게 수익이 배분되는 구조입니다.</p>
+            <div class="wordfriends-guide-grid">
+                <article class="wordfriends-guide-card">
+                    <small>ADSENSE</small>
+                    <strong>애드센스란?</strong>
+                    <p>사이트 운영자가 Google 광고 코드를 붙이고, 방문자에게 관련 광고가 노출되는 광고 플랫폼입니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>Google 광고 네트워크 기반</li>
+                        <li>사이트 콘텐츠와 광고 지면 연결</li>
+                        <li>정책 기준에 맞는 운영 필요</li>
+                    </ul>
                 </article>
-                <article class="wordfriends-guide-category-row">
-                    <div><small>CATEGORY 02</small><strong>도메인/호스팅/서버</strong></div>
-                    <p>도메인 구매, 운영 이력 후보, 네임서버, DNS, SSL, 호스팅 연결처럼 초기 세팅에서 막히는 지점을 다룹니다.</p>
-                    <ul><li>애드센스용 도메인 구매 전 체크</li><li>도메인 네임서버 연결 이해하기</li><li>SSL과 DNS 기본</li></ul>
+                <article class="wordfriends-guide-card">
+                    <small>REVENUE</small>
+                    <strong>왜 수익이 발생하나요?</strong>
+                    <p>광고주는 노출과 클릭 등 광고 성과에 비용을 지불하고, Google은 그 일부를 게시자에게 배분합니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>광고주 예산 기반</li>
+                        <li>광고 성과에 따른 정산 구조</li>
+                        <li>수익 규모는 보장되지 않음</li>
+                    </ul>
                 </article>
-                <article class="wordfriends-guide-category-row">
-                    <div><small>CATEGORY 03</small><strong>WordPress 구축</strong></div>
-                    <p>WordPress 기본 구조, 필수 페이지, 메뉴, 사이트맵, Search Console, ads.txt 확인 순서를 정리합니다.</p>
-                    <ul><li>애드센스 승인 필수 페이지 준비</li><li>사이트맵 제출</li><li>Search Console 연결</li></ul>
+                <article class="wordfriends-guide-card">
+                    <small>GOOGLE</small>
+                    <strong>Google은 왜 지급하나요?</strong>
+                    <p>좋은 콘텐츠와 방문자가 있는 사이트가 광고 지면을 제공하기 때문에 광고 생태계가 유지됩니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>광고주와 게시자 연결</li>
+                        <li>콘텐츠 지면 활용</li>
+                        <li>정책 위반 시 제한 가능</li>
+                    </ul>
                 </article>
-                <article class="wordfriends-guide-category-row">
-                    <div><small>CATEGORY 04</small><strong>수익형 사이트 운영</strong></div>
-                    <p>콘텐츠 주제 설계, 발행 큐, 사람 검토, 금지 소재, 운영 점검 루틴을 보장 문구 없이 안내합니다.</p>
-                    <ul><li>콘텐츠 운영 루틴</li><li>금지 소재 점검</li><li>발행 후 점검</li></ul>
+                <article class="wordfriends-guide-card">
+                    <small>LEGAL</small>
+                    <strong>합법인가요?</strong>
+                    <p>정책과 관련 법규를 지키며 운영하면 일반적인 온라인 광고 수익 모델로 활용할 수 있습니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>광고 정책 준수</li>
+                        <li>저작권과 개인정보 기준 확인</li>
+                        <li>세금과 정산은 별도 확인</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-guide-card">
+                    <small>SAFETY</small>
+                    <strong>안전한가요?</strong>
+                    <p>계정 소유권, 비밀번호 관리, 금지 클릭, 복사 콘텐츠를 피하는 기본 원칙이 중요합니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>본인 광고 클릭 금지</li>
+                        <li>고객 소유 계정 원칙</li>
+                        <li>저품질·복사글 주의</li>
+                    </ul>
+                </article>
+                <article class="wordfriends-guide-card">
+                    <small>MANAGEMENT</small>
+                    <strong>관리는 쉬운가요?</strong>
+                    <p>초기 세팅보다 꾸준한 콘텐츠 관리, 정책 점검, 사이트 상태 확인이 더 중요합니다.</p>
+                    <ul class="wordfriends-guide-list">
+                        <li>콘텐츠 발행 기준</li>
+                        <li>정책 리스크 점검</li>
+                        <li>사이트 운영 상태 확인</li>
+                    </ul>
                 </article>
             </div>
         </div>
 
         <div class="wordfriends-guide-section">
-            <h3>먼저 볼 주제</h3>
-            <p>고객이 준비해야 할 계정·도메인·콘텐츠·운영 기준을 쉬운 말로 정리합니다.</p>
-            <div class="wordfriends-guide-grid">
-                <article class="wordfriends-guide-card">
-                    <small>ADSENSE BASIC</small>
-                    <strong>AdSense 기본</strong>
-                    <p>승인 전에는 필수 페이지, 정책 위반 가능성, 콘텐츠 품질을 먼저 확인합니다.</p>
-                    <ul class="wordfriends-guide-list">
-                        <li>개인정보처리방침·약관·문의 페이지</li>
-                        <li>정책 위반 소재 점검</li>
-                        <li>콘텐츠 품질과 발행 계획</li>
-                    </ul>
+            <h3>구글 애드센스 카테고리 설계 순서</h3>
+            <p>애드센스 준비와 운영을 고객이 이해하기 쉬운 순서로 정리합니다. 각 단계는 상담, 구축절차, 고객 포털 안내와 자연스럽게 연결됩니다.</p>
+            <div class="wordfriends-guide-category-map">
+                <article class="wordfriends-guide-category-row">
+                    <div><small>STEP 01</small><strong>애드센스 가이드</strong></div>
+                    <p>AdSense 신청 전 이해해야 할 기본 개념, 정책 리스크, 콘텐츠 품질 기준을 먼저 설명합니다.</p>
+                    <ul><li>구글 애드센스 기본 이해</li><li>AdSense 신청 전 체크리스트</li><li>애드센스 금지사항</li></ul>
                 </article>
-                <article class="wordfriends-guide-card">
-                    <small>DOMAIN</small>
-                    <strong>도메인 준비</strong>
-                    <p>신규 도메인과 운영 이력 도메인의 차이, 네임서버, DNS, 검색 리스크를 쉽게 설명합니다.</p>
-                    <ul class="wordfriends-guide-list">
-                        <li>도메인 소유자 확인</li>
-                        <li>네임서버·DNS 연결</li>
-                        <li>운영 이력 후보 검수</li>
-                    </ul>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>STEP 02</small><strong>도메인/호스팅/서버 준비</strong></div>
+                    <p>도메인 구매, 운영 이력 후보, 네임서버, DNS, SSL, 호스팅 연결처럼 초기 세팅에서 막히는 지점을 다룹니다.</p>
+                    <ul><li>애드센스용 도메인 구매 전 체크</li><li>도메인 네임서버 연결 이해하기</li><li>SSL과 DNS 기본</li></ul>
                 </article>
-                <article class="wordfriends-guide-card">
-                    <small>WORDPRESS</small>
-                    <strong>WordPress 세팅</strong>
-                    <p>사이트 구조, 필수 페이지, 사이트맵, Search Console, ads.txt를 순서대로 봅니다.</p>
-                    <ul class="wordfriends-guide-list">
-                        <li>필수 페이지 구성</li>
-                        <li>사이트맵 제출</li>
-                        <li>Search Console·ads.txt 확인</li>
-                    </ul>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>STEP 03</small><strong>애드센스 WordPress 구축 및 세팅</strong></div>
+                    <p>WordPress 기본 구조, 필수 페이지, 메뉴, 사이트맵, Search Console, ads.txt 확인 순서를 정리합니다.</p>
+                    <ul><li>애드센스 승인 필수 페이지 준비</li><li>사이트맵 제출</li><li>Search Console 연결</li></ul>
                 </article>
-                <article class="wordfriends-guide-card">
-                    <small>CONTENT</small>
-                    <strong>운영/콘텐츠</strong>
-                    <p>AI 초안과 사람 검토를 나누고 발행 일정, 금지 소재, 품질 기준을 관리합니다.</p>
-                    <ul class="wordfriends-guide-list">
-                        <li>글감과 카테고리 설계</li>
-                        <li>사람 검토 기준</li>
-                        <li>발행 후 점검</li>
-                    </ul>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>STEP 04</small><strong>수익형 애드센스 운영</strong></div>
+                    <p>콘텐츠 주제 설계, 발행 큐, 사람 검토, 금지 소재, 운영 점검 루틴을 보장 문구 없이 안내합니다.</p>
+                    <ul><li>콘텐츠 운영 루틴</li><li>금지 소재 점검</li><li>발행 후 점검</li></ul>
                 </article>
-                <article class="wordfriends-guide-card">
-                    <small>PORTAL</small>
-                    <strong>정산/추천</strong>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>STEP 05</small><strong>운영·콘텐츠</strong></div>
+                    <p>AI 초안과 사람 검토를 나누고, 카테고리 설계와 발행 기준을 품질 중심으로 정리합니다.</p>
+                    <ul><li>글감과 카테고리 설계</li><li>사람 검토 기준</li><li>발행 품질 점검</li></ul>
+                </article>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>STEP 06</small><strong>정산·추천</strong></div>
                     <p>고객 포털에서 정산 참고 상태, 추천 보상, 알림을 확인하는 방법을 안내합니다.</p>
-                    <ul class="wordfriends-guide-list">
-                        <li>내 사이트 확인</li>
-                        <li>내 문의 답변 확인</li>
-                        <li>정산/추천 참고 상태</li>
-                    </ul>
+                    <ul><li>정산 참고 상태</li><li>추천 보상 확인</li><li>알림센터 확인</li></ul>
                 </article>
-                <article class="wordfriends-guide-card">
-                    <small>SECURITY</small>
-                    <strong>보안/계정</strong>
-                    <p>비밀번호, Google 계정, API 키를 안전하게 다루는 원칙을 정리합니다.</p>
-                    <ul class="wordfriends-guide-list">
-                        <li>비밀번호 공유 금지</li>
-                        <li>고객 소유 계정 원칙</li>
-                        <li>API 키·토큰 비공개</li>
-                    </ul>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>STEP 07</small><strong>보안·계정</strong></div>
+                    <p>비밀번호, Google 계정, API 키를 안전하게 다루고 고객 소유 원칙을 지키는 기준을 정리합니다.</p>
+                    <ul><li>비밀번호 공유 금지</li><li>고객 소유 계정 원칙</li><li>API 키·토큰 비공개</li></ul>
+                </article>
+                <article class="wordfriends-guide-category-row">
+                    <div><small>STEP 08</small><strong>워드프랜즈 관리</strong></div>
+                    <p>Wordfriends는 운영대행, 콘텐츠 운영, 기술지원, 진행 상태 정리를 맡고 고객 포털로 현황을 안내합니다.</p>
+                    <ul><li>사이트 운영 점검</li><li>문의와 계약 상태 안내</li><li>진행 현황 공유</li></ul>
                 </article>
             </div>
         </div>
@@ -3774,6 +3803,7 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
     <?php
     return ob_get_clean();
 }
+
 add_shortcode('wordfriends_guide', 'wordfriends_siteops_guide_shortcode');
 
 function wordfriends_siteops_start_guide_shortcode($atts = []) {
