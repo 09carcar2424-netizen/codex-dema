@@ -3356,8 +3356,8 @@ add_shortcode('wordfriends_home', 'wordfriends_siteops_home_shortcode');
 
 function wordfriends_siteops_services_shortcode($atts = []) {
     $atts = shortcode_atts([
-        'title' => '사이트 구축과 운영 준비를 한 흐름으로 정리합니다',
-        'subtitle' => '도메인, 호스팅, WordPress, 콘텐츠 운영, AdSense 준비 점검, 고객 포털 공유까지 고객이 헷갈리는 구간을 단계별로 나눠 안내합니다.',
+        'title' => '운영 진단부터 재설계와 관리 대행까지 정리합니다',
+        'subtitle' => '구글 SEO, GEO, 도메인 검수, 콘텐츠 품질, 발행 점검, 사이트 상태를 함께 보고 필요한 운영 구조를 다시 설계합니다.',
     ], $atts, 'wordfriends_services');
 
     ob_start();
@@ -3374,48 +3374,70 @@ function wordfriends_siteops_services_shortcode($atts = []) {
         </div>
 
         <div class="wordfriends-services-section">
-            <h3>고객 니즈별 서비스</h3>
-            <p>처음 시작하는 고객, 운영이 막힌 고객, AdSense 준비 고객, 계약과 정산을 확인해야 하는 고객을 구분해 필요한 작업만 안내합니다.</p>
+            <h3>Wordfriends가 해주는 서비스</h3>
+            <p>사이트가 왜 막히는지 먼저 진단하고, 고객 소유 계정 기준으로 검색·콘텐츠·기술·정책 상태를 정리한 뒤 재설계와 관리 대행 범위를 안내합니다.</p>
             <div class="wordfriends-services-grid">
                 <article class="wordfriends-service-card">
-                    <small>START</small>
-                    <strong>처음 시작하는 고객</strong>
-                    <p>도메인과 호스팅부터 WordPress 기본 세팅까지 시작 단계의 기술 장벽을 낮춥니다.</p>
+                    <small>SEO / GEO</small>
+                    <strong>검색 노출 구조 점검</strong>
+                    <p>구글 검색과 AI 검색 환경에서 사이트 구조, 주제 연결, 기본 노출 준비 상태를 점검합니다.</p>
                     <ul class="wordfriends-service-list">
-                        <li>도메인/호스팅 준비 확인</li>
-                        <li>WordPress 연결 및 기본 페이지 구성</li>
-                        <li>고객 포털 계정 연결</li>
+                        <li>구글 SEO 기본 구조 확인</li>
+                        <li>GEO 관점의 주제·문맥 정리</li>
+                        <li>검색 도구와 사이트맵 상태 점검</li>
                     </ul>
                 </article>
                 <article class="wordfriends-service-card">
-                    <small>OPERATE</small>
-                    <strong>운영이 막힌 고객</strong>
-                    <p>사이트맵, 콘텐츠 준비, SEO 기본 점검처럼 운영 중 멈추기 쉬운 항목을 정리합니다.</p>
+                    <small>DOMAIN</small>
+                    <strong>도메인 검수와 운영 이력 확인</strong>
+                    <p>신규 도메인과 운영 이력 후보를 구분하고, 고객이 판단할 수 있는 검토 항목을 정리합니다.</p>
                     <ul class="wordfriends-service-list">
-                        <li>사이트 상태와 운영 점검</li>
-                        <li>콘텐츠 큐와 발행 준비 상태 확인</li>
-                        <li>Search Console/사이트맵 참고 상태 안내</li>
+                        <li>소유권과 만료·갱신 상태 확인</li>
+                        <li>운영 이력과 정책 리스크 참고 검토</li>
+                        <li>네임서버·DNS 연결 준비 점검</li>
                     </ul>
                 </article>
                 <article class="wordfriends-service-card">
-                    <small>ADSENSE</small>
-                    <strong>AdSense 준비 고객</strong>
-                    <p>승인을 보장하지 않고, 정책과 콘텐츠 품질을 기준으로 준비 상태를 점검합니다.</p>
+                    <small>CONTENT</small>
+                    <strong>고품질 콘텐츠 개발과 발행 점검</strong>
+                    <p>글 주제, 발행 기준, 금지 소재, 품질 점검 기준을 정리해 콘텐츠 운영 부담을 낮춥니다.</p>
                     <ul class="wordfriends-service-list">
-                        <li>정책 위반 가능성 점검</li>
-                        <li>필수 페이지와 콘텐츠 품질 확인</li>
-                        <li>고객 소유 계정 원칙 안내</li>
+                        <li>콘텐츠 주제와 카테고리 설계</li>
+                        <li>발행글 품질·정책 리스크 점검</li>
+                        <li>복사글·저품질 글 발행 방지</li>
                     </ul>
                 </article>
                 <article class="wordfriends-service-card">
-                    <small>PORTAL</small>
-                    <strong>계약·정산 확인 고객</strong>
-                    <p>전자계약, 문의 답변, 정산 참고, 추천 보상 상태를 고객 포털에서 확인할 수 있게 연결합니다.</p>
+                    <small>SITE OPS</small>
+                    <strong>홈페이지 상태 진단과 관리 대행</strong>
+                    <p>WordPress, 필수 페이지, 사이트맵, 플러그인, 고객 포털 연결 상태를 전반적으로 확인합니다.</p>
                     <ul class="wordfriends-service-list">
-                        <li>전자계약 요청 및 상태 안내</li>
-                        <li>문의 답변과 알림센터 연동</li>
-                        <li>정산 참고와 1단계 추천 보상 확인</li>
+                        <li>홈페이지 전반 상태 점검</li>
+                        <li>운영 중단 지점과 개선 항목 정리</li>
+                        <li>재설계 후 관리 대행 범위 안내</li>
                     </ul>
+                </article>
+            </div>
+        </div>
+
+        <div class="wordfriends-services-section">
+            <h3>컨설팅 이후 재설계 흐름</h3>
+            <p>상담에서 끝내지 않고, 실제 운영에 필요한 항목을 점검표로 나눠 고객 포털과 진행 안내에 연결합니다.</p>
+            <div class="wordfriends-service-proofs">
+                <article class="wordfriends-service-proof">
+                    <small>DIAGNOSIS</small>
+                    <strong>진단</strong>
+                    <p>도메인, 사이트, 콘텐츠, 검색 도구, AdSense 준비 상태를 한 번에 확인합니다.</p>
+                </article>
+                <article class="wordfriends-service-proof">
+                    <small>REDESIGN</small>
+                    <strong>재설계</strong>
+                    <p>메뉴, 필수 페이지, 콘텐츠 카테고리, 발행 흐름을 운영 기준에 맞게 다시 정리합니다.</p>
+                </article>
+                <article class="wordfriends-service-proof">
+                    <small>MANAGEMENT</small>
+                    <strong>관리 대행</strong>
+                    <p>반복 점검, 발행 준비, 정책 리스크 확인, 고객 포털 공유를 지속 운영합니다.</p>
                 </article>
             </div>
         </div>
