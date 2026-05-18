@@ -3638,13 +3638,13 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
     $featured_posts = [
         [
             'label' => '처음 추천',
-            'title' => '애드센스 기본 이해',
+            'title' => '구글 애드센스 기본 이해',
             'summary' => '사이트를 시작하기 전에 계정 소유, 필수 페이지, 정책 리스크를 먼저 확인합니다.',
             'slug' => 'adsense-basic-guide',
         ],
         [
             'label' => '도메인 준비',
-            'title' => '도메인 구매 전 체크',
+            'title' => '애드센스용 도메인 구매 전 체크',
             'summary' => '도메인 소유권, 운영 목적, 네임서버 연결 준비를 구매 전에 점검합니다.',
             'slug' => 'domain-before-buy-checklist',
         ],
@@ -3656,10 +3656,10 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
         ],
     ];
     $guide_links = [
-        ['애드센스 기본 이해', 'adsense-basic-guide'],
-        ['도메인 구매 전 체크', 'domain-before-buy-checklist'],
-        ['네임서버 연결 이해하기', 'nameserver-dns-setup-guide'],
-        ['필수 페이지 준비', 'wordpress-required-pages'],
+        ['구글 애드센스 기본 이해', 'adsense-basic-guide'],
+        ['애드센스용 도메인 구매 전 체크', 'domain-before-buy-checklist'],
+        ['도메인 네임서버 연결 이해하기', 'nameserver-dns-setup-guide'],
+        ['애드센스 승인 필수 페이지 준비', 'wordpress-required-pages'],
         ['AdSense 신청 전 체크리스트', 'adsense-readiness-checklist'],
     ];
 
@@ -3745,17 +3745,17 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                 <article class="wordfriends-guide-category-row">
                     <div><small>CATEGORY 01</small><strong>애드센스 가이드</strong></div>
                     <p>AdSense 신청 전 이해해야 할 기본 개념, 필수 페이지, 정책 리스크, 콘텐츠 품질 기준을 설명합니다.</p>
-                    <ul><li>애드센스 기본 이해</li><li>승인 준비 체크리스트</li><li>정책 위반 소재 확인</li></ul>
+                    <ul><li>구글 애드센스 기본 이해</li><li>AdSense 신청 전 체크리스트</li><li>정책 위반 소재 확인</li></ul>
                 </article>
                 <article class="wordfriends-guide-category-row">
                     <div><small>CATEGORY 02</small><strong>도메인/호스팅/서버</strong></div>
                     <p>도메인 구매, 운영 이력 후보, 네임서버, DNS, SSL, 호스팅 연결처럼 초기 세팅에서 막히는 지점을 다룹니다.</p>
-                    <ul><li>도메인 구매 전 체크</li><li>네임서버 연결</li><li>SSL과 DNS 기본</li></ul>
+                    <ul><li>애드센스용 도메인 구매 전 체크</li><li>도메인 네임서버 연결 이해하기</li><li>SSL과 DNS 기본</li></ul>
                 </article>
                 <article class="wordfriends-guide-category-row">
                     <div><small>CATEGORY 03</small><strong>WordPress 구축</strong></div>
                     <p>WordPress 기본 구조, 필수 페이지, 메뉴, 사이트맵, Search Console, ads.txt 확인 순서를 정리합니다.</p>
-                    <ul><li>필수 페이지 준비</li><li>사이트맵 제출</li><li>Search Console 연결</li></ul>
+                    <ul><li>애드센스 승인 필수 페이지 준비</li><li>사이트맵 제출</li><li>Search Console 연결</li></ul>
                 </article>
                 <article class="wordfriends-guide-category-row">
                     <div><small>CATEGORY 04</small><strong>수익형 사이트 운영</strong></div>
@@ -3860,7 +3860,7 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
             <p>고객이 검색하거나 상담 전에 자주 묻는 질문을 글 제목으로 바꾸면, 교육 콘텐츠와 상담 흐름을 함께 만들 수 있습니다.</p>
             <div class="wordfriends-cases-map-grid">
                 <article><small>ADSENSE</small><strong>애드센스 잘하는 방법보다 먼저 볼 것</strong><span>승인 보장 대신 필수 페이지, 정책 리스크, 콘텐츠 품질 기준을 설명합니다.</span></article>
-                <article><small>DOMAIN</small><strong>도메인 구매 전 체크리스트</strong><span>소유권, 네임서버, 운영 이력 후보, 비용 확인 기준을 정리합니다.</span></article>
+                <article><small>DOMAIN</small><strong>애드센스용 도메인 구매 전 체크</strong><span>소유권, 네임서버, 운영 이력 후보, 비용 확인 기준을 정리합니다.</span></article>
                 <article><small>DNS</small><strong>네임서버와 DNS 연결 이해하기</strong><span>도메인을 샀는데 사이트가 안 열리는 상황을 쉽게 설명합니다.</span></article>
                 <article><small>WORDPRESS</small><strong>WordPress 필수 페이지 구성</strong><span>문의, 약관, 개인정보처리방침, 사이트 구조를 준비하는 이유를 안내합니다.</span></article>
                 <article><small>CONTENT</small><strong>콘텐츠 주제와 금지 소재 정리</strong><span>AI 초안과 사람 검토, 정책 위험 소재, 발행 큐를 구분합니다.</span></article>
