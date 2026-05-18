@@ -741,6 +741,89 @@ h2 {
   grid-template-columns: minmax(260px, 1.5fr) 160px 160px 120px 80px 100px;
 }
 
+.editorial-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.editorial-readiness-card {
+  display: grid;
+  gap: 8px;
+  min-height: 150px;
+  padding: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.editorial-readiness-card span {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: rgba(52, 211, 153, 0.14);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.editorial-readiness-card strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.editorial-readiness-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.editorial-topic-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(8, 29, 33, 0.78);
+}
+
+.editorial-topic-panel strong {
+  display: block;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.editorial-topic-panel p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.editorial-topic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editorial-topic-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 0 11px;
+  background: var(--panel-soft);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .customer-table .ops-row {
   grid-template-columns: minmax(220px, 1.3fr) 110px 90px 130px 110px;
 }
@@ -3286,6 +3369,8 @@ h2 {
   .api-config-panel,
   .content-grid,
   .delivery-grid,
+  .editorial-readiness-grid,
+  .editorial-topic-panel,
   .readiness-overview,
   .readiness-grid,
   .setup-grid,

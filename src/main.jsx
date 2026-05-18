@@ -2023,6 +2023,38 @@ function App() {
   const validationFailedContent = dashboard.contentQueue.filter((item) =>
     String(item.status || '').includes('FAILED'),
   );
+  const editorialReadinessSteps = [
+    {
+      label: '홈페이지 구조',
+      status: '진행 중',
+      body: '서비스, 구축절차, 사례, 문의, 고객 포털을 먼저 영업 흐름에 맞게 정리합니다.',
+    },
+    {
+      label: '고객 신뢰 장치',
+      status: '우선',
+      body: '보장 금지 문구, 고객 소유 원칙, 전자계약, 알림센터, 정산 안내를 안정적으로 연결합니다.',
+    },
+    {
+      label: '가이드/FAQ',
+      status: '준비',
+      body: '초보 고객이 이해하기 쉬운 질문형 글과 체크리스트를 먼저 쌓을 준비를 합니다.',
+    },
+    {
+      label: '정기 글 발행',
+      status: '이후',
+      body: '홈페이지와 관리자 운영 구조가 안정화된 뒤 교육형 글을 꾸준히 발행합니다.',
+    },
+  ];
+  const editorialTopicBacklog = [
+    '애드센스 기본 이해',
+    '도메인 구매 전 체크',
+    '네임서버 연결',
+    '필수 페이지 준비',
+    '승인 준비 체크리스트',
+    '콘텐츠 운영 루틴',
+    'Search Console 기초',
+    '고객 포털 사용 안내',
+  ];
   const adsenseReadySites = dashboard.sites.filter((site) =>
     ['approved', 'ready'].includes(String(site.adsense || '').toLowerCase()),
   );
@@ -3943,6 +3975,26 @@ function App() {
                 <Play size={16} />
                 선택 항목 실행
               </button>
+            </div>
+            <div className="editorial-readiness-grid">
+              {editorialReadinessSteps.map((step) => (
+                <article className="editorial-readiness-card" key={step.label}>
+                  <span>{step.status}</span>
+                  <strong>{step.label}</strong>
+                  <p>{step.body}</p>
+                </article>
+              ))}
+            </div>
+            <div className="editorial-topic-panel">
+              <div>
+                <strong>초기 발행 후보 주제</strong>
+                <p>지금은 담을 그릇을 먼저 완성하고, 이후 애드센스/도메인/WordPress 교육형 글을 순차 발행합니다.</p>
+              </div>
+              <div className="editorial-topic-list">
+                {editorialTopicBacklog.map((topic) => (
+                  <span key={topic}>{topic}</span>
+                ))}
+              </div>
             </div>
             <div className="ops-table queue-table" role="table">
               <div className="ops-row ops-head" role="row">
