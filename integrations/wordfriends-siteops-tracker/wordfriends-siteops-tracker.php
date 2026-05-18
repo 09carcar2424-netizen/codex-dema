@@ -3637,11 +3637,10 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                 <article class="wordfriends-guide-card">
                     <small>REVENUE</small>
                     <strong>왜 수익이 발생하나요?</strong>
-                    <p>광고주는 노출과 클릭 등 광고 성과에 비용을 지불하고, Google은 그 일부를 게시자에게 배분합니다.</p>
+                    <p>구글 광고주는 노출과 클릭 등 광고 성과에 비용을 지불하고, Google은 그 일부를 애드센스 운영자에게 광고비로 배분합니다.</p>
                     <ul class="wordfriends-guide-list">
-                        <li>광고주 예산 기반</li>
-                        <li>광고 성과에 따른 정산 구조</li>
-                        <li>수익 규모는 보장되지 않음</li>
+                        <li>구글 광고 예산 기반</li>
+                        <li>구글 광고 성과에 따른 정산 구조</li>
                     </ul>
                 </article>
                 <article class="wordfriends-guide-card">
@@ -3667,7 +3666,7 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                 <article class="wordfriends-guide-card">
                     <small>SAFETY</small>
                     <strong>안전한가요?</strong>
-                    <p>계정 소유권, 비밀번호 관리, 금지 클릭, 복사 콘텐츠를 피하는 기본 원칙이 중요합니다.</p>
+                    <p>계정 소유권, 비밀번호 관리, 금지 클릭, 복사 콘텐츠를 피하는 기본 안전 원칙이 중요합니다.</p>
                     <ul class="wordfriends-guide-list">
                         <li>본인 광고 클릭 금지</li>
                         <li>고객 소유 계정 원칙</li>
@@ -3677,11 +3676,11 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                 <article class="wordfriends-guide-card">
                     <small>MANAGEMENT</small>
                     <strong>관리는 쉬운가요?</strong>
-                    <p>초기 세팅보다 꾸준한 콘텐츠 관리, 정책 점검, 사이트 상태 확인이 더 중요합니다.</p>
+                    <p>지속적인 관리, 고품질 콘텐츠 발행, 정책 점검, 사이트 운영 상태 확인이 중요합니다.</p>
                     <ul class="wordfriends-guide-list">
                         <li>콘텐츠 발행 기준</li>
                         <li>정책 리스크 점검</li>
-                        <li>사이트 운영 상태 확인</li>
+                        <li>사이트 운영 상태 지속 관리</li>
                     </ul>
                 </article>
             </div>
