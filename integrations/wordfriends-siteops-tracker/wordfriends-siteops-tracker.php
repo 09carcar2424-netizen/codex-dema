@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.4.8
+ * Version: 0.5.3
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.4.8';
+const WORDFRIENDS_SITEOPS_VERSION = '0.5.3';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -545,6 +545,22 @@ JS);
     }
   }
 
+  function removeStandaloneSlugLabels() {
+    var hiddenLabels = [
+      'contract-guide',
+      'notifications'
+    ];
+
+    Array.prototype.forEach.call(document.querySelectorAll('main p, main .entry-content > div, main .wp-block-post-content > div'), function (node) {
+      var label = (node.textContent || '').trim().toLowerCase();
+      if (hiddenLabels.indexOf(label) === -1) return;
+      if (node.querySelector('a, button, input, textarea, select, img, iframe')) return;
+
+      node.style.display = 'none';
+      node.setAttribute('data-wordfriends-hidden-slug-label', '1');
+    });
+  }
+
   function normalizePath(url) {
     try {
       return new URL(url, window.location.origin).pathname.replace(/\/+$/, '') || '/';
@@ -557,6 +573,7 @@ JS);
     document.addEventListener('DOMContentLoaded', function () {
       markWordfriendsDocumentPage();
       markWordfriendsArticlePage();
+      removeStandaloneSlugLabels();
       ensureWordfriendsHeaderBrand();
       ensurePortalLinks();
       hideOperationalHeaderLinks();
@@ -565,6 +582,7 @@ JS);
   } else {
     markWordfriendsDocumentPage();
     markWordfriendsArticlePage();
+    removeStandaloneSlugLabels();
     ensureWordfriendsHeaderBrand();
     ensurePortalLinks();
     hideOperationalHeaderLinks();
@@ -2320,6 +2338,13 @@ function wordfriends_siteops_portal_styles() {
       }
       body.wordfriends-article-page main {
         padding: 0 20px 76px;
+      }
+      body.wordfriends-article-page main .alignfull {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        margin-right: auto !important;
+        margin-left: auto !important;
       }
       body.wordfriends-article-page .wp-block-post-title,
       body.wordfriends-article-page .entry-title,
@@ -4812,6 +4837,7 @@ function wordfriends_siteops_signup_shortcode($atts = []) {
     return ob_get_clean();
 }
 add_shortcode('wordfriends_signup', 'wordfriends_siteops_signup_shortcode');
+add_shortcode('wordfriends_register', 'wordfriends_siteops_signup_shortcode');
 
 function wordfriends_siteops_login_shortcode($atts = []) {
     $atts = shortcode_atts([
@@ -5161,6 +5187,7 @@ function wordfriends_siteops_contract_request_shortcode($atts = []) {
     return ob_get_clean();
 }
 add_shortcode('wordfriends_contract_request', 'wordfriends_siteops_contract_request_shortcode');
+add_shortcode('wordfriends_contract', 'wordfriends_siteops_contract_request_shortcode');
 
 function wordfriends_siteops_question_category_label($category) {
     $labels = [
@@ -5345,6 +5372,7 @@ function wordfriends_siteops_dashboard_shortcode($atts = []) {
     return ob_get_clean();
 }
 add_shortcode('wordfriends_dashboard', 'wordfriends_siteops_dashboard_shortcode');
+add_shortcode('wordfriends_portal', 'wordfriends_siteops_dashboard_shortcode');
 
 function wordfriends_siteops_my_questions_shortcode($atts = []) {
     $atts = shortcode_atts([
@@ -5412,8 +5440,7 @@ function wordfriends_siteops_my_questions_shortcode($atts = []) {
 
     if ($question_status !== 'all') {
         $questions = array_values(array_filter($questions, function ($question) use ($question_status) {
-            return ($question['status'] ?? '') === $question_status
-                || ($question['responseStatus'] ?? '') === $question_status;
+            return ($question['status'] ?? '') === $question_status;
         }));
     }
 
@@ -5550,7 +5577,6 @@ function wordfriends_siteops_my_sites_shortcode($atts = []) {
             $haystack = implode(' ', [
                 $site['domain'] ?? '',
                 $site['siteName'] ?? '',
-                $site['siteKey'] ?? '',
                 $site['statusLabel'] ?? '',
                 $site['healthSummary'] ?? '',
                 $site['contentStatus'] ?? '',
@@ -5823,7 +5849,7 @@ function wordfriends_siteops_settlement_referrals_shortcode($atts = []) {
               <?php foreach ($settlements as $settlement) : ?>
                 <tr>
                   <td><?php echo esc_html($settlement['month'] ?? ''); ?></td>
-                  <td><?php echo esc_html($settlement['domain'] ?? ''); ?></td>
+                  <td><?php echo esc_html($settlement['domain'] ?? '계약 기준'); ?></td>
                   <td><?php echo esc_html($settlement['agencyFee'] ?? '0원'); ?></td>
                   <td><?php echo esc_html($settlement['statusLabel'] ?? '정산 준비 중'); ?></td>
                 </tr>
@@ -5979,6 +6005,7 @@ function wordfriends_siteops_timeline_shortcode($atts = []) {
     return ob_get_clean();
 }
 add_shortcode('wordfriends_timeline', 'wordfriends_siteops_timeline_shortcode');
+add_shortcode('wordfriends_notifications', 'wordfriends_siteops_timeline_shortcode');
 
 function wordfriends_siteops_customer_home_url() {
     return wordfriends_siteops_my_sites_page_url();

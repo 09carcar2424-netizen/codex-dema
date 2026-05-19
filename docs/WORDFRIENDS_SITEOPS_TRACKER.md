@@ -181,10 +181,18 @@ Customer portal menu after login:
 내 사이트 / 내 문의 / 전자계약 / 정산/추천 / 알림센터
 ```
 
+Customer portal page:
+
+```text
+[wordfriends_dashboard]
+[wordfriends_portal]
+```
+
 Signup page:
 
 ```text
 [wordfriends_signup]
+[wordfriends_register]
 ```
 
 Login page:
@@ -239,6 +247,7 @@ Timeline page:
 
 ```text
 [wordfriends_timeline]
+[wordfriends_notifications]
 ```
 
 Recommended page:
@@ -259,6 +268,7 @@ Contract request form:
 
 ```text
 [wordfriends_contract_request]
+[wordfriends_contract]
 ```
 
 Recommended placement:

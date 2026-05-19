@@ -472,6 +472,24 @@ function getContractStatusLabel(status) {
 }
 
 function mapContractRequest(row, { publicOnly = false } = {}) {
+  if (publicOnly) {
+    return {
+      id: row.id,
+      customerCode: row.customer_code || row.requester_customer_code || 'NO_CUSTOMER',
+      desiredDomainCount: Number(row.desired_domain_count || 1),
+      status: row.status,
+      statusLabel: getContractStatusLabel(row.status),
+      publicMessage: row.public_message,
+      contractDocumentUrl: row.contract_document_url,
+      requestedAt: row.requested_at,
+      updatedAt: row.updated_at,
+      sentAt: row.sent_at,
+      signedAt: row.signed_at,
+      setupReadyAt: row.setup_ready_at,
+      closedAt: row.closed_at,
+    };
+  }
+
   const request = {
     id: row.id,
     customerCode: row.customer_code || row.requester_customer_code || 'NO_CUSTOMER',
@@ -494,9 +512,7 @@ function mapContractRequest(row, { publicOnly = false } = {}) {
     closedAt: row.closed_at,
   };
 
-  if (!publicOnly) {
-    request.internalNote = row.internal_note;
-  }
+  request.internalNote = row.internal_note;
 
   return request;
 }
@@ -1250,7 +1266,6 @@ function mapPublicQuestion(row) {
     statusLabel,
     question: row.question,
     answerSummary: row.response_message ? '답변이 등록되었습니다.' : '담당자 검토 대기',
-    responseStatus: row.response_status,
     responseMessage: row.response_message,
     respondedAt: row.responded_at,
     createdAt: row.created_at,
@@ -1288,29 +1303,6 @@ async function listWordfriendsQuestions(req, res, url) {
     `,
     [customerCode, email],
   );
-
-  if (!result.rows.length) {
-    const fallbackResult = await queryOptionalParams(
-      `
-        select pqt.id::text, pqt.category, pqt.status, pqt.question,
-          pqt.response_status, pqt.response_message, pqt.responded_at,
-          pqt.created_at, pqt.updated_at
-        from portal_question_threads pqt
-        left join customers c on c.id = pqt.customer_id
-        where
-          ($1 <> '' and (c.customer_code = $1 or lower(pqt.question) like '%' || lower($1) || '%'))
-          or ($2 <> '' and lower(pqt.question) like '%' || $2 || '%')
-        order by pqt.created_at desc
-        limit 50
-      `,
-      [customerCode, email],
-    );
-
-    return sendJson(req, res, 200, {
-      ok: true,
-      questions: fallbackResult.rows.map(mapPublicQuestion),
-    });
-  }
 
   return sendJson(req, res, 200, {
     ok: true,
@@ -1406,7 +1398,7 @@ function formatKrw(value) {
 function mapPublicSettlement(row) {
   return {
     month: row.settlement_month,
-    domain: row.domain,
+    domain: row.domain || '계약 기준',
     grossRevenue: formatKrw(row.gross_revenue),
     agencyFee: formatKrw(row.agency_fee_amount),
     status: row.status,
@@ -1470,7 +1462,6 @@ function mapPublicSite(row) {
     || row.updated_at;
 
   return {
-    siteKey: row.site_key,
     domain: row.domain,
     siteName: row.site_name || row.domain,
     websiteUrl,
@@ -1482,8 +1473,6 @@ function mapPublicSite(row) {
     wpStatus: row.wp_status || 'pending',
     wpStatusLabel: getPublicWpStatusLabel(row.wp_status),
     riskLabel: getPublicRiskLabel(row.risk_level),
-    approvalStatus: row.approval_status || 'not_submitted',
-    monetizeMode: row.monetize_mode || 'not_set',
     contentStatus: getPublicContentStatusLabel(row),
     progressPercent,
     content: {

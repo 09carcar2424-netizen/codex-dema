@@ -1,93 +1,163 @@
 # Ubuntu Deployment
 
-이 프로젝트는 Node.js API 서버가 Vite 빌드 결과물(`dist`)까지 함께 서빙합니다.
+This document records the production deployment flow for BOSS SiteOps on the Ubuntu server.
 
-## 1. 패키지 설치
+## Server Paths
 
-Ubuntu 22.04 이상에서 Node.js 20 이상과 PostgreSQL을 준비합니다.
+```text
+Project: /home/boss/codex-dema
+Public admin: https://siteops.09car.co.kr
+Wordfriends site: https://wordfriends.co.kr
+```
+
+Do not print, commit, or paste `.env`, `wp-config.php`, SMTP keys, database passwords, WordPress admin passwords, Cloudflare tokens, or tunnel credentials.
+
+## Install Runtime
+
+Ubuntu 22.04 or newer is recommended.
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git curl postgresql postgresql-contrib
-```
-
-Node.js 20이 없다면 NodeSource 또는 nvm으로 설치한 뒤 확인합니다.
-
-```bash
 node --version
 npm --version
 ```
 
-## 2. 프로젝트 준비
+Use Node.js 20 or newer.
+
+## Prepare Project
 
 ```bash
+cd /home/boss
 git clone https://github.com/09carcar2424-netizen/codex-dema.git
-cd codex-dema
+cd /home/boss/codex-dema
 npm ci
 ```
 
-## 3. PostgreSQL 초기화
-
-강한 비밀번호를 지정해 DB와 스키마를 생성합니다.
+If the repository already exists, deploy with:
 
 ```bash
-APP_DB_PASSWORD='replace-with-strong-password' bash scripts/ubuntu-postgres-setup.sh
+cd /home/boss/codex-dema
+git pull
+npm ci
 ```
 
-## 4. 환경변수 설정
+## Environment
+
+Create `/home/boss/codex-dema/.env` and restrict permissions.
 
 ```bash
-cp .env.example .env
-nano .env
+cd /home/boss/codex-dema
 chmod 600 .env
 ```
 
-서버 외부에서 접속할 때는 다음 값을 사용합니다.
+Expected production values:
 
 ```text
 DATABASE_URL=postgresql://wpauto:<DB_PASSWORD>@127.0.0.1:5432/wp_automation
 API_HOST=0.0.0.0
 API_PORT=8787
-CORS_ALLOW_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+CORS_ALLOW_ORIGINS=https://siteops.09car.co.kr,https://wordfriends.co.kr,http://127.0.0.1:5173,http://localhost:5173
 VITE_API_BASE_URL=
+SITEOPS_ADMIN_USER=boss
+SITEOPS_ADMIN_PASSWORD=<STRONG_ADMIN_PASSWORD>
+SITEOPS_EVENT_TOKEN=<LONG_RANDOM_SECRET>
 ```
 
-`VITE_API_BASE_URL`을 비워두면 프로덕션 빌드에서 같은 도메인의 `/api`를 호출합니다.
-실제 DB 비밀번호와 전체 연결 문자열은 `.env`에만 저장하고 커밋하지 않습니다.
+`VITE_API_BASE_URL` should stay empty for the production build so the frontend calls same-origin `/api`.
 
-## 5. 빌드와 실행
+## PostgreSQL
+
+For the Docker-based production database:
 
 ```bash
-npm run build
-npm start
+docker ps
+docker volume inspect codex-dema_postgres_data
 ```
 
-정상 실행 후 확인합니다.
+Known production values:
+
+```text
+Container: wp-automation-postgres
+Database: wp_automation
+User: wpauto
+Volume: codex-dema_postgres_data
+Volume path: /var/lib/docker/volumes/codex-dema_postgres_data/_data
+```
+
+Apply schema changes only after reviewing them:
+
+```bash
+cd /home/boss/codex-dema
+cat database/schema.sql | docker exec -i wp-automation-postgres psql -U wpauto -d wp_automation
+```
+
+## Build And Run
+
+Run this step when frontend, API, server, or database access code changed. Plugin-only changes do not require an API restart unless the plugin depends on a changed SiteOps endpoint.
+
+```bash
+cd /home/boss/codex-dema
+npm run build
+sudo systemctl restart boss-siteops-api
+```
+
+Health check:
 
 ```bash
 curl http://127.0.0.1:8787/api/health
+curl https://siteops.09car.co.kr/api/health
 ```
 
-브라우저에서는 `http://SERVER_IP:8787`로 접속합니다.
+Expected:
 
-PC의 `http://127.0.0.1:5173` 화면에서 Ubuntu API를 보려면 `docs/PC_TO_UBUNTU_API.md`를 기준으로 SSH tunnel 또는 Cloudflare Tunnel을 우선 사용합니다.
+```json
+{"ok":true,"database":"connected"}
+```
 
-## 6. systemd 서비스 등록
+## Wordfriends Plugin Deployment
 
-운영 경로를 `/opt/codex-dema`로 사용할 경우:
+The core plugin file is:
+
+```text
+integrations/wordfriends-siteops-tracker/wordfriends-siteops-tracker.php
+```
+
+Before upload, run on the server:
 
 ```bash
-sudo mkdir -p /opt
-sudo cp -a . /opt/codex-dema
-sudo chown -R www-data:www-data /opt/codex-dema
-sudo cp /opt/codex-dema/deploy/codex-dema.service.example /etc/systemd/system/codex-dema.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now codex-dema
-sudo systemctl status codex-dema
+cd /home/boss/codex-dema
+php -l /home/boss/codex-dema/integrations/wordfriends-siteops-tracker/wordfriends-siteops-tracker.php
 ```
 
-로그 확인:
+Upload with FileZilla:
+
+```text
+Local:  integrations/wordfriends-siteops-tracker/wordfriends-siteops-tracker.php
+Remote: /wp-content/plugins/wordfriends-siteops-tracker/wordfriends-siteops-tracker.php
+```
+
+After upload, run the same `php -l` check again on the server copy if shell access to the WordPress path is available.
+
+Also confirm in WordPress Admin > Plugins that **Wordfriends SiteOps Tracker** shows the expected version.
+
+If both the plugin and SiteOps API changed:
 
 ```bash
-journalctl -u codex-dema -f
+cd /home/boss/codex-dema
+git pull
+npm run build
+sudo systemctl restart boss-siteops-api
 ```
+
+Then upload the plugin file with FileZilla and run the Wordfriends smoke test in `docs/WORDFRIENDS_OPERATIONS_RUNBOOK.md`.
+
+## Cloudflare Tunnel
+
+Keep public port `8787` closed. SiteOps should be exposed through Cloudflare Tunnel:
+
+```text
+https://siteops.09car.co.kr -> http://172.17.0.1:8787
+```
+
+See `docs/SITEOPS_09CAR_TUNNEL.md` for tunnel-specific checks.
