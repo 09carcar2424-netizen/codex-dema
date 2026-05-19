@@ -61,12 +61,22 @@
   },
   {
     "order": 7,
-    "status": "published",
+    "status": "draft",
     "title": "사이트맵 제출 이해하기: 검색엔진에 사이트 구조를 알려주는 방법",
     "slug": "sitemap-submission-basic",
     "category": "수익형 사이트 운영",
     "sourceFile": "sitemap-submission-basic.html",
     "excerpt": "사이트맵의 역할, WordPress 사이트맵 주소, Search Console 제출 이유, 색인과 검색 노출의 차이, 오류 점검 기준을 쉽게 정리합니다.",
     "cta": ["가이드/FAQ", "구축절차", "문의"]
+  },
+  {
+    "order": 8,
+    "status": "draft",
+    "title": "ads.txt는 언제 확인하나요? 광고 상태 점검 전 알아둘 것",
+    "slug": "ads-txt-basic",
+    "category": "애드센스 가이드",
+    "sourceFile": "ads-txt-basic.html",
+    "excerpt": "ads.txt의 역할, 확인 시점, WordPress에서 점검할 항목, AdSense 계정 값 확인, 반영 지연과 보장 아님을 쉽게 정리합니다.",
+    "cta": ["가이드/FAQ", "문의", "구축절차"]
   }
 ]

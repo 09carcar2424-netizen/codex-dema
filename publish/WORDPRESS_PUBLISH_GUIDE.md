@@ -56,6 +56,10 @@ WordPress 관리자에서 먼저 아래 카테고리를 만듭니다.
    - 카테고리: 수익형 사이트 운영
    - 슬러그: `sitemap-submission-basic`
 
+8. `ads-txt-basic.html`
+   - 카테고리: 애드센스 가이드
+   - 슬러그: `ads-txt-basic`
+
 ## 발행 전 검수
 
 - 승인 보장, 수익 보장, 트래픽 보장, 검색순위 보장 표현이 없는가?
