@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.5.9
+ * Version: 0.6.0
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.5.9';
+const WORDFRIENDS_SITEOPS_VERSION = '0.6.0';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -119,6 +119,7 @@ function wordfriends_siteops_guide_article_slugs() {
         'search-console-basic',
         'sitemap-submission-basic',
         'ads-txt-basic',
+        'customer-portal-guide',
     ];
 }
 
@@ -136,6 +137,8 @@ function wordfriends_siteops_guide_article_titles() {
         '사이트맵 제출 이해하기',
         'ads.txt는 언제 확인하나요? 광고 상태 점검 전 알아둘 것',
         'ads.txt는 언제 확인하나요?',
+        '고객 포털 사용 안내: 내 사이트와 문의 상태 확인하기',
+        '고객 포털 사용 안내',
         '애드센스 기본 이해',
         '도메인 구매 전 체크',
         '네임서버 연결 이해하기',
@@ -4217,6 +4220,7 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
         ['Search Console', '기초', 'search-console-basic', true],
         ['사이트맵 제출', '이해하기', 'sitemap-submission-basic', false],
         ['ads.txt', '확인 시점', 'ads-txt-basic', false],
+        ['고객 포털', '사용 안내', 'customer-portal-guide', false],
     ];
 
     ob_start();

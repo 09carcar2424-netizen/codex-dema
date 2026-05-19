@@ -78,5 +78,15 @@
     "sourceFile": "ads-txt-basic.html",
     "excerpt": "ads.txt의 역할, 확인 시점, WordPress에서 점검할 항목, AdSense 계정 값 확인, 반영 지연과 보장 아님을 쉽게 정리합니다.",
     "cta": ["가이드/FAQ", "문의", "구축절차"]
+  },
+  {
+    "order": 9,
+    "status": "draft",
+    "title": "고객 포털 사용 안내: 내 사이트와 문의 상태 확인하기",
+    "slug": "customer-portal-guide",
+    "category": "FAQ/공지",
+    "sourceFile": "customer-portal-guide.html",
+    "excerpt": "고객 포털에서 내 사이트, 내 문의, 전자계약, 정산/추천, 알림센터를 확인하는 흐름과 비밀번호 공유 금지 원칙을 쉽게 정리합니다.",
+    "cta": ["고객 포털", "문의", "가이드/FAQ"]
   }
 ]
