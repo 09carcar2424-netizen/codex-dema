@@ -2534,37 +2534,59 @@ function wordfriends_siteops_portal_styles() {
       body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open {
         background: #061316 !important;
         color: #d8f2ee !important;
+        overflow-x: hidden !important;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content,
       body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content {
         align-items: center !important;
-        padding: 72px 28px 32px !important;
+        justify-content: flex-start !important;
+        padding: 72px 24px 32px !important;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
       body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
-        width: min(100%, 360px);
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: min(100%, 440px);
         align-items: stretch !important;
         gap: 10px !important;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item,
       body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item {
+        min-width: 0;
         width: 100%;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open a,
       body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open a {
         display: flex;
+        align-items: center;
         justify-content: center;
         width: 100%;
         min-height: 42px;
+        padding: 9px 10px;
         border: 1px solid #24474d;
         border-radius: 8px;
         background: #071a1f;
         color: #d8fff6 !important;
+        line-height: 1.25;
         text-align: center;
+        text-decoration: none !important;
+        overflow-wrap: anywhere;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container-close,
       body.wordfriends-document-page .wp-block-navigation__responsive-container-close {
+        top: 22px;
+        right: 22px;
+        border: 1px solid #24474d;
+        border-radius: 999px;
+        padding: 8px;
+        background: #071a1f;
         color: #d8fff6 !important;
+      }
+      @media (max-width: 360px) {
+        body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
+        body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
+          grid-template-columns: 1fr;
+        }
       }
       .wordfriends-home {
         max-width: 860px;
