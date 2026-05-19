@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.5.7
+ * Version: 0.5.8
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.5.7';
+const WORDFRIENDS_SITEOPS_VERSION = '0.5.8';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -1369,7 +1369,8 @@ function wordfriends_siteops_portal_styles() {
         gap: 12px;
         margin-top: 16px;
       }
-      .wordfriends-guide-quicklinks a {
+      .wordfriends-guide-quicklinks a,
+      .wordfriends-guide-quicklinks .wordfriends-guide-quicklink-pending {
         display: inline-flex;
         flex-direction: column;
         align-items: center;
@@ -1392,7 +1393,20 @@ function wordfriends_siteops_portal_styles() {
         box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
         transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
       }
-      .wordfriends-guide-quicklinks a span {
+      .wordfriends-guide-quicklinks .wordfriends-guide-quicklink-pending {
+        border-color: rgba(106, 173, 178, 0.38);
+        background: rgba(5, 30, 33, 0.76);
+        color: #dffcf7;
+        box-shadow: none;
+      }
+      .wordfriends-guide-quicklinks .wordfriends-guide-quicklink-status {
+        margin-top: 2px;
+        color: #8bded7;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .wordfriends-guide-quicklinks a span,
+      .wordfriends-guide-quicklinks .wordfriends-guide-quicklink-pending span {
         display: block;
         min-width: 0;
       }
@@ -4170,6 +4184,23 @@ function wordfriends_siteops_post_url($slug) {
     return $cache[$slug];
 }
 
+function wordfriends_siteops_published_post_url($slug) {
+    static $cache = [];
+
+    if (isset($cache[$slug])) {
+        return $cache[$slug];
+    }
+
+    $post = get_page_by_path($slug, OBJECT, 'post');
+    if ($post && $post->post_status === 'publish') {
+        $cache[$slug] = get_permalink($post);
+        return $cache[$slug];
+    }
+
+    $cache[$slug] = '';
+    return '';
+}
+
 function wordfriends_siteops_guide_shortcode($atts = []) {
     $atts = shortcode_atts([
         'title' => '처음 준비하는 고객을 위한 가이드',
@@ -4183,6 +4214,9 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
         ['애드센스 승인', '필수 페이지 준비', 'wordpress-required-pages'],
         ['AdSense 신청 전', '체크리스트', 'adsense-readiness-checklist'],
         ['애드센스', '금지사항', 'adsense-policy-violations'],
+        ['Search Console', '기초', 'search-console-basic'],
+        ['사이트맵 제출', '이해하기', 'sitemap-submission-basic'],
+        ['ads.txt', '확인 시점', 'ads-txt-basic'],
     ];
 
     ob_start();
@@ -4205,9 +4239,14 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                     <p>모바일에서도 바로 찾을 수 있도록 상담 전에 확인하면 좋은 글을 2열 버튼으로 정리했습니다.</p>
                 </div>
             </div>
-            <div class="wordfriends-guide-quicklinks" aria-label="Wordfriends published guide links">
+            <div class="wordfriends-guide-quicklinks" aria-label="Wordfriends guide links">
                 <?php foreach ($guide_links as $guide_link): ?>
-                    <a href="<?php echo esc_url(wordfriends_siteops_post_url($guide_link[2])); ?>"><span><?php echo esc_html($guide_link[0]); ?></span><span><?php echo esc_html($guide_link[1]); ?></span></a>
+                    <?php $guide_url = wordfriends_siteops_published_post_url($guide_link[2]); ?>
+                    <?php if ($guide_url): ?>
+                        <a href="<?php echo esc_url($guide_url); ?>"><span><?php echo esc_html($guide_link[0]); ?></span><span><?php echo esc_html($guide_link[1]); ?></span></a>
+                    <?php else: ?>
+                        <span class="wordfriends-guide-quicklink-pending" aria-disabled="true"><span><?php echo esc_html($guide_link[0]); ?></span><span><?php echo esc_html($guide_link[1]); ?></span><span class="wordfriends-guide-quicklink-status">준비 중</span></span>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
         </div>
@@ -4295,7 +4334,7 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
                 <article class="wordfriends-guide-category-row">
                     <div><small>STEP 03</small><strong>애드센스 WordPress 구축 및 세팅</strong></div>
                     <p>WordPress 기본 구조, 필수 페이지, 메뉴, 사이트맵, Search Console, ads.txt 확인 순서를 정리합니다.</p>
-                    <ul><li>애드센스 승인 필수 페이지 준비</li><li>사이트맵 제출</li><li>Search Console 연결</li></ul>
+                    <ul><li>애드센스 승인 필수 페이지 준비</li><li>Search Console 기초</li><li>사이트맵 제출 이해하기</li><li>ads.txt 확인 시점</li></ul>
                 </article>
                 <article class="wordfriends-guide-category-row">
                     <div><small>STEP 04</small><strong>수익형 애드센스 운영</strong></div>
