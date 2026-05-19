@@ -679,6 +679,7 @@ function wordfriends_siteops_portal_styles() {
         text-align: center;
         text-decoration: none !important;
         overflow-wrap: anywhere;
+        transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
       }
       .wordfriends-button.wordfriends-button-secondary {
         min-width: 160px;
@@ -1046,6 +1047,14 @@ function wordfriends_siteops_portal_styles() {
         border-radius: 8px;
         padding: 16px;
         background: rgba(5, 30, 33, 0.68);
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+      .wordfriends-service-card:hover,
+      .wordfriends-service-card:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        background: rgba(8, 42, 42, 0.86);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
       }
       .wordfriends-service-card small,
       .wordfriends-service-video small,
@@ -1105,6 +1114,13 @@ function wordfriends_siteops_portal_styles() {
         border-radius: 8px;
         padding: 14px;
         background: rgba(5, 30, 33, 0.78);
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .wordfriends-service-step:hover,
+      .wordfriends-service-step:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
       }
       .wordfriends-service-step:not(:last-child)::after {
         content: "";
@@ -1159,12 +1175,14 @@ function wordfriends_siteops_portal_styles() {
         border-radius: 8px;
         padding: 14px;
         background: rgba(5, 30, 33, 0.72);
-      }
-      .wordfriends-service-scope article {
         transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
       }
       .wordfriends-service-scope article:hover,
-      .wordfriends-service-scope article:focus-within {
+      .wordfriends-service-scope article:focus-within,
+      .wordfriends-service-video:hover,
+      .wordfriends-service-video:focus-within,
+      .wordfriends-service-proof:hover,
+      .wordfriends-service-proof:focus-within {
         transform: translateY(-2px);
         border-color: #35c6a5;
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
@@ -1457,6 +1475,14 @@ function wordfriends_siteops_portal_styles() {
         border-radius: 8px;
         padding: 14px;
         background: rgba(5, 30, 33, 0.72);
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+      .wordfriends-guide-category-row:hover,
+      .wordfriends-guide-category-row:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        background: rgba(8, 42, 42, 0.86);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
       }
       .wordfriends-guide-category-row > div {
         display: grid;
@@ -1501,6 +1527,14 @@ function wordfriends_siteops_portal_styles() {
         border-radius: 8px;
         padding: 16px;
         background: rgba(5, 30, 33, 0.68);
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+      .wordfriends-guide-card:hover,
+      .wordfriends-guide-card:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        background: rgba(8, 42, 42, 0.86);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
       }
       .wordfriends-guide-card small,
       .wordfriends-guide-video small {
@@ -1636,6 +1670,13 @@ function wordfriends_siteops_portal_styles() {
         border-radius: 8px;
         padding: 14px;
         background: rgba(5, 30, 33, 0.72);
+        transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+      .wordfriends-guide-faq details:hover,
+      .wordfriends-guide-faq details:focus-within {
+        border-color: #35c6a5;
+        background: rgba(8, 42, 42, 0.86);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
       }
       .wordfriends-guide-faq summary {
         cursor: pointer;
@@ -1659,6 +1700,13 @@ function wordfriends_siteops_portal_styles() {
         border-radius: 8px;
         padding: 14px;
         background: rgba(5, 30, 33, 0.72);
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .wordfriends-guide-video:hover,
+      .wordfriends-guide-video:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
       }
       .wordfriends-guide-video-frame {
         display: grid;
@@ -2570,11 +2618,22 @@ function wordfriends_siteops_portal_styles() {
         color: #05201b;
         text-decoration: none !important;
       }
+      .wordfriends-button:hover,
+      .wordfriends-button:focus-visible {
+        transform: translateY(-1px);
+        background: #35c6a5;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, .22);
+        outline: none;
+      }
       .wordfriends-button.wordfriends-button-secondary,
       .wordfriends-question-filters button,
       .wordfriends-site-filters button {
         background: #dff8ef;
         color: #05201b;
+      }
+      .wordfriends-button.wordfriends-button-secondary:hover,
+      .wordfriends-button.wordfriends-button-secondary:focus-visible {
+        background: #f0fff9;
       }
       .wordfriends-auth-notice,
       .wordfriends-auth-success {
@@ -2590,6 +2649,14 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-question-guide article {
         border-color: #24474d;
         background: #071a1f;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+      .wordfriends-question-guide article:hover,
+      .wordfriends-question-guide article:focus-within {
+        transform: translateY(-2px);
+        border-color: #35c6a5;
+        background: #102a30;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
       }
       .wordfriends-question-guide strong {
         color: #f3fffd;
@@ -3154,6 +3221,55 @@ function wordfriends_siteops_portal_styles() {
           padding: 0 8px;
           font-size: 12px;
           white-space: normal;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .wordfriends-button,
+        .wordfriends-home-card,
+        .wordfriends-home-ready-grid article,
+        .wordfriends-service-card,
+        .wordfriends-service-step,
+        .wordfriends-service-scope article,
+        .wordfriends-service-video,
+        .wordfriends-service-proof,
+        .wordfriends-guide-card,
+        .wordfriends-guide-category-row,
+        .wordfriends-guide-faq details,
+        .wordfriends-guide-video,
+        .wordfriends-cases-map-grid article,
+        .wordfriends-question-guide article,
+        .wordfriends-dashboard-card {
+          transition: none;
+        }
+        .wordfriends-button:hover,
+        .wordfriends-button:focus-visible,
+        .wordfriends-home-card:hover,
+        .wordfriends-home-card:focus-visible,
+        .wordfriends-home-ready-grid article:hover,
+        .wordfriends-home-ready-grid article:focus-within,
+        .wordfriends-service-card:hover,
+        .wordfriends-service-card:focus-within,
+        .wordfriends-service-step:hover,
+        .wordfriends-service-step:focus-within,
+        .wordfriends-service-scope article:hover,
+        .wordfriends-service-scope article:focus-within,
+        .wordfriends-service-video:hover,
+        .wordfriends-service-video:focus-within,
+        .wordfriends-service-proof:hover,
+        .wordfriends-service-proof:focus-within,
+        .wordfriends-guide-card:hover,
+        .wordfriends-guide-card:focus-within,
+        .wordfriends-guide-category-row:hover,
+        .wordfriends-guide-category-row:focus-within,
+        .wordfriends-guide-video:hover,
+        .wordfriends-guide-video:focus-within,
+        .wordfriends-cases-map-grid article:hover,
+        .wordfriends-cases-map-grid article:focus-within,
+        .wordfriends-question-guide article:hover,
+        .wordfriends-question-guide article:focus-within,
+        .wordfriends-dashboard-card:hover,
+        .wordfriends-dashboard-card:focus-visible {
+          transform: none;
         }
       }
       @media (max-width: 520px) {
