@@ -108,6 +108,71 @@ function wordfriends_siteops_track_event($event_type, $extra = []) {
     wordfriends_siteops_send('/api/wordfriends/events', $payload);
 }
 
+function wordfriends_siteops_guide_article_slugs() {
+    return [
+        'adsense-basic-guide',
+        'domain-before-buy-checklist',
+        'nameserver-dns-setup-guide',
+        'wordpress-required-pages',
+        'adsense-readiness-checklist',
+        'adsense-policy-violations',
+    ];
+}
+
+function wordfriends_siteops_guide_article_titles() {
+    return [
+        '구글 애드센스 기본 이해',
+        '애드센스용 도메인 구매 전 체크',
+        '도메인 네임서버 연결 이해하기',
+        '애드센스 승인 필수 페이지 준비',
+        'AdSense 신청 전 체크리스트',
+        '애드센스 금지사항',
+        '애드센스 기본 이해',
+        '도메인 구매 전 체크',
+        '네임서버 연결 이해하기',
+        '필수 페이지 준비',
+    ];
+}
+
+function wordfriends_siteops_is_guide_article_post($post_id = null) {
+    $post_id = $post_id ? (int) $post_id : get_the_ID();
+
+    if (!$post_id || 'post' !== get_post_type($post_id)) {
+        return false;
+    }
+
+    $slug = (string) get_post_field('post_name', $post_id);
+    if (in_array($slug, wordfriends_siteops_guide_article_slugs(), true)) {
+        return true;
+    }
+
+    $title = get_the_title($post_id);
+    if (in_array($title, wordfriends_siteops_guide_article_titles(), true)) {
+        return true;
+    }
+
+    return has_category(['adsense-guide', 'domain-hosting-server', 'wordpress-setup'], $post_id);
+}
+
+function wordfriends_siteops_close_guide_article_comments($open, $post_id) {
+    if (wordfriends_siteops_is_guide_article_post($post_id)) {
+        return false;
+    }
+
+    return $open;
+}
+add_filter('comments_open', 'wordfriends_siteops_close_guide_article_comments', 20, 2);
+add_filter('pings_open', 'wordfriends_siteops_close_guide_article_comments', 20, 2);
+
+function wordfriends_siteops_hide_guide_article_comments($comments, $post_id) {
+    if (wordfriends_siteops_is_guide_article_post($post_id)) {
+        return [];
+    }
+
+    return $comments;
+}
+add_filter('comments_array', 'wordfriends_siteops_hide_guide_article_comments', 20, 2);
+
 function wordfriends_siteops_enqueue_tracker() {
     if (is_admin()) {
         return;
@@ -144,6 +209,8 @@ function wordfriends_siteops_enqueue_tracker() {
         'termsUrl' => wordfriends_siteops_terms_page_url(),
         'privacyUrl' => wordfriends_siteops_privacy_page_url(),
         'isLoggedIn' => is_user_logged_in(),
+        'articleSlugs' => wordfriends_siteops_guide_article_slugs(),
+        'articleTitles' => wordfriends_siteops_guide_article_titles(),
     ]);
 
     wp_add_inline_script('wordfriends-siteops-tracker', <<<'JS'
@@ -458,7 +525,22 @@ JS);
   }
 
   function markWordfriendsArticlePage() {
+    var currentPath = normalizePath(window.location.pathname);
+    var articleSlugs = Array.isArray(WordfriendsSiteOps.articleSlugs) ? WordfriendsSiteOps.articleSlugs : [];
+    var articleTitles = Array.isArray(WordfriendsSiteOps.articleTitles) ? WordfriendsSiteOps.articleTitles : [];
+    var heading = document.querySelector('.wp-block-post-title, .entry-title, main h1');
+    var headingText = heading ? heading.textContent.trim() : '';
+    var categoryText = Array.from(document.querySelectorAll('a[rel="category tag"], .taxonomy-category a, .cat-links a')).map(function (link) {
+      return link.textContent.trim();
+    }).join(' ');
+    var isGuideArticle = articleSlugs.some(function (slug) {
+      return slug && currentPath.indexOf('/' + slug) !== -1;
+    }) || articleTitles.indexOf(headingText) !== -1 || /애드센스 가이드|도메인\/호스팅\/서버|WordPress 구축/.test(categoryText);
+
     if (document.querySelector('.wordfriends-article')) {
+      document.body.classList.add('wordfriends-article-page');
+      document.body.classList.add('wordfriends-article-has-wrapper');
+    } else if (isGuideArticle) {
       document.body.classList.add('wordfriends-article-page');
     }
   }
@@ -2206,6 +2288,15 @@ function wordfriends_siteops_portal_styles() {
         font-size: 16px;
         line-height: 1.75;
       }
+      body.wordfriends-article-page:not(.wordfriends-article-has-wrapper) .entry-content,
+      body.wordfriends-article-page:not(.wordfriends-article-has-wrapper) .wp-block-post-content {
+        box-sizing: border-box;
+        border: 1px solid #24474d;
+        border-radius: 8px;
+        background: #102a30;
+        padding: 24px;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+      }
       body.wordfriends-article-page .entry-content > *,
       body.wordfriends-article-page .wp-block-post-content > * {
         max-width: none;
@@ -2268,14 +2359,19 @@ function wordfriends_siteops_portal_styles() {
       }
       body.wordfriends-article-page .wp-block-post-navigation-link,
       body.wordfriends-article-page .post-navigation-link-next,
-      body.wordfriends-article-page .post-navigation-link-previous,
-      body.wordfriends-article-page .comment-respond,
-      body.wordfriends-article-page .wp-block-post-comments-form {
+      body.wordfriends-article-page .post-navigation-link-previous {
         box-sizing: border-box;
         width: min(100%, 760px);
         margin-right: auto;
         margin-left: auto;
         color: #c7e8e4;
+      }
+      body.wordfriends-article-page .comments-area,
+      body.wordfriends-article-page #comments,
+      body.wordfriends-article-page .comment-respond,
+      body.wordfriends-article-page .wp-block-post-comments,
+      body.wordfriends-article-page .wp-block-post-comments-form {
+        display: none !important;
       }
       body.wordfriends-article-page textarea,
       body.wordfriends-article-page input[type="text"],
