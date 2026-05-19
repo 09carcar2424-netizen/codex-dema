@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.6.5
+ * Version: 0.6.6
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.6.5';
+const WORDFRIENDS_SITEOPS_VERSION = '0.6.6';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -2380,6 +2380,8 @@ function wordfriends_siteops_portal_styles() {
         color: #4ad6b4;
       }
       body.wordfriends-article-page {
+        --wp--style--global--content-size: 860px;
+        --wp--style--global--wide-size: 960px;
         background: #061316;
         color: #d8f2ee;
       }
@@ -2458,9 +2460,14 @@ function wordfriends_siteops_portal_styles() {
       }
       body.wordfriends-article-page .entry-content > *,
       body.wordfriends-article-page .wp-block-post-content > * {
-        max-width: none;
+        max-width: none !important;
       }
       body.wordfriends-article-page .wordfriends-article {
+        box-sizing: border-box;
+        width: min(100%, 860px) !important;
+        max-width: 860px !important;
+        margin-right: auto !important;
+        margin-left: auto !important;
         border: 1px solid #24474d;
         border-radius: 8px;
         background: #102a30;
