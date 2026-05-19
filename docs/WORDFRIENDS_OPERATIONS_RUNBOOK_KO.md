@@ -10,7 +10,7 @@
 Wordfriends 사이트: https://wordfriends.co.kr
 SiteOps 관리자: https://siteops.09car.co.kr
 핵심 플러그인: integrations/wordfriends-siteops-tracker/wordfriends-siteops-tracker.php
-현재 확인된 플러그인 버전: 0.6.4
+현재 확인된 플러그인 버전: 0.6.5
 ```
 
 ## 배포 루틴

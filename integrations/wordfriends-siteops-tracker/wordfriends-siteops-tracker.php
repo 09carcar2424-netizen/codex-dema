@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.6.4
+ * Version: 0.6.5
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.6.4';
+const WORDFRIENDS_SITEOPS_VERSION = '0.6.5';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -2312,7 +2312,7 @@ function wordfriends_siteops_portal_styles() {
       body.wordfriends-document-page .wp-block-post-title,
       body.wordfriends-document-page .entry-title,
       body.wordfriends-document-page main h1 {
-        width: min(100%, 760px);
+        width: min(100%, 860px);
         margin: 0 auto 22px;
         color: #f3fffd;
         font-size: clamp(26px, 2.6vw, 34px);
@@ -2322,7 +2322,7 @@ function wordfriends_siteops_portal_styles() {
       }
       body.wordfriends-document-page .entry-content,
       body.wordfriends-document-page .wp-block-post-content {
-        width: min(100%, 760px);
+        width: min(100%, 860px);
         margin: 0 auto;
         color: #c7e8e4;
         font-size: 15px;
@@ -2408,7 +2408,7 @@ function wordfriends_siteops_portal_styles() {
       body.wordfriends-article-page .entry-title,
       body.wordfriends-article-page main h1 {
         box-sizing: border-box;
-        width: min(100%, 760px);
+        width: min(100%, 860px);
         margin: 0 auto 24px;
         color: #f3fffd;
         font-size: clamp(28px, 3vw, 42px);
@@ -2424,7 +2424,7 @@ function wordfriends_siteops_portal_styles() {
       body.wordfriends-article-page .entry-meta,
       body.wordfriends-article-page .post-meta {
         box-sizing: border-box;
-        width: min(100%, 760px);
+        width: min(100%, 860px);
         margin: 0 auto 18px;
         color: #8fbab4;
         font-size: 13px;
@@ -2441,7 +2441,7 @@ function wordfriends_siteops_portal_styles() {
       }
       body.wordfriends-article-page .entry-content,
       body.wordfriends-article-page .wp-block-post-content {
-        width: min(100%, 760px);
+        width: min(100%, 860px);
         margin: 0 auto;
         color: #c7e8e4;
         font-size: 16px;
@@ -2520,7 +2520,7 @@ function wordfriends_siteops_portal_styles() {
       body.wordfriends-article-page .post-navigation-link-next,
       body.wordfriends-article-page .post-navigation-link-previous {
         box-sizing: border-box;
-        width: min(100%, 760px);
+        width: min(100%, 860px);
         margin: 26px auto 0;
         border-top: 1px solid #24474d;
         padding-top: 20px;
@@ -3080,15 +3080,22 @@ function wordfriends_siteops_portal_styles() {
         body.wordfriends-article-page .wp-block-post-title,
         body.wordfriends-article-page .entry-title,
         body.wordfriends-article-page main h1 {
-          font-size: 28px;
+          font-size: 26px;
         }
+        body.wordfriends-article-page:not(.wordfriends-article-has-wrapper) .entry-content,
+        body.wordfriends-article-page:not(.wordfriends-article-has-wrapper) .wp-block-post-content,
         body.wordfriends-article-page .wordfriends-article {
-          padding: 18px;
+          padding: 16px;
         }
         body.wordfriends-article-page .entry-content,
         body.wordfriends-article-page .wp-block-post-content {
-          font-size: 15px;
-          line-height: 1.7;
+          font-size: 14px;
+          line-height: 1.68;
+        }
+        body.wordfriends-article-page .wordfriends-article h2,
+        body.wordfriends-article-page .entry-content h2,
+        body.wordfriends-article-page .wp-block-post-content h2 {
+          font-size: 22px;
         }
       }
       .wordfriends-home {
