@@ -307,6 +307,18 @@ JS);
     }
   }
 
+  function wordfriendsBrandMark() {
+    return '<svg class="wordfriends-brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="14" fill="#061214"></rect><circle cx="32" cy="32" r="21" fill="#08272b" stroke="#62e8c8" stroke-width="3"></circle><path d="M17 22h7l6 21 6-21h6l6 21 6-21h7L51 50h-7l-5-17-5 17h-7L17 22Z" fill="#f4fffb"></path></svg>';
+  }
+
+  function ensureWordfriendsHeaderBrand() {
+    var title = document.querySelector('header .wp-block-site-title a, header .wp-block-site-title, header .site-title a, header .site-title');
+    if (!title || title.querySelector('.wordfriends-brand-mark')) return;
+
+    title.classList.add('wordfriends-header-brand');
+    title.insertAdjacentHTML('afterbegin', wordfriendsBrandMark());
+  }
+
   function hideOperationalHeaderLinks() {
     var nav = document.querySelector('header nav, .wp-block-navigation, nav');
     if (!nav) return;
@@ -344,6 +356,7 @@ JS);
 
     var brand = document.createElement('div');
     brand.className = 'wordfriends-site-footer-brand';
+    brand.insertAdjacentHTML('afterbegin', wordfriendsBrandMark());
 
     var brandName = document.createElement('strong');
     brandName.textContent = '\uc6cc\ub4dc\ud504\ub79c\uc988';
@@ -455,12 +468,14 @@ JS);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       markWordfriendsDocumentPage();
+      ensureWordfriendsHeaderBrand();
       ensurePortalLinks();
       hideOperationalHeaderLinks();
       ensurePolicyFooterLinks();
     });
   } else {
     markWordfriendsDocumentPage();
+    ensureWordfriendsHeaderBrand();
     ensurePortalLinks();
     hideOperationalHeaderLinks();
     ensurePolicyFooterLinks();
@@ -2036,6 +2051,21 @@ function wordfriends_siteops_portal_styles() {
       body:has(.wordfriends-auth) footer a:hover {
         color: #4ad6b4;
       }
+      .wordfriends-header-brand {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none !important;
+        white-space: nowrap;
+      }
+      .wordfriends-brand-mark {
+        display: inline-block;
+        flex: 0 0 auto;
+        width: 28px;
+        height: 28px;
+        vertical-align: middle;
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.22));
+      }
       body.wordfriends-document-page {
         background: #061316;
         color: #d8f2ee;
@@ -2142,6 +2172,10 @@ function wordfriends_siteops_portal_styles() {
         display: grid;
         gap: 8px;
         justify-items: center;
+      }
+      .wordfriends-site-footer-brand .wordfriends-brand-mark {
+        width: 36px;
+        height: 36px;
       }
       .wordfriends-site-footer-brand strong {
         color: #f3fffd;
@@ -2472,6 +2506,11 @@ function wordfriends_siteops_portal_styles() {
         color: #d8fff6;
         font-size: 18px;
         font-weight: 900;
+      }
+      body:has(.wordfriends-auth) header .wordfriends-brand-mark,
+      body.wordfriends-document-page header .wordfriends-brand-mark {
+        width: 24px;
+        height: 24px;
       }
       body:has(.wordfriends-auth) .wp-block-navigation a {
         font-size: 14px;

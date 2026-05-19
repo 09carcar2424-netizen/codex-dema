@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+  <title id="title">Wordfriends logo</title>
+  <desc id="desc">Wordfriends brand logo with a custom circular W mark inspired by WordPress site operations.</desc>
+  <defs>
+    <linearGradient id="markFill" x1="44" y1="34" x2="252" y2="270" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b3438"/>
+      <stop offset="1" stop-color="#061d20"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="58" y1="56" x2="244" y2="246" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7ef7d6"/>
+      <stop offset="1" stop-color="#2aaf91"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="320" rx="0" fill="#061214"/>
+
+  <g filter="url(#softShadow)">
+    <circle cx="160" cy="160" r="108" fill="url(#markFill)" stroke="#244f55" stroke-width="4"/>
+    <circle cx="160" cy="160" r="88" fill="none" stroke="url(#accent)" stroke-width="8"/>
+    <path d="M88 110h31l24 83 24-83h27l24 83 24-83h31l-50 146h-30l-22-71-23 71h-30L88 110Z" fill="#f0fffb"/>
+    <path d="M213 104c19 10 31 31 31 56 0 45-36 81-81 81-29 0-54-15-68-38" fill="none" stroke="#62e8c8" stroke-width="7" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(316 105)">
+    <text x="0" y="0" fill="#f4fffb" font-family="Pretendard, Noto Sans KR, Arial, sans-serif" font-size="68" font-weight="900" letter-spacing="0">워드프랜즈</text>
+    <text x="2" y="58" fill="#8edbd3" font-family="Pretendard, Noto Sans KR, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="0">Wordfriends Site Operations</text>
+    <text x="2" y="104" fill="#c6f2ec" font-family="Pretendard, Noto Sans KR, Arial, sans-serif" font-size="22" font-weight="500" letter-spacing="0">WordPress 구축 · 콘텐츠 운영 · 기술지원</text>
+  </g>
+</svg>
