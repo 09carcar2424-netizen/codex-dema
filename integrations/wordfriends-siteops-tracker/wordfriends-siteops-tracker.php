@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.6.1
+ * Version: 0.6.2
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.6.1';
+const WORDFRIENDS_SITEOPS_VERSION = '0.6.2';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -846,6 +846,10 @@ function wordfriends_siteops_portal_styles() {
         color: #126451;
         font-size: 13px;
         font-weight: 800;
+        max-width: 100%;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+        text-align: center;
       }
       .wordfriends-question-answer {
         margin-top: 12px;
@@ -1911,8 +1915,9 @@ function wordfriends_siteops_portal_styles() {
         }
         .wordfriends-portal-nav a {
           width: 100%;
+          min-height: 40px;
           padding: 0 8px;
-          font-size: 11px;
+          font-size: 12px;
           white-space: normal;
           text-align: center;
         }
@@ -1941,6 +1946,23 @@ function wordfriends_siteops_portal_styles() {
         .wordfriends-question-filters,
         .wordfriends-site-filters {
           grid-template-columns: 1fr;
+        }
+        .wordfriends-question-card header,
+        .wordfriends-site-card header,
+        .wordfriends-dashboard-card-head {
+          align-items: stretch;
+        }
+        .wordfriends-question-status,
+        .wordfriends-dashboard-badge {
+          width: fit-content;
+          max-width: 100%;
+        }
+        .wordfriends-table {
+          display: block;
+          max-width: 100%;
+          overflow-x: auto;
+          white-space: nowrap;
+          -webkit-overflow-scrolling: touch;
         }
         .wordfriends-question-guide {
           grid-template-columns: 1fr;
@@ -2049,8 +2071,11 @@ function wordfriends_siteops_portal_styles() {
         color: #c7f2ee;
         font-size: 12px;
         font-weight: 900;
+        line-height: 1.2;
+        text-align: center;
         text-decoration: none;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
       .wordfriends-portal-nav a:hover,
       .wordfriends-portal-nav a:focus-visible,
@@ -2127,7 +2152,10 @@ function wordfriends_siteops_portal_styles() {
         font-size: 11px;
         font-style: normal;
         font-weight: 900;
-        white-space: nowrap;
+        max-width: 100%;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+        text-align: center;
       }
       .wordfriends-dashboard-badge.neutral {
         background: #eef3f6;
@@ -2178,6 +2206,7 @@ function wordfriends_siteops_portal_styles() {
         padding: 10px 8px;
         text-align: left;
         vertical-align: top;
+        overflow-wrap: anywhere;
       }
       .wordfriends-table th {
         color: #64748b;
@@ -3016,6 +3045,10 @@ function wordfriends_siteops_portal_styles() {
         body.wordfriends-article-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
           grid-template-columns: 1fr;
         }
+        .wordfriends-portal-nav,
+        .wordfriends-inline-actions {
+          grid-template-columns: 1fr !important;
+        }
       }
       @media (max-width: 640px) {
         body.wordfriends-article-page main {
@@ -3370,9 +3403,9 @@ function wordfriends_siteops_portal_styles() {
         }
         .wordfriends-portal-nav a {
           width: 100%;
-          min-height: 36px;
+          min-height: 40px;
           padding: 0 8px;
-          font-size: 11px;
+          font-size: 12px;
           white-space: normal;
           text-align: center;
         }
