@@ -1359,11 +1359,15 @@ function wordfriends_siteops_portal_styles() {
         line-height: 1.25;
         text-align: center;
         text-decoration: none;
+        white-space: normal;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
         box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
         transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
       }
       .wordfriends-guide-quicklinks a span {
         display: block;
+        min-width: 0;
       }
       .wordfriends-guide-quicklinks a:hover,
       .wordfriends-guide-quicklinks a:focus-visible {
@@ -1761,6 +1765,7 @@ function wordfriends_siteops_portal_styles() {
           margin-right: auto;
           margin-left: auto;
           padding: 16px;
+          overflow-x: hidden;
         }
         .wordfriends-auth h2 {
           font-size: 19px;
@@ -1816,8 +1821,9 @@ function wordfriends_siteops_portal_styles() {
         .wordfriends-guide-actions .wordfriends-button,
         .wordfriends-home-actions .wordfriends-button {
           padding: 0 8px;
-          font-size: 12px;
+          font-size: 13px;
           white-space: normal;
+          line-height: 1.25;
         }
         .wordfriends-inline-actions {
           display: grid;
@@ -1833,9 +1839,9 @@ function wordfriends_siteops_portal_styles() {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         .wordfriends-guide-quicklinks a {
-          min-height: 50px;
+          min-height: 58px;
           padding: 0 10px;
-          font-size: 12px;
+          font-size: 13px;
         }
         .wordfriends-guide-draft-card {
           grid-template-columns: 34px minmax(0, 1fr);
@@ -2485,6 +2491,8 @@ function wordfriends_siteops_portal_styles() {
         gap: 18px;
         text-align: center;
         justify-items: center;
+        overflow-wrap: anywhere;
+        word-break: keep-all;
       }
       .wordfriends-site-footer-brand {
         display: grid;
@@ -2524,6 +2532,8 @@ function wordfriends_siteops_portal_styles() {
         font-size: 13px;
         font-weight: 800;
         text-decoration: none;
+        overflow-wrap: anywhere;
+        word-break: keep-all;
       }
       .wordfriends-site-footer-policy a {
         color: #8de8d7;
@@ -2538,9 +2548,12 @@ function wordfriends_siteops_portal_styles() {
         line-height: 1.5;
       }
       .wordfriends-site-footer-email {
+        display: inline-block;
+        max-width: 100%;
         color: #5aaeff;
         font-weight: 800;
         text-decoration: none;
+        overflow-wrap: anywhere;
       }
       .wordfriends-site-footer-email:hover {
         color: #8cc7ff;
@@ -2557,6 +2570,8 @@ function wordfriends_siteops_portal_styles() {
         background: #0b2227;
         color: #e6fffb;
         box-shadow: 0 18px 42px rgba(0, 0, 0, .22);
+        overflow-wrap: anywhere;
+        word-break: keep-all;
       }
       .wordfriends-auth h2 {
         color: #f3fffd;
@@ -2613,10 +2628,13 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-button,
       .wordfriends-pagination .is-active {
+        min-width: 0;
         background: #28a987;
         border-color: #28a987;
         color: #05201b;
         text-decoration: none !important;
+        white-space: normal;
+        word-break: keep-all;
       }
       .wordfriends-button:hover,
       .wordfriends-button:focus-visible {
@@ -2628,8 +2646,11 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-button.wordfriends-button-secondary,
       .wordfriends-question-filters button,
       .wordfriends-site-filters button {
+        min-width: 0;
         background: #dff8ef;
         color: #05201b;
+        white-space: normal;
+        word-break: keep-all;
       }
       .wordfriends-button.wordfriends-button-secondary:hover,
       .wordfriends-button.wordfriends-button-secondary:focus-visible {
@@ -2804,6 +2825,17 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-guide h3 {
         font-size: 19px;
         line-height: 1.35;
+        word-break: keep-all;
+      }
+      .wordfriends-auth h2,
+      .wordfriends-auth h3,
+      .wordfriends-auth strong,
+      .wordfriends-home-card strong,
+      .wordfriends-service-card strong,
+      .wordfriends-guide-card strong,
+      .wordfriends-cases-map-grid strong,
+      .wordfriends-guide-category-row strong {
+        word-break: keep-all;
       }
       .wordfriends-services-section,
       .wordfriends-guide-section {
