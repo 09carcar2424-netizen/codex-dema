@@ -79,14 +79,13 @@ Wordfriends 가이드/FAQ 글을 WordPress에 발행할 때 사용할 운영표�
 | 순서 | 파일 | WordPress 제목 | 카테고리 | 추천 슬러그 | CTA | 발행 상태 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 6 | `WORDFRIENDS_ARTICLE_SEARCH_CONSOLE_BASIC.md` | Search Console 기초: 사이트 상태를 확인하기 전에 알아둘 것 | 수익형 사이트 운영 | `search-console-basic` | 구축절차 / 가이드FAQ / 문의 | 발행 완료 |
-| 7 | 준비 예정 | 사이트맵 제출 이해하기: 검색엔진에 사이트 구조를 알려주는 방법 | 수익형 사이트 운영 | `sitemap-submission-basic` | 가이드FAQ / 구축절차 / 문의 | 후보 |
+| 7 | `WORDFRIENDS_ARTICLE_SITEMAP_SUBMISSION_BASIC.md` | 사이트맵 제출 이해하기: 검색엔진에 사이트 구조를 알려주는 방법 | 수익형 사이트 운영 | `sitemap-submission-basic` | 가이드FAQ / 구축절차 / 문의 | 발행 완료 |
 | 8 | 준비 예정 | ads.txt는 언제 확인하나요? 광고 상태 점검 전 알아둘 것 | 애드센스 가이드 | `ads-txt-basic` | 가이드FAQ / 문의 / 구축절차 | 후보 |
 | 9 | 준비 예정 | 고객 포털 사용 안내: 내 사이트와 문의 상태 확인하기 | FAQ/공지 | `customer-portal-guide` | 고객포털 / 문의 / 가이드FAQ | 후보 |
 | 10 | 준비 예정 | 콘텐츠 운영 루틴 만들기: 발행보다 먼저 정할 기준 | 수익형 사이트 운영 | `content-operation-routine` | 서비스 / 가이드FAQ / 문의 | 후보 |
 
 ## 다음 글 후보
 
-- 사이트맵 제출 이해하기
 - ads.txt는 언제 확인하나요?
 - 콘텐츠 운영 루틴 만들기
 - 고객 포털 사용 안내

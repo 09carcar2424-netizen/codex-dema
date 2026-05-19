@@ -58,5 +58,15 @@
     "sourceFile": "search-console-basic.html",
     "excerpt": "Search Console의 역할, 소유권 확인, 사이트맵 제출, 색인 상태, 검색 참고 지표를 초보자도 이해하기 쉽게 정리합니다.",
     "cta": ["구축절차", "가이드/FAQ", "문의"]
+  },
+  {
+    "order": 7,
+    "status": "published",
+    "title": "사이트맵 제출 이해하기: 검색엔진에 사이트 구조를 알려주는 방법",
+    "slug": "sitemap-submission-basic",
+    "category": "수익형 사이트 운영",
+    "sourceFile": "sitemap-submission-basic.html",
+    "excerpt": "사이트맵의 역할, WordPress 사이트맵 주소, Search Console 제출 이유, 색인과 검색 노출의 차이, 오류 점검 기준을 쉽게 정리합니다.",
+    "cta": ["가이드/FAQ", "구축절차", "문의"]
   }
 ]
