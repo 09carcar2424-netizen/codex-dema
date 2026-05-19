@@ -2280,6 +2280,28 @@ function wordfriends_siteops_portal_styles() {
         letter-spacing: 0;
         overflow-wrap: anywhere;
       }
+      body.wordfriends-article-page .wp-block-post-author,
+      body.wordfriends-article-page .wp-block-post-date,
+      body.wordfriends-article-page .wp-block-post-terms,
+      body.wordfriends-article-page .taxonomy-category,
+      body.wordfriends-article-page .entry-meta,
+      body.wordfriends-article-page .post-meta {
+        box-sizing: border-box;
+        width: min(100%, 760px);
+        margin: 0 auto 18px;
+        color: #8fbab4;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      body.wordfriends-article-page .wp-block-post-author a,
+      body.wordfriends-article-page .wp-block-post-date a,
+      body.wordfriends-article-page .wp-block-post-terms a,
+      body.wordfriends-article-page .taxonomy-category a,
+      body.wordfriends-article-page .entry-meta a,
+      body.wordfriends-article-page .post-meta a {
+        color: #8de8d7;
+        text-underline-offset: 4px;
+      }
       body.wordfriends-article-page .entry-content,
       body.wordfriends-article-page .wp-block-post-content {
         width: min(100%, 760px);
@@ -2362,9 +2384,21 @@ function wordfriends_siteops_portal_styles() {
       body.wordfriends-article-page .post-navigation-link-previous {
         box-sizing: border-box;
         width: min(100%, 760px);
-        margin-right: auto;
-        margin-left: auto;
+        margin: 26px auto 0;
+        border-top: 1px solid #24474d;
+        padding-top: 20px;
         color: #c7e8e4;
+      }
+      body.wordfriends-article-page .wp-block-post-navigation-link a,
+      body.wordfriends-article-page .post-navigation-link-next a,
+      body.wordfriends-article-page .post-navigation-link-previous a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #8de8d7;
+        font-weight: 800;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 4px;
       }
       body.wordfriends-article-page .comments-area,
       body.wordfriends-article-page #comments,
@@ -2762,19 +2796,22 @@ function wordfriends_siteops_portal_styles() {
         gap: clamp(12px, 1.5vw, 22px);
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open,
-      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open {
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open,
+      body.wordfriends-article-page .wp-block-navigation__responsive-container.is-menu-open {
         background: #061316 !important;
         color: #d8f2ee !important;
         overflow-x: hidden !important;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content,
-      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content {
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content,
+      body.wordfriends-article-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content {
         align-items: center !important;
         justify-content: flex-start !important;
         padding: 72px 24px 32px !important;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
-      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
+      body.wordfriends-article-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         width: min(100%, 440px);
@@ -2782,12 +2819,14 @@ function wordfriends_siteops_portal_styles() {
         gap: 10px !important;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item,
-      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item {
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item,
+      body.wordfriends-article-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item {
         min-width: 0;
         width: 100%;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open a,
-      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open a {
+      body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open a,
+      body.wordfriends-article-page .wp-block-navigation__responsive-container.is-menu-open a {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2804,7 +2843,8 @@ function wordfriends_siteops_portal_styles() {
         overflow-wrap: anywhere;
       }
       body:has(.wordfriends-auth) .wp-block-navigation__responsive-container-close,
-      body.wordfriends-document-page .wp-block-navigation__responsive-container-close {
+      body.wordfriends-document-page .wp-block-navigation__responsive-container-close,
+      body.wordfriends-article-page .wp-block-navigation__responsive-container-close {
         top: 22px;
         right: 22px;
         border: 1px solid #24474d;
@@ -2815,7 +2855,8 @@ function wordfriends_siteops_portal_styles() {
       }
       @media (max-width: 360px) {
         body:has(.wordfriends-auth) .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
-        body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
+        body.wordfriends-document-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container,
+        body.wordfriends-article-page .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container {
           grid-template-columns: 1fr;
         }
       }
@@ -2827,13 +2868,17 @@ function wordfriends_siteops_portal_styles() {
         body.wordfriends-article-page .wp-block-post-title,
         body.wordfriends-article-page .entry-title,
         body.wordfriends-article-page main h1,
+        body.wordfriends-article-page .wp-block-post-author,
+        body.wordfriends-article-page .wp-block-post-date,
+        body.wordfriends-article-page .wp-block-post-terms,
+        body.wordfriends-article-page .taxonomy-category,
+        body.wordfriends-article-page .entry-meta,
+        body.wordfriends-article-page .post-meta,
         body.wordfriends-article-page .entry-content,
         body.wordfriends-article-page .wp-block-post-content,
         body.wordfriends-article-page .wp-block-post-navigation-link,
         body.wordfriends-article-page .post-navigation-link-next,
-        body.wordfriends-article-page .post-navigation-link-previous,
-        body.wordfriends-article-page .comment-respond,
-        body.wordfriends-article-page .wp-block-post-comments-form {
+        body.wordfriends-article-page .post-navigation-link-previous {
           width: min(100%, calc(100vw - 32px));
           max-width: calc(100vw - 32px);
         }
