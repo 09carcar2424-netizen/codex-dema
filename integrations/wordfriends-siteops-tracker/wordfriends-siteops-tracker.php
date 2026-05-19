@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.6.3
+ * Version: 0.6.4
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.6.3';
+const WORDFRIENDS_SITEOPS_VERSION = '0.6.4';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -2652,7 +2652,8 @@ function wordfriends_siteops_portal_styles() {
         border-top: 1px solid #24474d;
       }
       .wordfriends-auth {
-        max-width: 620px;
+        width: min(100%, 860px);
+        max-width: 860px;
         border-color: #24474d;
         background: #0b2227;
         color: #e6fffb;
