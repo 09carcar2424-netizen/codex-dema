@@ -572,6 +572,11 @@ function wordfriends_siteops_portal_styles() {
         line-height: 1.5;
       }
       .wordfriends-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        max-width: 100%;
         min-height: 42px;
         border: 0;
         border-radius: 8px;
@@ -580,13 +585,13 @@ function wordfriends_siteops_portal_styles() {
         color: #fff;
         cursor: pointer;
         font-weight: 800;
+        line-height: 1.25;
+        text-align: center;
+        text-decoration: none !important;
+        overflow-wrap: anywhere;
       }
       .wordfriends-button.wordfriends-button-secondary {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
         min-width: 160px;
-        text-decoration: none;
         background: #17212b;
       }
       .wordfriends-auth-notice {
@@ -2298,6 +2303,7 @@ function wordfriends_siteops_portal_styles() {
         background: #28a987;
         border-color: #28a987;
         color: #05201b;
+        text-decoration: none !important;
       }
       .wordfriends-button.wordfriends-button-secondary,
       .wordfriends-question-filters button,
