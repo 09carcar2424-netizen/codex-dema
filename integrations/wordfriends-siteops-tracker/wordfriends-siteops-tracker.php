@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.5.8
+ * Version: 0.5.9
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.5.8';
+const WORDFRIENDS_SITEOPS_VERSION = '0.5.9';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -4208,15 +4208,15 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
     ], $atts, 'wordfriends_guide');
 
     $guide_links = [
-        ['구글 애드센스', '기본 이해', 'adsense-basic-guide'],
-        ['애드센스용 도메인', '구매 전 체크', 'domain-before-buy-checklist'],
-        ['도메인 네임서버', '연결 이해하기', 'nameserver-dns-setup-guide'],
-        ['애드센스 승인', '필수 페이지 준비', 'wordpress-required-pages'],
-        ['AdSense 신청 전', '체크리스트', 'adsense-readiness-checklist'],
-        ['애드센스', '금지사항', 'adsense-policy-violations'],
-        ['Search Console', '기초', 'search-console-basic'],
-        ['사이트맵 제출', '이해하기', 'sitemap-submission-basic'],
-        ['ads.txt', '확인 시점', 'ads-txt-basic'],
+        ['구글 애드센스', '기본 이해', 'adsense-basic-guide', true],
+        ['애드센스용 도메인', '구매 전 체크', 'domain-before-buy-checklist', true],
+        ['도메인 네임서버', '연결 이해하기', 'nameserver-dns-setup-guide', true],
+        ['애드센스 승인', '필수 페이지 준비', 'wordpress-required-pages', true],
+        ['AdSense 신청 전', '체크리스트', 'adsense-readiness-checklist', true],
+        ['애드센스', '금지사항', 'adsense-policy-violations', true],
+        ['Search Console', '기초', 'search-console-basic', true],
+        ['사이트맵 제출', '이해하기', 'sitemap-submission-basic', false],
+        ['ads.txt', '확인 시점', 'ads-txt-basic', false],
     ];
 
     ob_start();
@@ -4241,7 +4241,7 @@ function wordfriends_siteops_guide_shortcode($atts = []) {
             </div>
             <div class="wordfriends-guide-quicklinks" aria-label="Wordfriends guide links">
                 <?php foreach ($guide_links as $guide_link): ?>
-                    <?php $guide_url = wordfriends_siteops_published_post_url($guide_link[2]); ?>
+                    <?php $guide_url = $guide_link[3] ? wordfriends_siteops_post_url($guide_link[2]) : wordfriends_siteops_published_post_url($guide_link[2]); ?>
                     <?php if ($guide_url): ?>
                         <a href="<?php echo esc_url($guide_url); ?>"><span><?php echo esc_html($guide_link[0]); ?></span><span><?php echo esc_html($guide_link[1]); ?></span></a>
                     <?php else: ?>
