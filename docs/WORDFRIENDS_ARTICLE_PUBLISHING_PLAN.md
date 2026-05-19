@@ -18,11 +18,11 @@ Wordfriends 가이드/FAQ 글을 WordPress에 발행할 때 사용할 운영표�
 
 | 순서 | 파일 | WordPress 제목 | 카테고리 | 추천 슬러그 | CTA | 발행 상태 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `WORDFRIENDS_ARTICLE_ADSENSE_BASIC.md` | 애드센스 기본 이해: 사이트를 시작하기 전에 먼저 확인할 것 | 애드센스 가이드 | `adsense-basic-guide` | 구축절차 / 가이드FAQ / 문의 | 초안 준비 |
-| 2 | `WORDFRIENDS_ARTICLE_DOMAIN_CHECKLIST.md` | 도메인 구매 전 체크: 사이트를 시작하기 전에 먼저 볼 것 | 도메인/호스팅/서버 | `domain-before-buy-checklist` | 문의 / 구축절차 / 가이드FAQ | 초안 준비 |
-| 3 | `WORDFRIENDS_ARTICLE_NAMESERVER_SETUP.md` | 네임서버 연결 이해하기: 도메인을 샀는데 사이트가 바로 안 열리는 이유 | 도메인/호스팅/서버 | `nameserver-dns-setup-guide` | 구축절차 / 문의 / 가이드FAQ | 초안 준비 |
-| 4 | `WORDFRIENDS_ARTICLE_REQUIRED_PAGES.md` | 필수 페이지 준비: WordPress 사이트를 시작하기 전에 갖춰야 할 기본 구조 | WordPress 구축 | `wordpress-required-pages` | 서비스 / 구축절차 / 문의 / 가이드FAQ | 초안 준비 |
-| 5 | `WORDFRIENDS_ARTICLE_ADSENSE_READINESS_CHECKLIST.md` | AdSense 신청 전 체크리스트: 승인보다 먼저 점검할 것 | 애드센스 가이드 | `adsense-readiness-checklist` | 문의 / 가이드FAQ / 구축절차 | 초안 준비 |
+| 1 | `WORDFRIENDS_ARTICLE_ADSENSE_BASIC.md` | 애드센스 기본 이해: 사이트를 시작하기 전에 먼저 확인할 것 | 애드센스 가이드 | `adsense-basic-guide` | 구축절차 / 가이드FAQ / 문의 | 발행 완료 |
+| 2 | `WORDFRIENDS_ARTICLE_DOMAIN_CHECKLIST.md` | 도메인 구매 전 체크: 사이트를 시작하기 전에 먼저 볼 것 | 도메인/호스팅/서버 | `domain-before-buy-checklist` | 문의 / 구축절차 / 가이드FAQ | 발행 완료 |
+| 3 | `WORDFRIENDS_ARTICLE_NAMESERVER_SETUP.md` | 네임서버 연결 이해하기: 도메인을 샀는데 사이트가 바로 안 열리는 이유 | 도메인/호스팅/서버 | `nameserver-dns-setup-guide` | 구축절차 / 문의 / 가이드FAQ | 발행 완료 |
+| 4 | `WORDFRIENDS_ARTICLE_REQUIRED_PAGES.md` | 필수 페이지 준비: WordPress 사이트를 시작하기 전에 갖춰야 할 기본 구조 | WordPress 구축 | `wordpress-required-pages` | 서비스 / 구축절차 / 문의 / 가이드FAQ | 발행 완료 |
+| 5 | `WORDFRIENDS_ARTICLE_ADSENSE_READINESS_CHECKLIST.md` | AdSense 신청 전 체크리스트: 승인보다 먼저 점검할 것 | 애드센스 가이드 | `adsense-readiness-checklist` | 문의 / 가이드FAQ / 구축절차 | 발행 완료 |
 
 ## 추천 발행 순서
 
@@ -79,14 +79,13 @@ Wordfriends 가이드/FAQ 글을 WordPress에 발행할 때 사용할 운영표�
 | 순서 | 파일 | WordPress 제목 | 카테고리 | 추천 슬러그 | CTA | 발행 상태 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 6 | `WORDFRIENDS_ARTICLE_SEARCH_CONSOLE_BASIC.md` | Search Console 기초: 사이트 상태를 확인하기 전에 알아둘 것 | 수익형 사이트 운영 | `search-console-basic` | 구축절차 / 가이드FAQ / 문의 | 발행 완료 |
-| 7 | `WORDFRIENDS_ARTICLE_SITEMAP_SUBMISSION_BASIC.md` | 사이트맵 제출 이해하기: 검색엔진에 사이트 구조를 알려주는 방법 | 수익형 사이트 운영 | `sitemap-submission-basic` | 가이드FAQ / 구축절차 / 문의 | 초안/미리보기 확인 |
-| 8 | `WORDFRIENDS_ARTICLE_ADS_TXT_BASIC.md` | ads.txt는 언제 확인하나요? 광고 상태 점검 전 알아둘 것 | 애드센스 가이드 | `ads-txt-basic` | 가이드FAQ / 문의 / 구축절차 | 초안/미리보기 확인 |
+| 7 | `WORDFRIENDS_ARTICLE_SITEMAP_SUBMISSION_BASIC.md` | 사이트맵 제출 이해하기: 검색엔진에 사이트 구조를 알려주는 방법 | 수익형 사이트 운영 | `sitemap-submission-basic` | 가이드FAQ / 구축절차 / 문의 | 발행 완료 |
+| 8 | `WORDFRIENDS_ARTICLE_ADS_TXT_BASIC.md` | ads.txt는 언제 확인하나요? 광고 상태 점검 전 알아둘 것 | 애드센스 가이드 | `ads-txt-basic` | 가이드FAQ / 문의 / 구축절차 | 발행 완료 |
 | 9 | 준비 예정 | 고객 포털 사용 안내: 내 사이트와 문의 상태 확인하기 | FAQ/공지 | `customer-portal-guide` | 고객포털 / 문의 / 가이드FAQ | 후보 |
 | 10 | 준비 예정 | 콘텐츠 운영 루틴 만들기: 발행보다 먼저 정할 기준 | 수익형 사이트 운영 | `content-operation-routine` | 서비스 / 가이드FAQ / 문의 | 후보 |
 
 ## 다음 글 후보
 
-- ads.txt는 언제 확인하나요?
 - 콘텐츠 운영 루틴 만들기
 - 고객 포털 사용 안내
 - 자동화로 할 일과 사람이 검토할 일

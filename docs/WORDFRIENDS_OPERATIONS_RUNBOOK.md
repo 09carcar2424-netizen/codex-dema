@@ -10,7 +10,7 @@ Server project: /home/boss/codex-dema
 Wordfriends: https://wordfriends.co.kr
 SiteOps admin: https://siteops.09car.co.kr
 Core plugin: integrations/wordfriends-siteops-tracker/wordfriends-siteops-tracker.php
-Current verified plugin version: 0.5.3
+Current verified plugin version: 0.5.9
 ```
 
 ## Stabilization Checklist
@@ -49,6 +49,16 @@ Article pages:
   - `wordpress-required-pages`
   - `adsense-readiness-checklist`
   - `adsense-policy-violations`
+  - `search-console-basic`
+  - `sitemap-submission-basic`
+  - `ads-txt-basic`
+
+Search Console:
+
+- Wordfriends property `https://wordfriends.co.kr/` is verified with the root HTML file verification method.
+- Verification file is kept at `https://wordfriends.co.kr/google1e99994f43630f74.html` and must not be deleted.
+- WordPress default sitemap `https://wordfriends.co.kr/wp-sitemap.xml` opens correctly.
+- Search Console sitemap submission is complete for `wp-sitemap.xml`.
 
 Mobile:
 
