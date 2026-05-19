@@ -2404,9 +2404,14 @@ function wordfriends_siteops_portal_styles() {
       body:has(.wordfriends-auth) .wp-block-post-title,
       body:has(.wordfriends-auth) .entry-title,
       body:has(.wordfriends-auth) main h1 {
+        box-sizing: border-box;
+        width: min(100%, 860px);
+        margin-right: auto;
+        margin-left: auto;
         font-size: clamp(26px, 2.6vw, 32px);
         line-height: 1.15;
         font-weight: 700;
+        overflow-wrap: anywhere;
       }
       .wordfriends-auth {
         font-size: 14px;
@@ -2771,6 +2776,10 @@ function wordfriends_siteops_portal_styles() {
         body:has(.wordfriends-auth) .wp-block-post-title,
         body:has(.wordfriends-auth) .entry-title,
         body:has(.wordfriends-auth) main h1 {
+          width: min(100%, calc(100vw - 32px));
+          max-width: calc(100vw - 32px);
+          margin-right: auto;
+          margin-left: auto;
           font-size: 26px;
         }
         .wordfriends-auth h2 {
