@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.5.3
+ * Version: 0.5.5
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.5.3';
+const WORDFRIENDS_SITEOPS_VERSION = '0.5.5';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -116,6 +116,7 @@ function wordfriends_siteops_guide_article_slugs() {
         'wordpress-required-pages',
         'adsense-readiness-checklist',
         'adsense-policy-violations',
+        'search-console-basic',
     ];
 }
 
@@ -127,6 +128,8 @@ function wordfriends_siteops_guide_article_titles() {
         '애드센스 승인 필수 페이지 준비',
         'AdSense 신청 전 체크리스트',
         '애드센스 금지사항',
+        'Search Console 기초: 사이트 상태를 확인하기 전에 알아둘 것',
+        'Search Console 기초',
         '애드센스 기본 이해',
         '도메인 구매 전 체크',
         '네임서버 연결 이해하기',
@@ -2478,6 +2481,10 @@ function wordfriends_siteops_portal_styles() {
         font-weight: 800;
         text-decoration-thickness: 1px;
         text-underline-offset: 4px;
+      }
+      body.wordfriends-article-page .wp-block-query,
+      body.wordfriends-article-page .wp-block-heading.alignwide.has-small-font-size {
+        display: none !important;
       }
       body.wordfriends-article-page .comments-area,
       body.wordfriends-article-page #comments,

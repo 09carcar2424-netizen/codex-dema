@@ -2,7 +2,7 @@
 
 ## 목적
 
-Wordfriends 가이드/FAQ 초기 글 5개를 WordPress에 발행할 때 사용할 운영표입니다.  
+Wordfriends 가이드/FAQ 글을 WordPress에 발행할 때 사용할 운영표입니다.
 각 글은 고객 교육, 상담 전 이해도 향상, 서비스 신뢰 형성을 목적으로 하며 AdSense 승인, 수익, 트래픽, 검색 순위를 보장하지 않습니다.
 
 ## 발행 기본 원칙
@@ -74,9 +74,18 @@ Wordfriends 가이드/FAQ 초기 글 5개를 WordPress에 발행할 때 사용�
 - Search Console 색인 요청은 사이트 운영 상태를 본 뒤 진행합니다.
 - 발행 후 결과는 검색 노출이나 수익 보장이 아니라 운영 현황 기준으로만 검토합니다.
 
+## 2차 발행 운영표
+
+| 순서 | 파일 | WordPress 제목 | 카테고리 | 추천 슬러그 | CTA | 발행 상태 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 6 | `WORDFRIENDS_ARTICLE_SEARCH_CONSOLE_BASIC.md` | Search Console 기초: 사이트 상태를 확인하기 전에 알아둘 것 | 수익형 사이트 운영 | `search-console-basic` | 구축절차 / 가이드FAQ / 문의 | 발행 완료 |
+| 7 | 준비 예정 | 사이트맵 제출 이해하기: 검색엔진에 사이트 구조를 알려주는 방법 | 수익형 사이트 운영 | `sitemap-submission-basic` | 가이드FAQ / 구축절차 / 문의 | 후보 |
+| 8 | 준비 예정 | ads.txt는 언제 확인하나요? 광고 상태 점검 전 알아둘 것 | 애드센스 가이드 | `ads-txt-basic` | 가이드FAQ / 문의 / 구축절차 | 후보 |
+| 9 | 준비 예정 | 고객 포털 사용 안내: 내 사이트와 문의 상태 확인하기 | FAQ/공지 | `customer-portal-guide` | 고객포털 / 문의 / 가이드FAQ | 후보 |
+| 10 | 준비 예정 | 콘텐츠 운영 루틴 만들기: 발행보다 먼저 정할 기준 | 수익형 사이트 운영 | `content-operation-routine` | 서비스 / 가이드FAQ / 문의 | 후보 |
+
 ## 다음 글 후보
 
-- Search Console 기초
 - 사이트맵 제출 이해하기
 - ads.txt는 언제 확인하나요?
 - 콘텐츠 운영 루틴 만들기
