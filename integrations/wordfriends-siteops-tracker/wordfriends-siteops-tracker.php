@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.7.6
+ * Version: 0.7.7
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.7.6';
+const WORDFRIENDS_SITEOPS_VERSION = '0.7.7';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -3220,13 +3220,16 @@ function wordfriends_siteops_portal_styles() {
         z-index: 1;
       }
       .wordfriends-home-visual {
-        min-height: 410px;
+        min-height: 430px;
         border: 1px solid #24474d;
         border-radius: 8px;
         background:
-          radial-gradient(circle at 72% 20%, rgba(93, 224, 192, .34), transparent 24%),
-          radial-gradient(circle at 18% 70%, rgba(76, 142, 255, .18), transparent 28%),
+          radial-gradient(circle at 76% 22%, rgba(93, 224, 192, .38), transparent 24%),
+          radial-gradient(circle at 24% 58%, rgba(76, 142, 255, .24), transparent 26%),
+          linear-gradient(90deg, rgba(141, 232, 215, .07) 1px, transparent 1px),
+          linear-gradient(rgba(141, 232, 215, .06) 1px, transparent 1px),
           linear-gradient(135deg, rgba(8, 42, 47, .96), rgba(5, 18, 21, .98));
+        background-size: 100% 100%, 100% 100%, 34px 34px, 34px 34px, 100% 100%;
         display: grid;
         place-items: center;
         overflow: hidden;
@@ -3236,7 +3239,7 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-ai-core {
         position: relative;
         width: min(92%, 560px);
-        min-height: 350px;
+        min-height: 374px;
       }
       .wordfriends-ai-orbit,
       .wordfriends-ai-robot,
@@ -3317,11 +3320,12 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-ai-network {
         background:
-          linear-gradient(38deg, transparent 0 47%, rgba(93, 224, 192, .35) 47.5% 48%, transparent 48.5%),
-          linear-gradient(145deg, transparent 0 42%, rgba(93, 224, 192, .26) 42.4% 42.9%, transparent 43.3%),
-          linear-gradient(92deg, transparent 0 48%, rgba(93, 224, 192, .18) 48.4% 48.8%, transparent 49.2%);
-        opacity: .55;
-        animation: wordfriends-scan 3.6s ease-in-out infinite;
+          linear-gradient(34deg, transparent 0 47%, rgba(93, 224, 192, .48) 47.5% 48.3%, transparent 49%),
+          linear-gradient(146deg, transparent 0 42%, rgba(93, 224, 192, .34) 42.4% 43%, transparent 43.6%),
+          linear-gradient(91deg, transparent 0 48%, rgba(93, 224, 192, .24) 48.4% 49%, transparent 49.6%),
+          radial-gradient(circle at 62% 36%, rgba(93, 224, 192, .32), transparent 7%);
+        opacity: .68;
+        animation: wordfriends-network-drift 4.8s ease-in-out infinite;
       }
       .wordfriends-ai-dot {
         position: absolute;
@@ -3358,7 +3362,7 @@ function wordfriends_siteops_portal_styles() {
         position: absolute;
         inset: 8px;
         display: grid;
-        grid-template-columns: 1.12fr .88fr;
+        grid-template-columns: 1.04fr .96fr;
         grid-template-rows: 1fr 1fr;
         gap: 10px;
         animation: wordfriends-gallery-float 6.5s ease-in-out infinite;
@@ -3385,8 +3389,8 @@ function wordfriends_siteops_portal_styles() {
         opacity: .55;
       }
       .wordfriends-ai-shot::after {
-        background: linear-gradient(120deg, transparent 0 42%, rgba(93, 224, 192, .36) 43%, transparent 44% 100%);
-        animation: wordfriends-scan 4.4s ease-in-out infinite;
+        background: linear-gradient(104deg, transparent 0 36%, rgba(93, 224, 192, .45) 40%, rgba(255, 255, 255, .18) 41%, transparent 46% 100%);
+        animation: wordfriends-light-sweep 4.4s ease-in-out infinite;
       }
       .wordfriends-ai-shot > strong {
         position: absolute;
@@ -3401,25 +3405,30 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-ai-shot-robot {
         grid-row: span 2;
         background:
-          radial-gradient(circle at 50% 34%, rgba(141, 232, 215, .35), transparent 18%),
-          radial-gradient(circle at 28% 42%, rgba(76, 142, 255, .24), transparent 20%),
+          radial-gradient(circle at 37% 38%, rgba(141, 232, 215, .46), transparent 12%),
+          radial-gradient(circle at 64% 44%, rgba(76, 142, 255, .25), transparent 22%),
+          linear-gradient(90deg, rgba(141, 232, 215, .08) 1px, transparent 1px),
           linear-gradient(135deg, #12363d, #071a1f 72%);
+        background-size: 100% 100%, 100% 100%, 34px 100%, 100% 100%;
       }
       .wordfriends-ai-shot-robot .wordfriends-ai-robot {
-        inset: 18% 24% 22%;
+        inset: 17% 29% 23% 18%;
         animation: wordfriends-robot-glow 3.4s ease-in-out infinite;
       }
       .wordfriends-ai-shot-server {
         background:
-          repeating-linear-gradient(90deg, rgba(141, 232, 215, .16) 0 8px, transparent 8px 24px),
+          radial-gradient(circle at 24% 52%, rgba(93, 224, 192, .7) 0 3px, transparent 4px),
+          radial-gradient(circle at 72% 42%, rgba(93, 224, 192, .54) 0 3px, transparent 4px),
+          repeating-linear-gradient(90deg, rgba(141, 232, 215, .18) 0 9px, transparent 9px 25px),
           linear-gradient(135deg, #0d3038, #071a1f);
-        background-size: 42px 100%, 100% 100%;
+        background-size: 100% 100%, 100% 100%, 42px 100%, 100% 100%;
         animation: wordfriends-server-flow 5s linear infinite;
       }
       .wordfriends-ai-shot-map {
         background:
           radial-gradient(ellipse at 30% 48%, transparent 0 18%, rgba(141, 232, 215, .3) 19% 20%, transparent 21%),
           radial-gradient(ellipse at 66% 42%, transparent 0 22%, rgba(141, 232, 215, .25) 23% 24%, transparent 25%),
+          linear-gradient(34deg, transparent 0 49%, rgba(93, 224, 192, .42) 49.5% 50.4%, transparent 51%),
           linear-gradient(135deg, #0d3038, #071a1f);
       }
       .wordfriends-ai-visual-layer {
@@ -3461,6 +3470,14 @@ function wordfriends_siteops_portal_styles() {
       @keyframes wordfriends-scan {
         0%, 100% { opacity: .32; transform: translateY(-4px); }
         50% { opacity: .7; transform: translateY(4px); }
+      }
+      @keyframes wordfriends-network-drift {
+        0%, 100% { opacity: .46; transform: translate3d(-5px, 2px, 0) scale(1); }
+        50% { opacity: .85; transform: translate3d(5px, -3px, 0) scale(1.02); }
+      }
+      @keyframes wordfriends-light-sweep {
+        0%, 100% { opacity: .18; transform: translateX(-46%); }
+        45%, 58% { opacity: .78; transform: translateX(46%); }
       }
       @keyframes wordfriends-visual-glow {
         0%, 100% { box-shadow: inset 0 0 38px rgba(93, 224, 192, .08), 0 16px 44px rgba(0, 0, 0, .18); }
