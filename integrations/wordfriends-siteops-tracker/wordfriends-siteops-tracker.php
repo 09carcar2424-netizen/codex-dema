@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.7.7
+ * Version: 0.7.8
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.7.7';
+const WORDFRIENDS_SITEOPS_VERSION = '0.7.8';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -3460,6 +3460,177 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-ai-stack span:nth-child(2n) { animation-delay: .35s; }
       .wordfriends-ai-stack span:nth-child(3n) { animation-delay: .7s; }
+      .wordfriends-ai-scene {
+        position: absolute;
+        inset: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(141, 232, 215, .3);
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 36% 34%, rgba(141, 232, 215, .34), transparent 14%),
+          radial-gradient(circle at 72% 40%, rgba(76, 142, 255, .18), transparent 24%),
+          linear-gradient(90deg, rgba(6, 20, 24, .96), rgba(13, 48, 56, .82) 48%, rgba(6, 20, 24, .96)),
+          linear-gradient(180deg, #12363d, #061417 72%);
+        box-shadow: inset 0 0 44px rgba(93, 224, 192, .12);
+        animation: wordfriends-scene-breathe 6s ease-in-out infinite;
+      }
+      .wordfriends-ai-scene::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(90deg, rgba(141, 232, 215, .13) 0 4px, transparent 4px 28px),
+          linear-gradient(115deg, transparent 0 42%, rgba(93, 224, 192, .32) 43%, transparent 47%),
+          linear-gradient(66deg, transparent 0 52%, rgba(76, 142, 255, .22) 53%, transparent 57%);
+        opacity: .65;
+        animation: wordfriends-light-sweep 5.2s ease-in-out infinite;
+      }
+      .wordfriends-ai-scene::after {
+        content: "";
+        position: absolute;
+        left: -12%;
+        right: -12%;
+        bottom: -22%;
+        height: 46%;
+        background:
+          linear-gradient(rgba(141, 232, 215, .08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(141, 232, 215, .1) 1px, transparent 1px);
+        background-size: 22px 22px;
+        transform: perspective(320px) rotateX(62deg);
+        transform-origin: center bottom;
+        opacity: .5;
+      }
+      .wordfriends-server-rack {
+        position: absolute;
+        top: 16%;
+        bottom: 18%;
+        width: 20%;
+        border: 1px solid rgba(141, 232, 215, .2);
+        border-radius: 8px;
+        background:
+          repeating-linear-gradient(180deg, rgba(141, 232, 215, .16) 0 5px, transparent 5px 19px),
+          linear-gradient(90deg, rgba(141, 232, 215, .11), rgba(5, 18, 21, .55));
+        box-shadow: inset 0 0 28px rgba(93, 224, 192, .12);
+      }
+      .wordfriends-server-rack-left { left: 4%; }
+      .wordfriends-server-rack-right { right: 4%; }
+      .wordfriends-robot-figure {
+        position: absolute;
+        left: 18%;
+        top: 21%;
+        width: 24%;
+        height: 58%;
+        z-index: 3;
+        filter: drop-shadow(0 0 18px rgba(93, 224, 192, .35));
+        animation: wordfriends-robot-hover 5.5s ease-in-out infinite;
+      }
+      .wordfriends-robot-head,
+      .wordfriends-robot-body,
+      .wordfriends-robot-arm {
+        position: absolute;
+        border: 1px solid rgba(141, 232, 215, .42);
+        background: linear-gradient(135deg, rgba(223, 255, 246, .82), rgba(45, 94, 103, .56));
+      }
+      .wordfriends-robot-head {
+        left: 24%;
+        top: 0;
+        width: 48%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+      }
+      .wordfriends-robot-head::before,
+      .wordfriends-robot-head::after {
+        content: "";
+        position: absolute;
+        top: 42%;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #071a1f;
+        box-shadow: 0 0 12px rgba(93, 224, 192, .7);
+      }
+      .wordfriends-robot-head::before { left: 31%; }
+      .wordfriends-robot-head::after { right: 31%; }
+      .wordfriends-robot-body {
+        left: 20%;
+        top: 33%;
+        width: 56%;
+        height: 46%;
+        border-radius: 18px 18px 24px 24px;
+      }
+      .wordfriends-robot-arm {
+        right: -34%;
+        top: 43%;
+        width: 54%;
+        height: 12px;
+        border-radius: 999px;
+        transform: rotate(-16deg);
+        transform-origin: left center;
+      }
+      .wordfriends-hologram {
+        position: absolute;
+        right: 11%;
+        top: 20%;
+        width: 45%;
+        height: 48%;
+        z-index: 4;
+        border: 1px solid rgba(141, 232, 215, .54);
+        border-radius: 8px;
+        background:
+          linear-gradient(rgba(141, 232, 215, .12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(141, 232, 215, .12) 1px, transparent 1px),
+          linear-gradient(135deg, rgba(93, 224, 192, .18), rgba(7, 26, 31, .28));
+        background-size: 24px 24px, 24px 24px, 100% 100%;
+        box-shadow: 0 0 28px rgba(93, 224, 192, .24), inset 0 0 24px rgba(93, 224, 192, .12);
+        animation: wordfriends-hologram-shimmer 4.2s ease-in-out infinite;
+      }
+      .wordfriends-hologram::before,
+      .wordfriends-hologram::after {
+        content: "";
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        height: 8px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(93, 224, 192, .18), #dffff6, rgba(93, 224, 192, .18));
+        box-shadow: 0 0 18px rgba(93, 224, 192, .45);
+      }
+      .wordfriends-hologram::before { top: 30%; width: 68%; }
+      .wordfriends-hologram::after { top: 55%; width: 48%; }
+      .wordfriends-data-beam {
+        position: absolute;
+        left: 42%;
+        top: 43%;
+        width: 42%;
+        height: 2px;
+        z-index: 5;
+        background: linear-gradient(90deg, transparent, #dffff6, rgba(93, 224, 192, .24));
+        box-shadow: 0 0 18px rgba(93, 224, 192, .72);
+        transform: rotate(-8deg);
+        animation: wordfriends-beam-pulse 2.2s ease-in-out infinite;
+      }
+      .wordfriends-scene-tags {
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 16px;
+        z-index: 6;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .wordfriends-scene-tags span {
+        border: 1px solid rgba(141, 232, 215, .38);
+        border-radius: 999px;
+        padding: 6px 9px;
+        background: rgba(5, 18, 21, .78);
+        color: #dffdf8;
+        font-size: 10px;
+        font-weight: 900;
+        line-height: 1;
+        backdrop-filter: blur(4px);
+        animation: wordfriends-chip-flicker 4.8s ease-in-out infinite;
+      }
       @keyframes wordfriends-orbit {
         to { transform: rotate(360deg); }
       }
@@ -3497,6 +3668,22 @@ function wordfriends_siteops_portal_styles() {
       @keyframes wordfriends-chip-flicker {
         0%, 100% { opacity: .82; }
         48%, 56% { opacity: 1; border-color: rgba(93, 224, 192, .72); }
+      }
+      @keyframes wordfriends-scene-breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.012); }
+      }
+      @keyframes wordfriends-robot-hover {
+        0%, 100% { transform: translate3d(0, 0, 0); }
+        50% { transform: translate3d(0, -6px, 0); }
+      }
+      @keyframes wordfriends-hologram-shimmer {
+        0%, 100% { opacity: .78; transform: translateX(0); }
+        50% { opacity: 1; transform: translateX(4px); }
+      }
+      @keyframes wordfriends-beam-pulse {
+        0%, 100% { opacity: .38; }
+        50% { opacity: 1; }
       }
       .wordfriends-home-eyebrow {
         display: block;
@@ -3742,7 +3929,15 @@ function wordfriends_siteops_portal_styles() {
           grid-template-columns: 1fr;
         }
         .wordfriends-home-visual {
-          min-height: 220px;
+          min-height: 310px;
+        }
+        .wordfriends-ai-core {
+          width: min(96%, 420px);
+          min-height: 270px;
+        }
+        .wordfriends-scene-tags span {
+          font-size: 9px;
+          padding: 5px 7px;
         }
         .wordfriends-home-trust,
         .wordfriends-home-portal {
@@ -4257,31 +4452,29 @@ function wordfriends_siteops_home_shortcode($atts = []) {
             </div>
             <div class="wordfriends-home-visual" aria-hidden="true">
                 <div class="wordfriends-ai-core">
-                    <div class="wordfriends-ai-gallery">
-                        <span class="wordfriends-ai-shot wordfriends-ai-shot-robot">
-                            <span class="wordfriends-ai-robot"><strong>AI OPS</strong><span></span></span>
-                            <strong>AUTOMATION CONTROL</strong>
+                    <span class="wordfriends-ai-scene">
+                        <span class="wordfriends-server-rack wordfriends-server-rack-left"></span>
+                        <span class="wordfriends-server-rack wordfriends-server-rack-right"></span>
+                        <span class="wordfriends-robot-figure">
+                            <span class="wordfriends-robot-head"></span>
+                            <span class="wordfriends-robot-body"></span>
+                            <span class="wordfriends-robot-arm"></span>
                         </span>
-                        <span class="wordfriends-ai-shot wordfriends-ai-shot-server"><strong>SERVER / CLOUD</strong></span>
-                        <span class="wordfriends-ai-shot wordfriends-ai-shot-map"><strong>GLOBAL NETWORK</strong></span>
-                    </div>
-                    <span class="wordfriends-ai-visual-layer">
-                        <span class="wordfriends-ai-orbit"></span>
-                        <span class="wordfriends-ai-orbit"></span>
-                        <span class="wordfriends-ai-network"></span>
+                        <span class="wordfriends-hologram"></span>
+                        <span class="wordfriends-data-beam"></span>
                         <span class="wordfriends-ai-dot wordfriends-ai-dot-one"></span>
                         <span class="wordfriends-ai-dot wordfriends-ai-dot-two"></span>
                         <span class="wordfriends-ai-dot wordfriends-ai-dot-three"></span>
                         <span class="wordfriends-ai-dot wordfriends-ai-dot-four"></span>
                         <span class="wordfriends-ai-dot wordfriends-ai-dot-five"></span>
                         <span class="wordfriends-ai-dot wordfriends-ai-dot-six"></span>
-                        <span class="wordfriends-ai-label wordfriends-ai-label-code">CODE</span>
+                        <span class="wordfriends-ai-label wordfriends-ai-label-code">AI</span>
                         <span class="wordfriends-ai-label wordfriends-ai-label-api">API</span>
                         <span class="wordfriends-ai-label wordfriends-ai-label-db">DB</span>
                         <span class="wordfriends-ai-label wordfriends-ai-label-auto">AUTO</span>
-                    </span>
-                    <span class="wordfriends-ai-stack">
-                        <span>PHP</span><span>Python</span><span>Node.js</span><span>TypeScript</span><span>PostgreSQL</span><span>MySQL</span><span>Linux</span><span>API</span>
+                        <span class="wordfriends-scene-tags">
+                            <span>PHP</span><span>Python</span><span>Node.js</span><span>TypeScript</span><span>PostgreSQL</span><span>MySQL</span><span>Linux</span><span>API</span>
+                        </span>
                     </span>
                 </div>
             </div>
