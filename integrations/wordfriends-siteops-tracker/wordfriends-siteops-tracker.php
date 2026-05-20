@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.7.3
+ * Version: 0.7.4
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.7.3';
+const WORDFRIENDS_SITEOPS_VERSION = '0.7.4';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -3220,29 +3220,32 @@ function wordfriends_siteops_portal_styles() {
         z-index: 1;
       }
       .wordfriends-home-visual {
-        min-height: 260px;
+        min-height: 320px;
         border: 1px solid #24474d;
         border-radius: 8px;
         background:
-          radial-gradient(circle at 50% 50%, rgba(93, 224, 192, .22), transparent 28%),
-          linear-gradient(135deg, rgba(8, 42, 47, .9), rgba(5, 18, 21, .96));
+          radial-gradient(circle at 50% 45%, rgba(93, 224, 192, .32), transparent 25%),
+          radial-gradient(circle at 15% 18%, rgba(76, 142, 255, .18), transparent 26%),
+          linear-gradient(135deg, rgba(8, 42, 47, .94), rgba(5, 18, 21, .98));
         display: grid;
         place-items: center;
         overflow: hidden;
+        box-shadow: inset 0 0 38px rgba(93, 224, 192, .08), 0 16px 44px rgba(0, 0, 0, .18);
       }
       .wordfriends-ai-core {
         position: relative;
-        width: min(78%, 300px);
+        width: min(86%, 360px);
         aspect-ratio: 1;
       }
       .wordfriends-ai-orbit,
       .wordfriends-ai-robot,
-      .wordfriends-ai-map {
+      .wordfriends-ai-map,
+      .wordfriends-ai-network {
         position: absolute;
         inset: 0;
       }
       .wordfriends-ai-orbit {
-        border: 1px solid rgba(141, 232, 215, .28);
+        border: 1px solid rgba(141, 232, 215, .34);
         border-radius: 50%;
         animation: wordfriends-orbit 14s linear infinite;
       }
@@ -3252,11 +3255,15 @@ function wordfriends_siteops_portal_styles() {
         animation-direction: reverse;
       }
       .wordfriends-ai-robot {
-        inset: 25%;
+        inset: 22%;
         border: 1px solid rgba(141, 232, 215, .44);
         border-radius: 8px;
-        background: #071a1f;
-        box-shadow: 0 0 34px rgba(53, 198, 165, .18);
+        background:
+          linear-gradient(rgba(141, 232, 215, .08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(141, 232, 215, .08) 1px, transparent 1px),
+          #071a1f;
+        background-size: 18px 18px;
+        box-shadow: 0 0 34px rgba(53, 198, 165, .25);
       }
       .wordfriends-ai-robot::before,
       .wordfriends-ai-robot::after {
@@ -3275,33 +3282,87 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-ai-robot::after {
         right: 28%;
       }
+      .wordfriends-ai-robot span {
+        position: absolute;
+        left: 50%;
+        bottom: 22%;
+        width: 48%;
+        height: 5px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(93, 224, 192, .18), #8de8d7, rgba(93, 224, 192, .18));
+        transform: translateX(-50%);
+        box-shadow: 0 0 16px rgba(141, 232, 215, .5);
+      }
+      .wordfriends-ai-robot strong {
+        position: absolute;
+        left: 50%;
+        top: 12px;
+        transform: translateX(-50%);
+        color: #8de8d7;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
+      }
       .wordfriends-ai-map {
         opacity: .72;
         background:
+          radial-gradient(ellipse at 28% 40%, transparent 0 17%, rgba(141, 232, 215, .22) 17.5% 18.4%, transparent 19%),
+          radial-gradient(ellipse at 62% 47%, transparent 0 21%, rgba(141, 232, 215, .2) 21.5% 22.2%, transparent 23%),
           linear-gradient(90deg, rgba(141, 232, 215, .08) 1px, transparent 1px),
           linear-gradient(rgba(141, 232, 215, .08) 1px, transparent 1px);
-        background-size: 28px 28px;
+        background-size: 100% 100%, 100% 100%, 24px 24px, 24px 24px;
         mask-image: radial-gradient(ellipse at center, #000 42%, transparent 72%);
+      }
+      .wordfriends-ai-network {
+        background:
+          linear-gradient(38deg, transparent 0 47%, rgba(93, 224, 192, .35) 47.5% 48%, transparent 48.5%),
+          linear-gradient(145deg, transparent 0 42%, rgba(93, 224, 192, .26) 42.4% 42.9%, transparent 43.3%),
+          linear-gradient(92deg, transparent 0 48%, rgba(93, 224, 192, .18) 48.4% 48.8%, transparent 49.2%);
+        opacity: .55;
+        animation: wordfriends-scan 3.6s ease-in-out infinite;
       }
       .wordfriends-ai-dot {
         position: absolute;
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
         background: #5de0c0;
         box-shadow: 0 0 18px rgba(93, 224, 192, .9);
         animation: wordfriends-pulse 1.8s ease-in-out infinite;
       }
-      .wordfriends-ai-dot:nth-child(5) { left: 18%; top: 42%; animation-delay: .1s; }
-      .wordfriends-ai-dot:nth-child(6) { left: 42%; top: 28%; animation-delay: .5s; }
-      .wordfriends-ai-dot:nth-child(7) { right: 22%; top: 46%; animation-delay: .9s; }
-      .wordfriends-ai-dot:nth-child(8) { left: 58%; bottom: 22%; animation-delay: 1.2s; }
+      .wordfriends-ai-dot-one { left: 14%; top: 38%; animation-delay: .1s; }
+      .wordfriends-ai-dot-two { left: 36%; top: 17%; animation-delay: .45s; }
+      .wordfriends-ai-dot-three { right: 18%; top: 43%; animation-delay: .8s; }
+      .wordfriends-ai-dot-four { left: 56%; bottom: 14%; animation-delay: 1.1s; }
+      .wordfriends-ai-dot-five { right: 32%; top: 24%; animation-delay: 1.35s; }
+      .wordfriends-ai-dot-six { left: 25%; bottom: 28%; animation-delay: 1.6s; }
+      .wordfriends-ai-label {
+        position: absolute;
+        border: 1px solid rgba(141, 232, 215, .36);
+        border-radius: 999px;
+        padding: 6px 9px;
+        background: rgba(7, 26, 31, .86);
+        color: #dffdf8;
+        font-size: 10px;
+        font-weight: 900;
+        line-height: 1;
+        box-shadow: 0 0 18px rgba(93, 224, 192, .08);
+      }
+      .wordfriends-ai-label-code { left: 0; top: 10%; }
+      .wordfriends-ai-label-api { right: 0; top: 18%; }
+      .wordfriends-ai-label-db { left: 3%; bottom: 14%; }
+      .wordfriends-ai-label-auto { right: 1%; bottom: 10%; }
       @keyframes wordfriends-orbit {
         to { transform: rotate(360deg); }
       }
       @keyframes wordfriends-pulse {
         0%, 100% { transform: scale(.85); opacity: .45; }
         50% { transform: scale(1.45); opacity: 1; }
+      }
+      @keyframes wordfriends-scan {
+        0%, 100% { opacity: .32; transform: translateY(-4px); }
+        50% { opacity: .7; transform: translateY(4px); }
       }
       .wordfriends-home-eyebrow {
         display: block;
@@ -4065,11 +4126,18 @@ function wordfriends_siteops_home_shortcode($atts = []) {
                     <span class="wordfriends-ai-orbit"></span>
                     <span class="wordfriends-ai-orbit"></span>
                     <span class="wordfriends-ai-map"></span>
-                    <span class="wordfriends-ai-robot"></span>
-                    <span class="wordfriends-ai-dot"></span>
-                    <span class="wordfriends-ai-dot"></span>
-                    <span class="wordfriends-ai-dot"></span>
-                    <span class="wordfriends-ai-dot"></span>
+                    <span class="wordfriends-ai-network"></span>
+                    <span class="wordfriends-ai-robot"><strong>AI OPS</strong><span></span></span>
+                    <span class="wordfriends-ai-dot wordfriends-ai-dot-one"></span>
+                    <span class="wordfriends-ai-dot wordfriends-ai-dot-two"></span>
+                    <span class="wordfriends-ai-dot wordfriends-ai-dot-three"></span>
+                    <span class="wordfriends-ai-dot wordfriends-ai-dot-four"></span>
+                    <span class="wordfriends-ai-dot wordfriends-ai-dot-five"></span>
+                    <span class="wordfriends-ai-dot wordfriends-ai-dot-six"></span>
+                    <span class="wordfriends-ai-label wordfriends-ai-label-code">CODE</span>
+                    <span class="wordfriends-ai-label wordfriends-ai-label-api">API</span>
+                    <span class="wordfriends-ai-label wordfriends-ai-label-db">DB</span>
+                    <span class="wordfriends-ai-label wordfriends-ai-label-auto">AUTO</span>
                 </div>
             </div>
         </div>
