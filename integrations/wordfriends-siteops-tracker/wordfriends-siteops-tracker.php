@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.7.4
+ * Version: 0.7.5
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.7.4';
+const WORDFRIENDS_SITEOPS_VERSION = '0.7.5';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -3206,7 +3206,7 @@ function wordfriends_siteops_portal_styles() {
         position: relative;
         overflow: hidden;
         display: grid;
-        grid-template-columns: minmax(0, 1.05fr) minmax(260px, .95fr);
+        grid-template-columns: minmax(240px, .82fr) minmax(0, 1.18fr);
         gap: 22px;
         align-items: center;
         border: 1px solid #24474d;
@@ -3220,13 +3220,13 @@ function wordfriends_siteops_portal_styles() {
         z-index: 1;
       }
       .wordfriends-home-visual {
-        min-height: 320px;
+        min-height: 410px;
         border: 1px solid #24474d;
         border-radius: 8px;
         background:
-          radial-gradient(circle at 50% 45%, rgba(93, 224, 192, .32), transparent 25%),
-          radial-gradient(circle at 15% 18%, rgba(76, 142, 255, .18), transparent 26%),
-          linear-gradient(135deg, rgba(8, 42, 47, .94), rgba(5, 18, 21, .98));
+          radial-gradient(circle at 72% 20%, rgba(93, 224, 192, .34), transparent 24%),
+          radial-gradient(circle at 18% 70%, rgba(76, 142, 255, .18), transparent 28%),
+          linear-gradient(135deg, rgba(8, 42, 47, .96), rgba(5, 18, 21, .98));
         display: grid;
         place-items: center;
         overflow: hidden;
@@ -3234,8 +3234,8 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-ai-core {
         position: relative;
-        width: min(86%, 360px);
-        aspect-ratio: 1;
+        width: min(92%, 560px);
+        min-height: 350px;
       }
       .wordfriends-ai-orbit,
       .wordfriends-ai-robot,
@@ -3353,6 +3353,96 @@ function wordfriends_siteops_portal_styles() {
       .wordfriends-ai-label-api { right: 0; top: 18%; }
       .wordfriends-ai-label-db { left: 3%; bottom: 14%; }
       .wordfriends-ai-label-auto { right: 1%; bottom: 10%; }
+      .wordfriends-ai-gallery {
+        position: absolute;
+        inset: 8px;
+        display: grid;
+        grid-template-columns: 1.12fr .88fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 10px;
+      }
+      .wordfriends-ai-shot {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(141, 232, 215, .26);
+        border-radius: 8px;
+        background: #071a1f;
+        box-shadow: inset 0 0 24px rgba(93, 224, 192, .08);
+      }
+      .wordfriends-ai-shot::before,
+      .wordfriends-ai-shot::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+      }
+      .wordfriends-ai-shot::before {
+        background:
+          linear-gradient(rgba(141, 232, 215, .08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(141, 232, 215, .08) 1px, transparent 1px);
+        background-size: 22px 22px;
+        opacity: .55;
+      }
+      .wordfriends-ai-shot::after {
+        background: linear-gradient(120deg, transparent 0 42%, rgba(93, 224, 192, .36) 43%, transparent 44% 100%);
+        animation: wordfriends-scan 4.4s ease-in-out infinite;
+      }
+      .wordfriends-ai-shot > strong {
+        position: absolute;
+        left: 14px;
+        bottom: 12px;
+        z-index: 2;
+        color: #e6fffb;
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1.1;
+      }
+      .wordfriends-ai-shot-robot {
+        grid-row: span 2;
+        background:
+          radial-gradient(circle at 50% 34%, rgba(141, 232, 215, .35), transparent 18%),
+          radial-gradient(circle at 28% 42%, rgba(76, 142, 255, .24), transparent 20%),
+          linear-gradient(135deg, #12363d, #071a1f 72%);
+      }
+      .wordfriends-ai-shot-robot .wordfriends-ai-robot {
+        inset: 18% 24% 22%;
+      }
+      .wordfriends-ai-shot-server {
+        background:
+          repeating-linear-gradient(90deg, rgba(141, 232, 215, .16) 0 8px, transparent 8px 24px),
+          linear-gradient(135deg, #0d3038, #071a1f);
+      }
+      .wordfriends-ai-shot-map {
+        background:
+          radial-gradient(ellipse at 30% 48%, transparent 0 18%, rgba(141, 232, 215, .3) 19% 20%, transparent 21%),
+          radial-gradient(ellipse at 66% 42%, transparent 0 22%, rgba(141, 232, 215, .25) 23% 24%, transparent 25%),
+          linear-gradient(135deg, #0d3038, #071a1f);
+      }
+      .wordfriends-ai-visual-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .wordfriends-ai-stack {
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 16px;
+        z-index: 4;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .wordfriends-ai-stack span {
+        border: 1px solid rgba(141, 232, 215, .34);
+        border-radius: 999px;
+        padding: 6px 9px;
+        background: rgba(5, 18, 21, .82);
+        color: #dffdf8;
+        font-size: 10px;
+        font-weight: 900;
+        line-height: 1;
+        backdrop-filter: blur(4px);
+      }
       @keyframes wordfriends-orbit {
         to { transform: rotate(360deg); }
       }
@@ -4123,21 +4213,32 @@ function wordfriends_siteops_home_shortcode($atts = []) {
             </div>
             <div class="wordfriends-home-visual" aria-hidden="true">
                 <div class="wordfriends-ai-core">
-                    <span class="wordfriends-ai-orbit"></span>
-                    <span class="wordfriends-ai-orbit"></span>
-                    <span class="wordfriends-ai-map"></span>
-                    <span class="wordfriends-ai-network"></span>
-                    <span class="wordfriends-ai-robot"><strong>AI OPS</strong><span></span></span>
-                    <span class="wordfriends-ai-dot wordfriends-ai-dot-one"></span>
-                    <span class="wordfriends-ai-dot wordfriends-ai-dot-two"></span>
-                    <span class="wordfriends-ai-dot wordfriends-ai-dot-three"></span>
-                    <span class="wordfriends-ai-dot wordfriends-ai-dot-four"></span>
-                    <span class="wordfriends-ai-dot wordfriends-ai-dot-five"></span>
-                    <span class="wordfriends-ai-dot wordfriends-ai-dot-six"></span>
-                    <span class="wordfriends-ai-label wordfriends-ai-label-code">CODE</span>
-                    <span class="wordfriends-ai-label wordfriends-ai-label-api">API</span>
-                    <span class="wordfriends-ai-label wordfriends-ai-label-db">DB</span>
-                    <span class="wordfriends-ai-label wordfriends-ai-label-auto">AUTO</span>
+                    <div class="wordfriends-ai-gallery">
+                        <span class="wordfriends-ai-shot wordfriends-ai-shot-robot">
+                            <span class="wordfriends-ai-robot"><strong>AI OPS</strong><span></span></span>
+                            <strong>AUTOMATION CONTROL</strong>
+                        </span>
+                        <span class="wordfriends-ai-shot wordfriends-ai-shot-server"><strong>SERVER / CLOUD</strong></span>
+                        <span class="wordfriends-ai-shot wordfriends-ai-shot-map"><strong>GLOBAL NETWORK</strong></span>
+                    </div>
+                    <span class="wordfriends-ai-visual-layer">
+                        <span class="wordfriends-ai-orbit"></span>
+                        <span class="wordfriends-ai-orbit"></span>
+                        <span class="wordfriends-ai-network"></span>
+                        <span class="wordfriends-ai-dot wordfriends-ai-dot-one"></span>
+                        <span class="wordfriends-ai-dot wordfriends-ai-dot-two"></span>
+                        <span class="wordfriends-ai-dot wordfriends-ai-dot-three"></span>
+                        <span class="wordfriends-ai-dot wordfriends-ai-dot-four"></span>
+                        <span class="wordfriends-ai-dot wordfriends-ai-dot-five"></span>
+                        <span class="wordfriends-ai-dot wordfriends-ai-dot-six"></span>
+                        <span class="wordfriends-ai-label wordfriends-ai-label-code">CODE</span>
+                        <span class="wordfriends-ai-label wordfriends-ai-label-api">API</span>
+                        <span class="wordfriends-ai-label wordfriends-ai-label-db">DB</span>
+                        <span class="wordfriends-ai-label wordfriends-ai-label-auto">AUTO</span>
+                    </span>
+                    <span class="wordfriends-ai-stack">
+                        <span>PHP</span><span>Python</span><span>Node.js</span><span>TypeScript</span><span>PostgreSQL</span><span>MySQL</span><span>Linux</span><span>API</span>
+                    </span>
                 </div>
             </div>
         </div>
@@ -4158,16 +4259,6 @@ function wordfriends_siteops_home_shortcode($atts = []) {
                 <strong>데이터 흐름을 정리합니다</strong>
                 <span>DB, 서버, 외부 API를 연결해 운영 상태를 보기 쉬운 형태로 구성합니다.</span>
             </article>
-        </div>
-
-        <div class="wordfriends-home-steps wordfriends-home-focus">
-            <h3>기술 기반</h3>
-            <p>필요한 기술을 과하게 드러내기보다, 실제 운영에 맞는 조합으로 사용합니다.</p>
-            <div class="wordfriends-tech-strip">
-                <span>HTML</span><span>CSS</span><span>JavaScript</span><span>TypeScript</span><span>PHP</span><span>Python</span><span>Node.js</span>
-                <span>Linux</span><span>Windows</span><span>Android</span><span>iOS</span>
-                <span>PostgreSQL</span><span>MySQL</span><span>MongoDB</span><span>Redis</span>
-            </div>
         </div>
 
         <div class="wordfriends-home-grid">
