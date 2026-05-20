@@ -10,7 +10,7 @@ Server project: /home/boss/codex-dema
 Wordfriends: https://wordfriends.co.kr
 SiteOps admin: https://siteops.09car.co.kr
 Core plugin: integrations/wordfriends-siteops-tracker/wordfriends-siteops-tracker.php
-Current verified plugin version: 0.7.1
+Current verified plugin version: 0.7.2
 ```
 
 ## Stabilization Checklist
