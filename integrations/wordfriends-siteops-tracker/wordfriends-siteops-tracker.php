@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.7.5
+ * Version: 0.7.6
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.7.5';
+const WORDFRIENDS_SITEOPS_VERSION = '0.7.6';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -3231,6 +3231,7 @@ function wordfriends_siteops_portal_styles() {
         place-items: center;
         overflow: hidden;
         box-shadow: inset 0 0 38px rgba(93, 224, 192, .08), 0 16px 44px rgba(0, 0, 0, .18);
+        animation: wordfriends-visual-glow 7s ease-in-out infinite;
       }
       .wordfriends-ai-core {
         position: relative;
@@ -3360,6 +3361,7 @@ function wordfriends_siteops_portal_styles() {
         grid-template-columns: 1.12fr .88fr;
         grid-template-rows: 1fr 1fr;
         gap: 10px;
+        animation: wordfriends-gallery-float 6.5s ease-in-out infinite;
       }
       .wordfriends-ai-shot {
         position: relative;
@@ -3405,11 +3407,14 @@ function wordfriends_siteops_portal_styles() {
       }
       .wordfriends-ai-shot-robot .wordfriends-ai-robot {
         inset: 18% 24% 22%;
+        animation: wordfriends-robot-glow 3.4s ease-in-out infinite;
       }
       .wordfriends-ai-shot-server {
         background:
           repeating-linear-gradient(90deg, rgba(141, 232, 215, .16) 0 8px, transparent 8px 24px),
           linear-gradient(135deg, #0d3038, #071a1f);
+        background-size: 42px 100%, 100% 100%;
+        animation: wordfriends-server-flow 5s linear infinite;
       }
       .wordfriends-ai-shot-map {
         background:
@@ -3442,7 +3447,10 @@ function wordfriends_siteops_portal_styles() {
         font-weight: 900;
         line-height: 1;
         backdrop-filter: blur(4px);
+        animation: wordfriends-chip-flicker 4.8s ease-in-out infinite;
       }
+      .wordfriends-ai-stack span:nth-child(2n) { animation-delay: .35s; }
+      .wordfriends-ai-stack span:nth-child(3n) { animation-delay: .7s; }
       @keyframes wordfriends-orbit {
         to { transform: rotate(360deg); }
       }
@@ -3453,6 +3461,25 @@ function wordfriends_siteops_portal_styles() {
       @keyframes wordfriends-scan {
         0%, 100% { opacity: .32; transform: translateY(-4px); }
         50% { opacity: .7; transform: translateY(4px); }
+      }
+      @keyframes wordfriends-visual-glow {
+        0%, 100% { box-shadow: inset 0 0 38px rgba(93, 224, 192, .08), 0 16px 44px rgba(0, 0, 0, .18); }
+        50% { box-shadow: inset 0 0 58px rgba(93, 224, 192, .16), 0 18px 52px rgba(0, 0, 0, .24); }
+      }
+      @keyframes wordfriends-gallery-float {
+        0%, 100% { transform: translate3d(0, 0, 0); }
+        50% { transform: translate3d(0, -5px, 0); }
+      }
+      @keyframes wordfriends-robot-glow {
+        0%, 100% { box-shadow: 0 0 34px rgba(53, 198, 165, .22); }
+        50% { box-shadow: 0 0 48px rgba(93, 224, 192, .42); }
+      }
+      @keyframes wordfriends-server-flow {
+        to { background-position: 42px 0, 0 0; }
+      }
+      @keyframes wordfriends-chip-flicker {
+        0%, 100% { opacity: .82; }
+        48%, 56% { opacity: 1; border-color: rgba(93, 224, 192, .72); }
       }
       .wordfriends-home-eyebrow {
         display: block;
@@ -4259,6 +4286,16 @@ function wordfriends_siteops_home_shortcode($atts = []) {
                 <strong>데이터 흐름을 정리합니다</strong>
                 <span>DB, 서버, 외부 API를 연결해 운영 상태를 보기 쉬운 형태로 구성합니다.</span>
             </article>
+        </div>
+
+        <div class="wordfriends-home-steps wordfriends-home-focus">
+            <h3>기술 기반</h3>
+            <p>필요한 기술을 과하게 드러내기보다, 실제 운영에 맞는 조합으로 사용합니다.</p>
+            <div class="wordfriends-tech-strip">
+                <span>HTML</span><span>CSS</span><span>JavaScript</span><span>TypeScript</span><span>PHP</span><span>Python</span><span>Node.js</span>
+                <span>Linux</span><span>Windows</span><span>Android</span><span>iOS</span>
+                <span>PostgreSQL</span><span>MySQL</span><span>MongoDB</span><span>Redis</span>
+            </div>
         </div>
 
         <div class="wordfriends-home-grid">
