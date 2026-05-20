@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Wordfriends SiteOps Tracker
  * Description: Sends Wordfriends portal activity and support questions to BOSS SiteOps without exposing the event token in the browser.
- * Version: 0.6.7
+ * Version: 0.6.9
  * Author: BOSS SiteOps
  */
 
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 
 const WORDFRIENDS_SITEOPS_OPTION_ENDPOINT = 'wordfriends_siteops_endpoint';
 const WORDFRIENDS_SITEOPS_OPTION_TOKEN = 'wordfriends_siteops_token';
-const WORDFRIENDS_SITEOPS_VERSION = '0.6.7';
+const WORDFRIENDS_SITEOPS_VERSION = '0.6.9';
 
 function wordfriends_siteops_default_endpoint() {
     if (defined('WORDFRIENDS_SITEOPS_ENDPOINT') && WORDFRIENDS_SITEOPS_ENDPOINT) {
@@ -166,7 +166,15 @@ function wordfriends_siteops_is_guide_article_post($post_id = null) {
         return true;
     }
 
-    return has_category(['adsense-guide', 'domain-hosting-server', 'wordpress-setup'], $post_id);
+    return has_category([
+        'adsense-guide',
+        'domain-hosting-server',
+        'wordpress-setup',
+        'revenue-site-operations',
+        'faq-notice',
+        '수익형 사이트 운영',
+        'FAQ/공지',
+    ], $post_id);
 }
 
 function wordfriends_siteops_close_guide_article_comments($open, $post_id) {
@@ -178,6 +186,27 @@ function wordfriends_siteops_close_guide_article_comments($open, $post_id) {
 }
 add_filter('comments_open', 'wordfriends_siteops_close_guide_article_comments', 20, 2);
 add_filter('pings_open', 'wordfriends_siteops_close_guide_article_comments', 20, 2);
+
+function wordfriends_siteops_trim_repeated_guarantee_notes($content) {
+    if (is_admin() || !is_singular('post')) {
+        return $content;
+    }
+
+    $phrases = [
+        'Wordfriends는 승인/수익 보장이 아니라 정책 리스크를 줄이는 준비를 돕는다는 문구',
+        'Wordfriends는 승인/수익 보장이 아니라',
+    ];
+
+    foreach ($phrases as $phrase) {
+        $escaped = preg_quote($phrase, '~');
+        $content = preg_replace('~<li[^>]*>[^<]*' . $escaped . '[^<]*</li>~u', '', $content);
+        $content = preg_replace('~<p[^>]*>[^<]*' . $escaped . '[^<]*</p>~u', '', $content);
+        $content = str_replace($phrase, '', $content);
+    }
+
+    return $content;
+}
+add_filter('the_content', 'wordfriends_siteops_trim_repeated_guarantee_notes', 12);
 
 function wordfriends_siteops_hide_guide_article_comments($comments, $post_id) {
     if (wordfriends_siteops_is_guide_article_post($post_id)) {
@@ -2448,6 +2477,18 @@ function wordfriends_siteops_portal_styles() {
         color: #c7e8e4;
         font-size: 16px;
         line-height: 1.75;
+      }
+      body:has(.wordfriends-article) .entry-content,
+      body:has(.wordfriends-article) .wp-block-post-content,
+      body:has(a[rel="category tag"]) .entry-content,
+      body:has(a[rel="category tag"]) .wp-block-post-content,
+      body:has(.taxonomy-category a) .entry-content,
+      body:has(.taxonomy-category a) .wp-block-post-content {
+        box-sizing: border-box;
+        width: min(100%, 960px) !important;
+        max-width: 960px !important;
+        margin-right: auto !important;
+        margin-left: auto !important;
       }
       body.wordfriends-article-page:not(.wordfriends-article-has-wrapper) .entry-content,
       body.wordfriends-article-page:not(.wordfriends-article-has-wrapper) .wp-block-post-content {
